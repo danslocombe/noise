@@ -8,21 +8,13 @@ use piston::event_loop::*;
 use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
+use std::sync::{Arc, Mutex};
 
 pub type fphys = f64;
 
 pub struct App {
     gl: GlGraphics, // OpenGL drawing backend.
     //rotation: f64   // Rotation for the square.
-}
-
-pub struct DynamicPhys {
-    mass   : fphys,
-    xvel   : fphys,
-    yvel   : fphys,
-    xaccel : fphys,
-    x      : fphys,
-    y      : fphys
 }
 
 trait Logical {
@@ -37,12 +29,6 @@ trait Drawable {
 trait Physical {
     fn tick(&self, args : &UpdateArgs);
     fn applyForce(&self, xforce : fphys, yforce : fphys);
-}
-
-trait GameObj {
-    fn get_logic(&self) -> &Logical;
-    fn get_draw(&self) -> &Drawable;
-    fn get_phys(&self) -> &Physical;
 }
 
 pub struct GrphxSquare {
@@ -97,22 +83,14 @@ impl Logical for DumbLogic {
 }
 
 
-pub struct BasicContainer {
-    draws : Box<Drawable>,
-    physics  : Box<Physical>,
-    logic    : Box<Logical>
+pub struct GameObj {
+    draws    : Arc<Mutex<Drawable>>,
+    physics  : Arc<Mutex<Physical>>,
+    logic    : Arc<Mutex<Logical>>
 }
 
-impl GameObj for BasicContainer {
-    fn get_logic(&self) -> &Logical{
-        &(*self.logic)
-    }
-    fn get_draw(&self) -> &Drawable{
-        &(*self.draws)
-    }
-    fn get_phys(&self) -> &Physical{
-        &(*self.physics)
-    }
+fn arc_mut<T> (x : T) -> Arc<Mutex<T>>{
+    Arc::new(Mutex::new(x))
 }
 
 fn main() {
@@ -122,7 +100,7 @@ fn main() {
     // Create an Glutin window.
     let mut window: Window = WindowSettings::new(
             "spinning-square",
-            [200, 200]
+            [640, 480]
         )
         .opengl(opengl)
         .exit_on_esc(true)
@@ -134,24 +112,34 @@ fn main() {
         gl: GlGraphics::new(opengl)
     };
 
-    let mut objs : Vec<Box<GameObj>> = Vec::new();
-    let p = Box::new(PhysStatic {x : 0 as fphys, y : 0 as fphys});
-    let g = Box::new(GrphxSquare {});
-    let l = Box::new(DumbLogic {});
-    objs.push(Box::new(BasicContainer {draws : g, physics : p, logic : l}));
+    let mut objs : Vec<GameObj> = Vec::new();
+    let p = arc_mut(PhysStatic {x : 0 as fphys, y : 0 as fphys});
+    let g = arc_mut(GrphxSquare {});
+    let l = arc_mut(DumbLogic {});
+    objs.push(GameObj {draws : g, physics : p, logic : l});
 
     let mut events = window.events();
     while let Some(e) = events.next(&mut window) {
         if let Some(r) = e.render_args() {
             for o in &objs{
-                (**o).get_draw().draw(&r, &mut app);
+                //(**o).get_draw().draw(&r, &mut app);
+                let gphx = o.draws.lock().unwrap();
+                gphx.draw(&r, &mut app);
             }
         }
 
         if let Some(u) = e.update_args() {
             for o in &objs{
-                (**o).get_logic().tick(&u);
-                (**o).get_phys().tick(&u);
+                //(**o).get_logic().tick(&u);
+                {
+                    let l = o.logic.lock().unwrap();
+                    l.tick(&u);
+                }
+                //(**o).get_phys().tick(&u);
+                {
+                    let p = o.physics.lock().unwrap();
+                    p.tick(&u);
+                }
             }
         }
     }
