@@ -35,7 +35,7 @@ fn main() {
         objs.push(framework::create_block(32.0 + j * 32.0, 400.0));
     }
 
-    let (player, ih) = framework::create_player(100.0, 128.0);
+    let (player, ih) = framework::player::create(100.0, 128.0);
     objs.push(player);
 
 

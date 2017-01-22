@@ -25,7 +25,7 @@ impl PlayerLogic {
     }
 }
 
-const FRICTION : fphys = 0.4;
+const FRICTION : fphys = 0.7;
 const GRAVITY  : fphys = 9.8;
 const MOVEFORCE: fphys = 10.0;
 
@@ -89,3 +89,14 @@ impl super::InputHandler for PlayerLogic {
         }
     }
 }
+
+const MAXSPEED : fphys = 20.0;
+
+pub fn create(x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
+    let g = super::arc_mut(super::draw::GrphxSquare {x : x, y : y, radius : 24.0});
+    let p = super::arc_mut(super::PhysDyn::new(x, y, 1.0, MAXSPEED, g.clone()));
+    let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
+    (super::GameObj {draws : g, physics : p, logic : l.clone()},
+     l)
+}
+

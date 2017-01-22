@@ -44,6 +44,7 @@ pub struct PhysDyn {
     yaccel : fphys,
     xforce : fphys,
     yforce : fphys,
+	maxspeed : fphys,
     pub draw : Arc<Mutex<draw::Drawable>>
 }
 
@@ -75,6 +76,14 @@ impl Physical for PhysDyn {
         self.xvel += self.xaccel * dt;
         self.yvel += self.yaccel * dt;
 
+		//	Cap at maxspeed
+		let sqr_speed = self.xvel * self.xvel + self.yvel * self.yvel;
+		if sqr_speed > self.maxspeed * self.maxspeed {
+			let angle = self.yvel.atan2(self.xvel);
+			self.xvel = self.maxspeed * angle.cos();
+			self.yvel = self.maxspeed * angle.sin();
+		}
+
         self.x += self.xvel * dt;
         self.y += self.yvel * dt;
 
@@ -98,7 +107,7 @@ impl Physical for PhysDyn {
 }
 
 impl PhysDyn {
-    fn new(x : fphys, y : fphys, mass : fphys, dr : Arc<Mutex<draw::Drawable>>) -> PhysDyn {
+    fn new(x : fphys, y : fphys, mass : fphys, maxspeed : fphys, dr : Arc<Mutex<draw::Drawable>>) -> PhysDyn {
         PhysDyn {
             x  : x,
             y  : y,
@@ -109,6 +118,7 @@ impl PhysDyn {
             yaccel : 0.0,
             xforce : 0.0,
             yforce : 0.0,
+			maxspeed : maxspeed,
             draw : dr
         }
     }
@@ -133,14 +143,6 @@ pub fn create_block(x : fphys, y : fphys) -> GameObj {
     let p = arc_mut(PhysStatic {x : x as fphys, y : y as fphys, draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
-}
-
-pub fn create_player(x : fphys, y : fphys) -> (GameObj, Arc<Mutex<InputHandler>>) {
-    let g = arc_mut(draw::GrphxSquare {x : x, y : y, radius : 24.0});
-    let p = arc_mut(PhysDyn::new(x, y, 1.0, g.clone()));
-    let l = arc_mut(player::PlayerLogic::new(g.clone(), p.clone()));
-    (GameObj {draws : g, physics : p, logic : l.clone()},
-     l)
 }
 
 pub trait InputHandler{
