@@ -10,6 +10,7 @@ use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
 
 pub mod draw;
+pub mod player;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -22,6 +23,8 @@ pub trait Logical {
 pub trait Physical {
     fn tick(&mut self, args : &UpdateArgs);
     fn apply_force(&mut self, xforce : fphys, yforce : fphys);
+	fn get_position(&self) -> (fphys, fphys);
+	fn get_vel(&self) -> (fphys, fphys);
 }
 
 
@@ -52,6 +55,12 @@ impl Physical for PhysStatic {
     fn apply_force(&mut self, _ : fphys, _ : fphys){
         //  Do nothing
     }
+	fn get_position(&self) -> (fphys, fphys){
+		(self.x, self.y)
+	}
+	fn get_vel(&self) -> (fphys, fphys){
+		(0.0, 0.0)
+	}
 }
 
 const TIMESCALE : fphys = 10.0;
@@ -80,6 +89,12 @@ impl Physical for PhysDyn {
         self.xforce += xforce;
         self.yforce += yforce;
     }
+	fn get_position(&self) -> (fphys, fphys){
+		(self.x, self.y)
+	}
+	fn get_vel(&self) -> (fphys, fphys){
+		(self.xvel, self.yvel)
+	}
 }
 
 impl PhysDyn {
@@ -107,80 +122,6 @@ impl Logical for DumbLogic {
     }
 }
 
-pub struct PlayerLogic {
-    pub draw : Arc<Mutex<draw::Drawable>>,
-    pub physics : Arc<Mutex<Physical>>,
-    i_left  : bool,
-    i_up    : bool,
-    i_right : bool,
-    i_down  : bool
-}
-
-impl PlayerLogic {
-    pub fn new(draw : Arc<Mutex<draw::Drawable>>, physics : Arc<Mutex<Physical>>) -> PlayerLogic{
-        PlayerLogic{
-            draw : draw,
-            physics : physics,
-            i_left  : false,
-            i_up    : false,
-            i_down  : false,
-            i_right : false
-        }
-    }
-}
-
-
-impl Logical for PlayerLogic {
-    fn tick(&mut self, args : &UpdateArgs){
-        {
-            let mut phys = self.physics.lock().unwrap();
-            phys.apply_force(0.0, 9.8);
-        }
-    }
-}
-
-impl InputHandler for PlayerLogic {
-    fn handle (&mut self, i : Input){
-        match i {
-            Input::Press(button) => {
-                match button {
-					Button::Keyboard(Key::Up) => {
-						self.i_up = true;
-					}
-					Button::Keyboard(Key::Down) => {
-						self.i_down = true;
-					}
-					Button::Keyboard(Key::Left) => {
-						self.i_left = true;
-					}
-					Button::Keyboard(Key::Right) => {
-						self.i_right = true;
-					}
-					_ => {}
-                }
-            }
-            Input::Release(button) => {
-                match button {
-					Button::Keyboard(Key::Up) => {
-						self.i_up = false;
-					}
-					Button::Keyboard(Key::Down) => {
-						self.i_down = false;
-					}
-					Button::Keyboard(Key::Left) => {
-						self.i_left = false;
-					}
-					Button::Keyboard(Key::Right) => {
-						self.i_right = false;
-					}
-					_ => {}
-                }
-            }
-			_ => {}
-        }
-    }
-}
-
 pub struct GameObj {
     pub draws    : Arc<Mutex<draw::Drawable>>,
     pub physics  : Arc<Mutex<Physical>>,
@@ -197,7 +138,7 @@ pub fn create_block(x : fphys, y : fphys) -> GameObj {
 pub fn create_player(x : fphys, y : fphys) -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g = arc_mut(draw::GrphxSquare {x : x, y : y, radius : 24.0});
     let p = arc_mut(PhysDyn::new(x, y, 1.0, g.clone()));
-    let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
+    let l = arc_mut(player::PlayerLogic::new(g.clone(), p.clone()));
     (GameObj {draws : g, physics : p, logic : l.clone()},
      l)
 }
