@@ -7,13 +7,8 @@ extern crate opengl_graphics;
 use piston::window::WindowSettings;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ GlGraphics, OpenGL };
-use std::sync::{Arc, Mutex};
 
 mod framework;
-
-fn arc_mut<T> (x : T) -> Arc<Mutex<T>>{
-    Arc::new(Mutex::new(x))
-}
 
 fn main() {
     use framework::fphys as fphys;
@@ -22,7 +17,7 @@ fn main() {
     let opengl = OpenGL::V3_2;
 
     // Create an Glutin window.
-    let mut window: Window = WindowSettings::new(
+    let window: Window = WindowSettings::new(
             "spinning-square",
             [640, 480]
         )
@@ -31,14 +26,18 @@ fn main() {
         .build()
         .unwrap();
 
-    let mut context = GlGraphics::new(opengl);
+    let context = GlGraphics::new(opengl);
 
 
     let mut objs : Vec<framework::GameObj> = Vec::new();
-    let p = arc_mut(framework::PhysStatic {x : 0.0 as fphys, y : 0.0 as fphys});
-    let g = arc_mut(framework::draw::GrphxSquare {x : 0.0, y : 0.0, radius : 25.0});
-    let l = arc_mut(framework::DumbLogic {});
-    objs.push(framework::GameObj {draws : g, physics : p, logic : l});
+    for i in 0..8 {
+        let j = i as fphys;
+        objs.push(framework::create_block(32.0 + j * 32.0, 400.0));
+    }
 
-    framework::game_loop(window, context, objs);
+    let (player, ih) = framework::create_player(100.0, 128.0);
+    objs.push(player);
+
+
+    framework::game_loop(window, context, objs, ih);
 }
