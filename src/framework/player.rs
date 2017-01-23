@@ -5,7 +5,7 @@ use super::fphys as fphys;
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<super::draw::Drawable>>,
-    pub physics : Arc<Mutex<super::Physical>>,
+    pub physics : Arc<Mutex<super::physics::Physical>>,
     i_left  : bool,
     i_up    : bool,
     i_right : bool,
@@ -13,7 +13,7 @@ pub struct PlayerLogic {
 }
 
 impl PlayerLogic {
-    pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, physics : Arc<Mutex<super::Physical>>) -> PlayerLogic{
+    pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, physics : Arc<Mutex<super::physics::Physical>>) -> PlayerLogic{
         PlayerLogic{
             draw : draw,
             physics : physics,
@@ -94,7 +94,7 @@ const MAXSPEED : fphys = 20.0;
 
 pub fn create(x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
     let g = super::arc_mut(super::draw::GrphxSquare {x : x, y : y, radius : 24.0});
-    let p = super::arc_mut(super::PhysDyn::new(x, y, 1.0, MAXSPEED, g.clone()));
+    let p = super::arc_mut(super::physics::PhysDyn::new(x, y, 1.0, MAXSPEED, g.clone()));
     let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
     (super::GameObj {draws : g, physics : p, logic : l.clone()},
      l)

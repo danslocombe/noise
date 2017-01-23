@@ -11,6 +11,7 @@ use std::sync::{Arc, Mutex};
 
 pub mod draw;
 pub mod player;
+pub mod physics;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -20,109 +21,6 @@ pub trait Logical {
     //fn message();
 }
 
-pub trait Physical {
-    fn tick(&mut self, args : &UpdateArgs);
-    fn apply_force(&mut self, xforce : fphys, yforce : fphys);
-	fn get_position(&self) -> (fphys, fphys);
-	fn get_vel(&self) -> (fphys, fphys);
-}
-
-
-pub struct PhysStatic {
-    pub x : fphys,
-    pub y : fphys,
-    pub draw : Arc<Mutex<draw::Drawable>>
-}
-
-pub struct PhysDyn {
-    pub x  : fphys,
-    pub y  : fphys,
-    pub mass : fphys,
-    xvel   : fphys,
-    yvel   : fphys,
-    xaccel : fphys,
-    yaccel : fphys,
-    xforce : fphys,
-    yforce : fphys,
-	maxspeed : fphys,
-    pub draw : Arc<Mutex<draw::Drawable>>
-}
-
-
-impl Physical for PhysStatic {
-    fn tick(&mut self, _ : &UpdateArgs){
-        //  Do nothing
-    }
-    fn apply_force(&mut self, _ : fphys, _ : fphys){
-        //  Do nothing
-    }
-	fn get_position(&self) -> (fphys, fphys){
-		(self.x, self.y)
-	}
-	fn get_vel(&self) -> (fphys, fphys){
-		(0.0, 0.0)
-	}
-}
-
-const TIMESCALE : fphys = 10.0;
-
-impl Physical for PhysDyn {
-    fn tick(&mut self, args : &UpdateArgs){
-        let dt = TIMESCALE * args.dt as fphys;
-
-        self.xaccel = self.xforce * self.mass;
-        self.yaccel = self.yforce * self.mass;
-
-        self.xvel += self.xaccel * dt;
-        self.yvel += self.yaccel * dt;
-
-		//	Cap at maxspeed
-		let sqr_speed = self.xvel * self.xvel + self.yvel * self.yvel;
-		if sqr_speed > self.maxspeed * self.maxspeed {
-			let angle = self.yvel.atan2(self.xvel);
-			self.xvel = self.maxspeed * angle.cos();
-			self.yvel = self.maxspeed * angle.sin();
-		}
-
-        self.x += self.xvel * dt;
-        self.y += self.yvel * dt;
-
-        self.xforce = 0.0;
-        self.yforce = 0.0;
-        {
-            let mut draw = self.draw.lock().unwrap();
-            draw.set_position(self.x, self.y);
-        }
-    }
-    fn apply_force(&mut self, xforce : fphys, yforce : fphys){
-        self.xforce += xforce;
-        self.yforce += yforce;
-    }
-	fn get_position(&self) -> (fphys, fphys){
-		(self.x, self.y)
-	}
-	fn get_vel(&self) -> (fphys, fphys){
-		(self.xvel, self.yvel)
-	}
-}
-
-impl PhysDyn {
-    fn new(x : fphys, y : fphys, mass : fphys, maxspeed : fphys, dr : Arc<Mutex<draw::Drawable>>) -> PhysDyn {
-        PhysDyn {
-            x  : x,
-            y  : y,
-            mass : mass,
-            xvel   : 0.0,
-            yvel   : 0.0,
-            xaccel : 0.0,
-            yaccel : 0.0,
-            xforce : 0.0,
-            yforce : 0.0,
-			maxspeed : maxspeed,
-            draw : dr
-        }
-    }
-}
 
 pub struct DumbLogic {
 }
@@ -134,13 +32,13 @@ impl Logical for DumbLogic {
 
 pub struct GameObj {
     pub draws    : Arc<Mutex<draw::Drawable>>,
-    pub physics  : Arc<Mutex<Physical>>,
+    pub physics  : Arc<Mutex<physics::Physical>>,
     pub logic    : Arc<Mutex<Logical>>
 }
 
 pub fn create_block(x : fphys, y : fphys) -> GameObj {
     let g = arc_mut(draw::GrphxSquare {x : x, y : y, radius : 32.0});
-    let p = arc_mut(PhysStatic {x : x as fphys, y : y as fphys, draw : g.clone()});
+    let p = arc_mut(physics::PhysStatic {x : x as fphys, y : y as fphys, draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
