@@ -83,14 +83,43 @@ impl BoundingBox {
     }
 }
 
+
+/*
+ * Macro for running an arbitrary statement once on a collision
+ *
+ * $id is the id of the testing bounding box
+ * $test is the testing bounding box
+ * $bbs is the vector of IdBBs to test against
+ * $bb is an ident to give a positively testing block
+ * f is the statement to run
+ */
+macro_rules! call_once_on_col {
+    ($id : expr, $test : expr, $bbs : expr, $bb : ident, $f : stmt) => {
+        for idbb in $bbs {
+            let (id, ref $bb) = *idbb;
+            if id == $id{
+                continue;
+            }
+            if $test.check_col($bb){
+                $f;
+                break;
+            }
+        }
+    }
+}
+
 const TIMESCALE : fphys = 10.0;
 
 impl Physical for PhysDyn {
     fn init(&mut self, bb_sender : Sender<IdBB>) {
         bb_sender.send((self.id, self.bb.clone())).unwrap();
     }
-    fn tick(&mut self, args : &UpdateArgs, bbs : &Vec<IdBB>, bb_sender : Sender<IdBB>){
+    fn tick(&mut self, args : &UpdateArgs
+            ,bbs : &Vec<IdBB>, bb_sender : Sender<IdBB>){
+
         let dt = TIMESCALE * args.dt as fphys;
+
+        //  Newtonian equations
 
         self.xaccel = self.xforce * self.mass;
         self.yaccel = self.yforce * self.mass;
@@ -98,7 +127,7 @@ impl Physical for PhysDyn {
         self.xvel += self.xaccel * dt;
         self.yvel += self.yaccel * dt;
 
-		//	Cap at maxspeed
+		//	Cap maxspeed in any direction
 		let sqr_speed = self.xvel * self.xvel + self.yvel * self.yvel;
 		if sqr_speed > self.maxspeed * self.maxspeed {
 			let angle = self.yvel.atan2(self.xvel);
@@ -106,6 +135,7 @@ impl Physical for PhysDyn {
 			self.yvel = self.maxspeed * angle.sin();
 		}
 
+        //  Create bounding box in new position to test against
         let mut bb_test = BoundingBox {
             x : self.bb.x + self.xvel * dt,
             y : self.bb.y + self.yvel * dt,
@@ -113,61 +143,32 @@ impl Physical for PhysDyn {
             h : self.bb.h
         };
 
-		//	Collisions
-        
+        //  Check for a collision
         let mut col_flag = false;
-        for idbb in bbs {
-            let (id, ref bb) = *idbb;
-            if id == self.id{
-                continue;
-            }
-            if bb_test.check_col(bb){
-                col_flag = true;
-                break;
-            }
-        }
+        call_once_on_col!(self.id, bb_test, bbs, bb, col_flag = true);
 
         //  Collision Resolution
-
-        self.on_ground = false;
-
         if col_flag {
             bb_test.y = self.bb.y;
-            //  TODO remove duplication
-            for idbb in bbs {
-                let (id, ref bb) = *idbb;
-                if id == self.id{
-                    continue;
+            call_once_on_col!(self.id, bb_test, bbs, bb,
+                if bb_test.x + bb_test.w <= bb.x + bb.w/2.0 {
+                    bb_test.x = bb.x - bb_test.w;
                 }
-                if bb_test.check_col(bb){
-                    if bb_test.x + bb_test.w <= bb.x + bb.w/2.0 {
-                        bb_test.x = bb.x - bb_test.w;
-                    }
-                    else {
-                        bb_test.x = bb.x + bb.w;
-                    }
-                    break;
+                else {
+                    bb_test.x = bb.x + bb.w;
                 }
-            }
+            );
 
             bb_test.y = self.bb.y + self.yvel * dt;
 
-            for idbb in bbs {
-                let (id, ref bb) = *idbb;
-                if id == self.id{
-                    continue;
+            call_once_on_col!(self.id, bb_test, bbs, bb,
+                if bb_test.y + bb_test.h <= bb.y + bb.h/2.0 {
+                    bb_test.y = bb.y - bb_test.h;
                 }
-                if bb_test.check_col(bb){
-                    if bb_test.y + bb_test.h <= bb.y + bb.h/2.0 {
-                        bb_test.y = bb.y - bb_test.h;
-                        self.on_ground = true;
-                    }
-                    else {
-                        bb_test.y = bb.y + bb.h;
-                    }
-                    break;
+                else {
+                    bb_test.y = bb.y + bb.h;
                 }
-            }
+            );
 
             self.xvel = (bb_test.x - self.bb.x) / dt;
             self.yvel = (bb_test.y - self.bb.y) / dt;
@@ -175,12 +176,29 @@ impl Physical for PhysDyn {
 
         self.bb = bb_test;
 
+        //  Test if on the ground
+        self.on_ground = false;
+        call_once_on_col!(self.id, 
+            BoundingBox {x : self.bb.x, 
+                         y : self.bb.y + 1.0, 
+                         w : self.bb.w, 
+                         h : self.bb.h}, 
+                         bbs, 
+                         bb, 
+                         self.on_ground = true
+        );
+
+        //  Reset forces
         self.xforce = 0.0;
         self.yforce = 0.0;
+
+        //  Update draw position
         {
             let mut draw = self.draw.lock().unwrap();
             draw.set_position(self.bb.x, self.bb.y);
         }
+
+        //  Send new bounding box to manager
         bb_sender.send((self.id, self.bb.clone())).unwrap();
     }
     fn apply_force(&mut self, xforce : fphys, yforce : fphys){
