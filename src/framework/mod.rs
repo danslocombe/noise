@@ -13,6 +13,8 @@ pub mod draw;
 pub mod player;
 pub mod physics;
 
+pub mod bb;
+
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
@@ -36,9 +38,9 @@ pub struct GameObj {
     pub logic    : Arc<Mutex<Logical>>
 }
 
-pub fn create_block(x : fphys, y : fphys) -> GameObj {
+pub fn create_block(id : u32, x : fphys, y : fphys) -> GameObj {
     let g = arc_mut(draw::GrphxSquare {x : x, y : y, radius : 32.0});
-    let p = arc_mut(physics::PhysStatic {x : x as fphys, y : y as fphys, draw : g.clone()});
+    let p = arc_mut(physics::PhysStatic {id : id, x : x, y : y, draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -47,11 +49,32 @@ pub trait InputHandler{
     fn handle (&mut self, i : Input);
 }
 
-pub fn game_loop(mut window : Window, mut ctx : GlGraphics, mut objs : Vec<GameObj>, input_handler : Arc<Mutex<InputHandler>>) {
+//pub fn init_world() -> ()
+
+pub fn game_loop(mut window : Window
+                ,mut ctx : GlGraphics
+                ,mut objs : Vec<GameObj>
+                ,mut bb_handler : bb::BBHandler
+                ,input_handler : Arc<Mutex<InputHandler>>) {
+
     let mut events = window.events();
+
+    let bb_sender = bb_handler.get_sender();
+    for o in &objs{
+        {
+            let mut p = o.physics.lock().unwrap();
+            p.init(bb_sender.clone());
+        }
+    }
+
     while let Some(e) = events.next(&mut window) {
         match e {
             Event::Update(u_args) => {
+
+                //  Update bounding box list
+                bb_handler.update();
+                let bb_vec = bb_handler.to_vec();
+
                 for o in &objs{
                     {
                         let mut l = o.logic.lock().unwrap();
@@ -59,7 +82,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics, mut objs : Vec<GameO
                     }
                     {
                         let mut p = o.physics.lock().unwrap();
-                        p.tick(&u_args);
+                        p.tick(&u_args, &bb_vec, bb_sender.clone());
                     }
                 }
             }

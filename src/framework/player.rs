@@ -13,7 +13,8 @@ pub struct PlayerLogic {
 }
 
 impl PlayerLogic {
-    pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, physics : Arc<Mutex<super::physics::Physical>>) -> PlayerLogic{
+    pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, 
+               physics : Arc<Mutex<super::physics::Physical>>) -> PlayerLogic{
         PlayerLogic{
             draw : draw,
             physics : physics,
@@ -44,7 +45,7 @@ impl super::Logical for PlayerLogic {
         }
 
         //  Gravity
-        //phys.apply_force(0.0, GRAVITY);
+        phys.apply_force(0.0, GRAVITY);
     }
 }
 
@@ -92,9 +93,9 @@ impl super::InputHandler for PlayerLogic {
 
 const MAXSPEED : fphys = 20.0;
 
-pub fn create(x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
+pub fn create(id : u32, x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
     let g = super::arc_mut(super::draw::GrphxSquare {x : x, y : y, radius : 24.0});
-    let p = super::arc_mut(super::physics::PhysDyn::new(x, y, 1.0, MAXSPEED, g.clone()));
+    let p = super::arc_mut(super::physics::PhysDyn::new(id, x, y, 1.0, MAXSPEED, g.clone()));
     let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
     (super::GameObj {draws : g, physics : p, logic : l.clone()},
      l)

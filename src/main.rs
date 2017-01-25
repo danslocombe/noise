@@ -28,16 +28,19 @@ fn main() {
 
     let context = GlGraphics::new(opengl);
 
+    let mut bb_handler = framework::bb::BBHandler::new();
 
     let mut objs : Vec<framework::GameObj> = Vec::new();
     for i in 0..8 {
         let j = i as fphys;
-        objs.push(framework::create_block(32.0 + j * 32.0, 400.0));
+        let id = bb_handler.generate_id();
+        objs.push(framework::create_block(id, 32.0 + j * 32.0, 400.0));
     }
 
-    let (player, ih) = framework::player::create(100.0, 128.0);
+    let id = bb_handler.generate_id();
+    let (player, ih) = framework::player::create(id, 100.0, 128.0);
     objs.push(player);
 
 
-    framework::game_loop(window, context, objs, ih);
+    framework::game_loop(window, context, objs, bb_handler, ih);
 }
