@@ -2,10 +2,11 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use super::fphys as fphys;
+use framework::physics::Physical;
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<super::draw::Drawable>>,
-    pub physics : Arc<Mutex<super::physics::Physical>>,
+    pub physics : Arc<Mutex<super::physics::PhysDyn>>,
     i_left  : bool,
     i_up    : bool,
     i_right : bool,
@@ -14,7 +15,7 @@ pub struct PlayerLogic {
 
 impl PlayerLogic {
     pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, 
-               physics : Arc<Mutex<super::physics::Physical>>) -> PlayerLogic{
+               physics : Arc<Mutex<super::physics::PhysDyn>>) -> PlayerLogic{
         PlayerLogic{
             draw : draw,
             physics : physics,
@@ -27,8 +28,11 @@ impl PlayerLogic {
 }
 
 const FRICTION : fphys = 0.7;
+const FRICTION_AIR : fphys = FRICTION * 0.5;
 const GRAVITY  : fphys = 9.8;
 const MOVEFORCE: fphys = 10.0;
+const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.2;
+const JUMP_FORCE: fphys = 800.0;
 
 impl super::Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
@@ -36,16 +40,27 @@ impl super::Logical for PlayerLogic {
         let xdir = 0.0 + (if self.i_right {1.0} else {0.0})
                        - (if self.i_left  {1.0} else {0.0});
         if xdir != 0.00 {
+            let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
             phys.apply_force(MOVEFORCE * xdir, 0.0);
         }
         else{
             let (xvel, _) = phys.get_vel();
-            let friction = xvel * -1.0 * FRICTION;
+            let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
+            let friction = xvel * -1.0 * friction_percent;
             phys.apply_force(friction, 0.0);
         }
 
-        //  Gravity
-        phys.apply_force(0.0, GRAVITY);
+
+        if phys.on_ground {
+            if self.i_up {
+                phys.apply_force(0.0, -JUMP_FORCE);
+            }
+        }
+        else{
+            //  Gravity
+            phys.apply_force(0.0, GRAVITY);
+        }
+
     }
 }
 
@@ -91,7 +106,7 @@ impl super::InputHandler for PlayerLogic {
     }
 }
 
-const MAXSPEED : fphys = 20.0;
+const MAXSPEED : fphys = 200.0;
 
 pub fn create(id : u32, x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
     let g = super::arc_mut(super::draw::GrphxSquare {x : x, y : y, radius : 24.0});

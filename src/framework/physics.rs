@@ -28,8 +28,6 @@ pub struct PhysStatic {
 
 pub struct PhysDyn {
     pub id : u32,
-    pub x  : fphys,
-    pub y  : fphys,
     pub mass : fphys,
     xvel   : fphys,
     yvel   : fphys,
@@ -38,6 +36,7 @@ pub struct PhysDyn {
     xforce : fphys,
     yforce : fphys,
 	maxspeed : fphys,
+    pub on_ground : bool,
     bb : BoundingBox,
     pub draw : Arc<Mutex<super::draw::Drawable>>
 }
@@ -107,33 +106,80 @@ impl Physical for PhysDyn {
 			self.yvel = self.maxspeed * angle.sin();
 		}
 
-		let mut test_x = self.x + self.xvel * dt;
-		let mut test_y = self.y + self.yvel * dt;
+        let mut bb_test = BoundingBox {
+            x : self.bb.x + self.xvel * dt,
+            y : self.bb.y + self.yvel * dt,
+            w : self.bb.w,
+            h : self.bb.h
+        };
 
 		//	Collisions
+        
+        let mut col_flag = false;
         for idbb in bbs {
             let (id, ref bb) = *idbb;
             if id == self.id{
                 continue;
             }
-            if self.bb.check_col(bb){
-                println!("COLLISION");
+            if bb_test.check_col(bb){
+                col_flag = true;
+                break;
             }
         }
 
+        //  Collision Resolution
 
-		self.x = test_x;
-		self.y = test_y;
-        //self.x += self.xvel * dt;
-        //self.y += self.yvel * dt;
-        self.bb.x = self.x;
-        self.bb.y = self.y;
+        self.on_ground = false;
+
+        if col_flag {
+            bb_test.y = self.bb.y;
+            //  TODO remove duplication
+            for idbb in bbs {
+                let (id, ref bb) = *idbb;
+                if id == self.id{
+                    continue;
+                }
+                if bb_test.check_col(bb){
+                    if bb_test.x + bb_test.w <= bb.x + bb.w/2.0 {
+                        bb_test.x = bb.x - bb_test.w;
+                    }
+                    else {
+                        bb_test.x = bb.x + bb.w;
+                    }
+                    break;
+                }
+            }
+
+            bb_test.y = self.bb.y + self.yvel * dt;
+
+            for idbb in bbs {
+                let (id, ref bb) = *idbb;
+                if id == self.id{
+                    continue;
+                }
+                if bb_test.check_col(bb){
+                    if bb_test.y + bb_test.h <= bb.y + bb.h/2.0 {
+                        bb_test.y = bb.y - bb_test.h;
+                        self.on_ground = true;
+                    }
+                    else {
+                        bb_test.y = bb.y + bb.h;
+                    }
+                    break;
+                }
+            }
+
+            self.xvel = (bb_test.x - self.bb.x) / dt;
+            self.yvel = (bb_test.y - self.bb.y) / dt;
+        }
+
+        self.bb = bb_test;
 
         self.xforce = 0.0;
         self.yforce = 0.0;
         {
             let mut draw = self.draw.lock().unwrap();
-            draw.set_position(self.x, self.y);
+            draw.set_position(self.bb.x, self.bb.y);
         }
         bb_sender.send((self.id, self.bb.clone())).unwrap();
     }
@@ -142,7 +188,7 @@ impl Physical for PhysDyn {
         self.yforce += yforce;
     }
 	fn get_position(&self) -> (fphys, fphys){
-		(self.x, self.y)
+		(self.bb.x, self.bb.y)
 	}
 	fn get_vel(&self) -> (fphys, fphys){
 		(self.xvel, self.yvel)
@@ -165,8 +211,6 @@ impl PhysDyn {
 
         PhysDyn {
             id : id,
-            x  : x,
-            y  : y,
             mass : mass,
             xvel   : 0.0,
             yvel   : 0.0,
@@ -174,6 +218,7 @@ impl PhysDyn {
             yaccel : 0.0,
             xforce : 0.0,
             yforce : 0.0,
+            on_ground : false,
             bb : bb,
 			maxspeed : maxspeed,
             draw : dr
