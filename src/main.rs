@@ -18,7 +18,7 @@ fn main() {
 
     // Create an Glutin window.
     let window: Window = WindowSettings::new(
-            "spinning-square",
+            "codename-black",
             [640, 480]
         )
         .opengl(opengl)
@@ -31,10 +31,15 @@ fn main() {
     let mut bb_handler = framework::bb::BBHandler::new();
 
     let mut objs : Vec<framework::GameObj> = Vec::new();
-    for i in 0..8 {
+    for i in 0..24 {
         let j = i as fphys;
         let id = bb_handler.generate_id();
         objs.push(framework::create_block(id, 32.0 + j * 32.0, 400.0));
+    }
+    for i in 0..3 {
+        let j = i as fphys;
+        let id = bb_handler.generate_id();
+        objs.push(framework::create_block(id, 64.0 + j * 64.0, 400.0 - 32.0));
     }
 
     let id = bb_handler.generate_id();

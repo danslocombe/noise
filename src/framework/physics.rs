@@ -219,12 +219,14 @@ impl PhysDyn {
               ,y        : fphys
               ,mass     : fphys
               ,maxspeed : fphys
+              ,height   : fphys
+              ,width    : fphys
               ,dr       : Arc<Mutex<super::draw::Drawable>>) -> PhysDyn {
         let bb = BoundingBox {
             x : x,
             y : y,
-            w : 32.0,
-            h : 32.0
+            w : width,
+            h : height
         };
 
         PhysDyn {

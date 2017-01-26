@@ -26,10 +26,8 @@ impl Drawable for GrphxSquare {
         let (x, y) = (self.x as f64, self.y as f64);
 
         ctx.draw(args.viewport(), |c, gl| {
-            let transform = c.transform.trans(x, y)
-                                       .trans(-25.0, -25.0);
+            let transform = c.transform.trans(x, y);
 
-            // Draw a box rotating around the middle of the screen.
             rectangle(BLACK, square, transform, gl);
         });
     }

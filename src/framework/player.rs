@@ -29,22 +29,26 @@ impl PlayerLogic {
 
 const FRICTION : fphys = 0.7;
 const FRICTION_AIR : fphys = FRICTION * 0.5;
-const GRAVITY  : fphys = 9.8;
+const GRAVITY_UP  : fphys = 9.8;
+const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 const MOVEFORCE: fphys = 10.0;
 const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.2;
-const JUMP_FORCE: fphys = 800.0;
+const JUMP_FORCE: fphys = 650.0;
 
 impl super::Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
+
         let mut phys = self.physics.lock().unwrap();
+        let (xvel, yvel) = phys.get_vel();
+
         let xdir = 0.0 + (if self.i_right {1.0} else {0.0})
                        - (if self.i_left  {1.0} else {0.0});
+
         if xdir != 0.00 {
             let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
             phys.apply_force(MOVEFORCE * xdir, 0.0);
         }
         else{
-            let (xvel, _) = phys.get_vel();
             let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
             let friction = xvel * -1.0 * friction_percent;
             phys.apply_force(friction, 0.0);
@@ -58,7 +62,12 @@ impl super::Logical for PlayerLogic {
         }
         else{
             //  Gravity
-            phys.apply_force(0.0, GRAVITY);
+            if yvel < 0.0 {
+                phys.apply_force(0.0, GRAVITY_UP);
+            }
+            else {
+                phys.apply_force(0.0, GRAVITY_DOWN);
+            }
         }
 
     }
@@ -107,12 +116,17 @@ impl super::InputHandler for PlayerLogic {
 }
 
 const MAXSPEED : fphys = 200.0;
+const SIZE     : fphys = 42.0;
 
-pub fn create(id : u32, x : fphys, y : fphys) -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
-    let g = super::arc_mut(super::draw::GrphxSquare {x : x, y : y, radius : 24.0});
-    let p = super::arc_mut(super::physics::PhysDyn::new(id, x, y, 1.0, MAXSPEED, g.clone()));
+pub fn create(id : u32, x : fphys, y : fphys) 
+    -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
+    let g = super::arc_mut(
+        super::draw::GrphxSquare {x : x, y : y, radius : SIZE});
+    let p = super::arc_mut(
+        super::physics::PhysDyn::new(id, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+
     let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
-    (super::GameObj {draws : g, physics : p, logic : l.clone()},
-     l)
+
+    (super::GameObj {draws : g, physics : p, logic : l.clone()}, l)
 }
 
