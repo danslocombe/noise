@@ -15,6 +15,8 @@ pub mod physics;
 pub mod bb;
 pub mod tools;
 
+mod gen;
+
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
