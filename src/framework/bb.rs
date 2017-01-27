@@ -31,6 +31,11 @@ impl BBHandler {
         }
     }
 
+    pub fn get(&self, id : u32) -> Option<BoundingBox> {
+        //  Functor boyz
+        self.world.get(&id).map(|x| {(*x).clone()})
+    }
+
     pub fn generate_id(&mut self) -> u32 {
         let r = self.new_id;
         self.new_id = r + 1;

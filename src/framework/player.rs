@@ -115,8 +115,8 @@ impl super::InputHandler for PlayerLogic {
     }
 }
 
-const MAXSPEED : fphys = 200.0;
-const SIZE     : fphys = 42.0;
+pub const MAXSPEED : fphys = 200.0;
+const SIZE     : fphys = 24.0;
 
 pub fn create(id : u32, x : fphys, y : fphys) 
     -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {

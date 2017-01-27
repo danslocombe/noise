@@ -12,8 +12,8 @@ use std::sync::{Arc, Mutex};
 pub mod draw;
 pub mod player;
 pub mod physics;
-
 pub mod bb;
+pub mod tools;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -55,9 +55,18 @@ pub fn game_loop(mut window : Window
                 ,mut ctx : GlGraphics
                 ,mut objs : Vec<GameObj>
                 ,mut bb_handler : bb::BBHandler
+                ,follow_id         : u32
                 ,input_handler : Arc<Mutex<InputHandler>>) {
 
     let mut events = window.events();
+
+    let mut viewport_x : fphys = 0.0;
+    let mut viewport_y : fphys = 0.0;
+    let mut vt = draw::ViewTransform{
+        x : 0.0,
+        y : 0.0,
+        scale : 1.0
+    };
 
     let bb_sender = bb_handler.get_sender();
     for o in &objs{
@@ -75,6 +84,8 @@ pub fn game_loop(mut window : Window
                 bb_handler.update();
                 let bb_vec = bb_handler.to_vec();
 
+
+
                 for o in &objs{
                     {
                         let mut l = o.logic.lock().unwrap();
@@ -85,12 +96,27 @@ pub fn game_loop(mut window : Window
                         p.tick(&u_args, &bb_vec, bb_sender.clone());
                     }
                 }
+
             }
             Event::Render(r_args) => {
+                //  Update viewport
+                const w : fphys = 20.0;
+                const offset_factor : fphys = 0.85;
+                const scale_mult : fphys = 1.0 / 2000.0;
+                match bb_handler.get(follow_id){
+                    Some(bb) => {
+                        let xdiff = bb.x - vt.x;
+                        vt.x = tools::weight(vt.x, bb.x + xdiff * offset_factor - 320.0, w);
+                        vt.y = tools::weight(vt.y, bb.y - 320.0, w);
+                        vt.scale = tools::weight(vt.scale, 1.0 - xdiff.abs() * scale_mult, w); 
+                    }
+                    None => {}
+                }
+                
                 draw::draw_background(&r_args, &mut ctx);
                 for o in &objs{
                     let gphx = o.draws.lock().unwrap();
-                    gphx.draw(&r_args, &mut ctx);
+                    gphx.draw(&r_args, &mut ctx, &vt);
                 }
             }
             Event::Input(i) => {

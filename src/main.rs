@@ -47,5 +47,5 @@ fn main() {
     objs.push(player);
 
 
-    framework::game_loop(window, context, objs, bb_handler, ih);
+    framework::game_loop(window, context, objs, bb_handler, id, ih);
 }
