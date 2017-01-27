@@ -34,6 +34,7 @@ const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 const MOVEFORCE: fphys = 10.0;
 const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.2;
 const JUMP_FORCE: fphys = 650.0;
+const MAX_RUNSPEED : fphys = 75.0;
 
 impl super::Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
@@ -44,7 +45,7 @@ impl super::Logical for PlayerLogic {
         let xdir = 0.0 + (if self.i_right {1.0} else {0.0})
                        - (if self.i_left  {1.0} else {0.0});
 
-        if xdir != 0.00 {
+        if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
             let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
             phys.apply_force(MOVEFORCE * xdir, 0.0);
         }
