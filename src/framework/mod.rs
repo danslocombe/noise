@@ -22,7 +22,6 @@ pub type fphys = f64;
 
 pub trait Logical {
     fn tick(&mut self, args : &UpdateArgs);
-    //fn message();
 }
 
 
@@ -51,8 +50,6 @@ pub trait InputHandler{
     fn handle (&mut self, i : Input);
 }
 
-//pub fn init_world() -> ()
-
 pub fn game_loop(mut window : Window
                 ,mut ctx : GlGraphics
                 ,mut objs : Vec<GameObj>
@@ -62,13 +59,14 @@ pub fn game_loop(mut window : Window
 
     let mut events = window.events();
 
-    let mut viewport_x : fphys = 0.0;
-    let mut viewport_y : fphys = 0.0;
+    let mut follow_prev_x : fphys = 0.0;
     let mut vt = draw::ViewTransform{
         x : 0.0,
         y : 0.0,
         scale : 1.0
     };
+
+    let mut gen = gen::Gen::new(32.0, 500.0);
 
     let bb_sender = bb_handler.get_sender();
     for o in &objs{
@@ -82,11 +80,19 @@ pub fn game_loop(mut window : Window
         match e {
             Event::Update(u_args) => {
 
+                //  Generate world
+                for (x, y) in gen.gen_to(vt.x + 1000.0) {
+                    let b = create_block(bb_handler.generate_id(), x, y);
+                    {
+                        let mut p = b.physics.lock().unwrap();
+                        p.init(bb_sender.clone());
+                    }
+                    objs.push(b);
+                }
+
                 //  Update bounding box list
                 bb_handler.update();
                 let bb_vec = bb_handler.to_vec();
-
-
 
                 for o in &objs{
                     {
@@ -103,14 +109,19 @@ pub fn game_loop(mut window : Window
             Event::Render(r_args) => {
                 //  Update viewport
                 const w : fphys = 20.0;
-                const offset_factor : fphys = 0.85;
+                const offset_factor : fphys = 30.6;
                 const scale_mult : fphys = 1.0 / 2000.0;
                 match bb_handler.get(follow_id){
                     Some(bb) => {
-                        let xdiff = bb.x - vt.x;
-                        vt.x = tools::weight(vt.x, bb.x + xdiff * offset_factor - 320.0, w);
+                        let obj_view_diff = bb.x - vt.x;
+                        let bb_speed = bb.x - follow_prev_x;
+                        let offset = bb_speed * offset_factor;
+
+                        vt.x = tools::weight(vt.x, bb.x + offset - 320.0, w);
                         vt.y = tools::weight(vt.y, bb.y - 320.0, w);
-                        vt.scale = tools::weight(vt.scale, 1.0 - xdiff.abs() * scale_mult, w); 
+                        vt.scale = tools::weight(vt.scale, 1.0 - obj_view_diff.abs() * scale_mult, w); 
+
+                        follow_prev_x = bb.x;
                     }
                     None => {}
                 }

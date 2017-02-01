@@ -31,23 +31,9 @@ fn main() {
     let mut bb_handler = framework::bb::BBHandler::new();
 
     let mut objs : Vec<framework::GameObj> = Vec::new();
-    for i in 0..84 {
-        let j = i as fphys;
-        let id = bb_handler.generate_id();
-        objs.push(framework::create_block(id, 32.0 + j * 32.0, 400.0));
-    }
-    for i in 0..3 {
-        let j = i as fphys;
-        let id = bb_handler.generate_id();
-        objs.push(framework::create_block(id, 64.0 + j * 32.0, 400.0 - 32.0));
-    }
-    for i in 0..3 {
-        let j = i as fphys;
-        let id = bb_handler.generate_id();
-        objs.push(framework::create_block(id, 512.0 + j * 32.0, 400.0 - 32.0 * 4.0));}
 
     let id = bb_handler.generate_id();
-    let (player, ih) = framework::player::create(id, 100.0, 128.0);
+    let (player, ih) = framework::player::create(id, 100.0, -128.0);
     objs.push(player);
 
 

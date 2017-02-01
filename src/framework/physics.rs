@@ -12,7 +12,7 @@ use super::bb::IdBB as IdBB;
 
 pub trait Physical {
     fn init(&mut self, bb_sender : Sender<IdBB>);
-    fn tick(&mut self, args : &UpdateArgs, bbs : &Vec<IdBB>, bb_sender : Sender<IdBB>);
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[IdBB], bb_sender : Sender<IdBB>);
     fn apply_force(&mut self, xforce : fphys, yforce : fphys);
 	fn get_position(&self) -> (fphys, fphys);
 	fn get_vel(&self) -> (fphys, fphys);
@@ -52,7 +52,7 @@ impl Physical for PhysStatic {
         };
         bb_sender.send((self.id, bb)).unwrap();
     }
-    fn tick(&mut self, args : &UpdateArgs, bbs : &Vec<IdBB>, bb_sender : Sender<IdBB>){
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[IdBB], bb_sender : Sender<IdBB>){
         //  Do nothing
     }
     fn apply_force(&mut self, _ : fphys, _ : fphys){
@@ -115,7 +115,7 @@ impl Physical for PhysDyn {
         bb_sender.send((self.id, self.bb.clone())).unwrap();
     }
     fn tick(&mut self, args : &UpdateArgs
-            ,bbs : &Vec<IdBB>, bb_sender : Sender<IdBB>){
+            ,bbs : &[IdBB], bb_sender : Sender<IdBB>){
 
         let dt = TIMESCALE * args.dt as fphys;
 
