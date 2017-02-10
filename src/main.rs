@@ -33,7 +33,7 @@ fn main() {
     let mut objs : Vec<framework::GameObj> = Vec::new();
 
     let id = bb_handler.generate_id();
-    let (player, ih) = framework::player::create(id, 100.0, -128.0);
+    let (player, ih) = framework::player::create(id, 100.0, -150.0);
     objs.push(player);
 
 

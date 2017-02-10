@@ -107,6 +107,38 @@ macro_rules! call_once_on_col {
         }
     }
 }
+macro_rules! call_mult_on_col {
+    ($id : expr, $test : expr, $bbs : expr, $bb : ident, $f : stmt) => {
+        for idbb in $bbs {
+            let (id, ref $bb) = *idbb;
+            if id == $id{
+                continue;
+            }
+            if $test.check_col($bb){
+                $f;
+            }
+        }
+    }
+}
+const STEPHEIGHT : fphys = 5.0;
+fn does_collide_step(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
+    let mut col_flag = false;
+    call_once_on_col!(id, bb, bbs, testbb, {
+        let step_bb = BoundingBox{x : bb.x, y : bb.y - STEPHEIGHT, w : bb.w, h : bb.h};
+        if (step_bb.check_col(testbb)){
+            col_flag = true;
+            break;
+        }
+    }
+    );
+    col_flag
+}
+
+fn does_collide(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
+    let mut col_flag = false;
+    call_once_on_col!(id, bb, bbs, unused, col_flag = true);
+    col_flag
+}
 
 const TIMESCALE : fphys = 10.0;
 
@@ -143,32 +175,15 @@ impl Physical for PhysDyn {
             h : self.bb.h
         };
 
-        //  Check for a collision
-        let mut col_flag = false;
-        call_once_on_col!(self.id, bb_test, bbs, bb, col_flag = true);
-
         //  Collision Resolution
-        if col_flag {
-            bb_test.y = self.bb.y;
-            call_once_on_col!(self.id, bb_test, bbs, bb,
-                if bb_test.x + bb_test.w <= bb.x + bb.w/2.0 {
-                    bb_test.x = bb.x - bb_test.w;
-                }
-                else {
-                    bb_test.x = bb.x + bb.w;
-                }
-            );
+        if does_collide(self.id, &bb_test, bbs) {
 
-            bb_test.y = self.bb.y + self.yvel * dt;
-
-            call_once_on_col!(self.id, bb_test, bbs, bb,
-                if bb_test.y + bb_test.h <= bb.y + bb.h/2.0 {
-                    bb_test.y = bb.y - bb_test.h;
-                }
-                else {
-                    bb_test.y = bb.y + bb.h;
-                }
-            );
+            let (xnew, ynew) = resolveCollisionBase(self.id, bbs, self.bb.w, 
+                                                    self.bb.h, 
+                                                    (self.bb.x, self.bb.y), 
+                                                    (bb_test.x, bb_test.y));
+            bb_test.x = xnew;
+            bb_test.y = ynew;
 
             self.xvel = (bb_test.x - self.bb.x) / dt;
             self.yvel = (bb_test.y - self.bb.y) / dt;
@@ -179,7 +194,7 @@ impl Physical for PhysDyn {
         //  Test if on the ground
         self.on_ground = false;
         call_once_on_col!(self.id, 
-            BoundingBox {x : self.bb.x, 
+            BoundingBox {x : self.bb.x,
                          y : self.bb.y + 1.0, 
                          w : self.bb.w, 
                          h : self.bb.h}, 
@@ -211,6 +226,57 @@ impl Physical for PhysDyn {
 	fn get_vel(&self) -> (fphys, fphys){
 		(self.xvel, self.yvel)
 	}
+}
+
+fn resolveCollisionBase(id : u32,
+                        bbs : &[IdBB], 
+                        w : fphys, 
+                        h : fphys, 
+                        (xstart, ystart) : (fphys, fphys), 
+                        (xend, yend) : (fphys, fphys)) -> (fphys, fphys) {
+    let (_, y) = resolveCollisionIt(8, id, bbs, w, h, (xstart, ystart), (xstart, yend));
+    let (x, _) = resolveCollisionIt(8, id, bbs, w, h, (xstart, y), (xend, y));
+    (x, y)
+}
+fn resolveCollisionIt(its : i32, 
+                        id : u32,
+                        bbs : &[IdBB], 
+                        w : fphys, 
+                        h : fphys, 
+                        pos_start : (fphys, fphys), 
+                        pos_end : (fphys, fphys)) -> (fphys, fphys) {
+    resolveCollisionItRec(its, its, id, bbs, w, h, pos_start, pos_end)
+}
+
+fn resolveCollisionItRec(its : i32, 
+                        its_total : i32, 
+                        id : u32,
+                        bbs : &[IdBB], 
+                        w : fphys, 
+                        h : fphys, 
+                        (xstart, ystart) : (fphys, fphys), 
+                        (xend, yend) : (fphys, fphys)) -> (fphys, fphys) {
+    if (its <= 0) {
+        (xend, yend)
+    }
+    else {
+        let currentIt = its_total - its;
+        let prop = ((currentIt) as fphys) / (its_total as fphys);
+        let bb_test = BoundingBox {
+            x : xstart + (xend - xstart) * prop, 
+            y : ystart + (yend - ystart) * prop,
+            w : w, h : h};
+
+        if (does_collide(id, &bb_test, bbs)) {
+            let prop_prev = ((currentIt - 1) as fphys) / (its_total as fphys);
+            let prev_x : fphys = xstart + (xend - xstart) * prop_prev;
+            let prev_y : fphys = ystart + (yend - ystart) * prop_prev;
+            (prev_x, prev_y)
+        }
+        else {
+            resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, (xstart, ystart), (xend, yend))
+        }
+    }
 }
 
 impl PhysDyn {
