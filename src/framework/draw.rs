@@ -26,7 +26,7 @@ impl Drawable for GrphxSquare {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform){
         use graphics::*;
 
-        const BLACK : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+        const BLACK : [f32; 4] = [1.0, 0.0, 0.0, 1.0];
 
         let square = rectangle::square(0.0, 0.0, self.radius);
         let (x, y) = (self.x as f64, self.y as f64);

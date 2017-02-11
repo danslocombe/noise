@@ -8,6 +8,7 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
+use opengl_graphics::shader_uniforms::*;
 
 pub mod draw;
 pub mod player;
@@ -65,6 +66,9 @@ pub fn game_loop(mut window : Window
         scale : 1.0
     };
 
+    let mut time : f32 = 0.0;
+    println!("Getting");
+
     let mut gen = gen::Gen::new(32.0, 500.0);
 
     let bb_sender = bb_handler.get_sender();
@@ -79,6 +83,8 @@ pub fn game_loop(mut window : Window
     while let Some(e) = events.next(&mut window) {
         match e {
             Input::Update(u_args) => {
+                let uniform_time : ShaderUniform<SUFloat> = ctx.get_uniform("time").unwrap();
+                uniform_time.set(&ctx, time);
 
                 //  Generate world
                 for (x, y) in gen.gen_to(vt.x + 1000.0) {
@@ -107,6 +113,8 @@ pub fn game_loop(mut window : Window
 
             },
             Input::Render(r_args) => {
+                //  Update time shader uniform
+                time = time + 0.001;
                 //  Update viewport
                 const w : fphys = 20.0;
                 const offset_factor : fphys = 30.6;
