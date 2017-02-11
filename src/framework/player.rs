@@ -75,43 +75,38 @@ impl super::Logical for PlayerLogic {
 }
 
 impl super::InputHandler for PlayerLogic {
-    fn handle (&mut self, i : Input){
-        match i {
-            Input::Press(button) => {
-                match button {
-					Button::Keyboard(Key::Up) => {
-						self.i_up = true;
-					}
-					Button::Keyboard(Key::Down) => {
-						self.i_down = true;
-					}
-					Button::Keyboard(Key::Left) => {
-						self.i_left = true;
-					}
-					Button::Keyboard(Key::Right) => {
-						self.i_right = true;
-					}
-					_ => {}
-                }
+    fn press (&mut self, button : Button){
+        match button {
+            Button::Keyboard(Key::Up) => {
+                self.i_up = true;
             }
-            Input::Release(button) => {
-                match button {
-					Button::Keyboard(Key::Up) => {
-						self.i_up = false;
-					}
-					Button::Keyboard(Key::Down) => {
-						self.i_down = false;
-					}
-					Button::Keyboard(Key::Left) => {
-						self.i_left = false;
-					}
-					Button::Keyboard(Key::Right) => {
-						self.i_right = false;
-					}
-					_ => {}
-                }
+            Button::Keyboard(Key::Down) => {
+                self.i_down = true;
             }
-			_ => {}
+            Button::Keyboard(Key::Left) => {
+                self.i_left = true;
+            }
+            Button::Keyboard(Key::Right) => {
+                self.i_right = true;
+            }
+            _ => {}
+        }
+    }
+    fn release (&mut self, button: Button) {
+        match button {
+            Button::Keyboard(Key::Up) => {
+                self.i_up = false;
+            }
+            Button::Keyboard(Key::Down) => {
+                self.i_down = false;
+            }
+            Button::Keyboard(Key::Left) => {
+                self.i_left = false;
+            }
+            Button::Keyboard(Key::Right) => {
+                self.i_right = false;
+            }
+            _ => {}
         }
     }
 }

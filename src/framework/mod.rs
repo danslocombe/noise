@@ -47,7 +47,8 @@ pub fn create_block(id : u32, x : fphys, y : fphys) -> GameObj {
 }
 
 pub trait InputHandler{
-    fn handle (&mut self, i : Input);
+    fn press (&mut self, button: Button);
+    fn release (&mut self, button: Button);
 }
 
 pub fn game_loop(mut window : Window
@@ -56,8 +57,6 @@ pub fn game_loop(mut window : Window
                 ,mut bb_handler : bb::BBHandler
                 ,follow_id         : u32
                 ,input_handler : Arc<Mutex<InputHandler>>) {
-
-    let mut events = window.events();
 
     let mut follow_prev_x : fphys = 0.0;
     let mut vt = draw::ViewTransform{
@@ -76,9 +75,10 @@ pub fn game_loop(mut window : Window
         }
     }
 
+    let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
         match e {
-            Event::Update(u_args) => {
+            Input::Update(u_args) => {
 
                 //  Generate world
                 for (x, y) in gen.gen_to(vt.x + 1000.0) {
@@ -105,8 +105,8 @@ pub fn game_loop(mut window : Window
                     }
                 }
 
-            }
-            Event::Render(r_args) => {
+            },
+            Input::Render(r_args) => {
                 //  Update viewport
                 const w : fphys = 20.0;
                 const offset_factor : fphys = 30.6;
@@ -131,11 +131,15 @@ pub fn game_loop(mut window : Window
                     let gphx = o.draws.lock().unwrap();
                     gphx.draw(&r_args, &mut ctx, &vt);
                 }
-            }
-            Event::Input(i) => {
+            },
+            Input::Press(i) => {
                 let mut ih = input_handler.lock().unwrap();
-                ih.handle(i);
-            }
+                ih.press(i);
+            },
+            Input::Release(i) => {
+                let mut ih = input_handler.lock().unwrap();
+                ih.release(i);
+            },
             _ => {}
         }
     }

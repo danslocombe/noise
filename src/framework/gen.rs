@@ -22,6 +22,7 @@ pub struct Gen {
     octaves        : Vec<PerlinOctave>,
 }
 
+const STEPSIZE : fphys = 4.0;
 impl Gen {
     pub fn new(blocksize : fphys, gen_floor : fphys) -> Gen {
         let mut rng = thread_rng();
@@ -46,7 +47,7 @@ impl Gen {
         let mut r = Vec::new();
         while (self.generated_to < x) {
             self.generated_to += self.blocksize;
-            let y = self.gen_floor + /*self.blocksize * */ next_perlin(&mut self.octaves);
+            let y = self.gen_floor + /*self.blocksize * */ STEPSIZE * (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             r.push((self.generated_to, y));
         }
         r
