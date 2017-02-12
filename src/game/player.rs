@@ -2,8 +2,8 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use super::fphys as fphys;
-use framework::physics::Physical;
-use framework::bb::BBProperties;
+use game::physics::Physical;
+use game::bb::BBProperties;
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<super::draw::Drawable>>,

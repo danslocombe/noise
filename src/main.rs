@@ -10,10 +10,10 @@ use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
 use opengl_graphics::shader_uniforms::*;
 
 mod shaders;
-mod framework;
+mod game;
 
 fn main() {
-    use framework::fphys as fphys;
+    use game::fphys as fphys;
 
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
@@ -21,7 +21,7 @@ fn main() {
 
     // Create an Glutin window.
     let window: Window = WindowSettings::new(
-            "codename-black",
+            "noise",
             [640, 480]
         )
         .opengl(opengl)
@@ -44,15 +44,15 @@ fn main() {
     println!("Compiled shaders");
 
     println!("Creating objects");
-    let mut bb_handler = framework::bb::BBHandler::new();
+    let mut bb_handler = game::bb::BBHandler::new();
 
-    let mut objs : Vec<framework::GameObj> = Vec::new();
+    let mut objs : Vec<game::GameObj> = Vec::new();
 
     let id = bb_handler.generate_id();
-    let (player, ih) = framework::player::create(id, 300.0, -250.0);
+    let (player, ih) = game::player::create(id, 300.0, -250.0);
     objs.push(player);
 
     println!("Starting");
 
-    framework::game_loop(window, context, objs, bb_handler, id, ih);
+    game::game_loop(window, context, objs, bb_handler, id, ih);
 }

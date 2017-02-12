@@ -1,10 +1,10 @@
 [package]
-name = "black"
+name = "noise"
 version = "0.1.0"
 authors = ["Dan Slocombe <ds4314@ic.ac.uk>"]
 
 [[bin]]
-name = "spinning-square"
+name = "noise"
 
 [dependencies]
 rand = "0.3"

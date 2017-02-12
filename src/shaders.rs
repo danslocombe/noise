@@ -36,7 +36,7 @@ float lig(vec4 c){
 
 void main() {
 
-    float dir = atan(-vel.y / 2.0, vel.x);
+    float dir = sign(vel.x) * atan(-vel.y / 2.0, abs(vel.x));
     float speed = sqrt(pow(vel.y, 2) + pow(vel.x, 2));
     if (speed < SPEED_MIN) speed = SPEED_MIN;
     float xmod = floor((1 + out_pos.x) / pow(speed, 2) * GRAIN_MOVE);

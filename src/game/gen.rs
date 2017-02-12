@@ -45,7 +45,7 @@ impl Gen {
 
     pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys)> {
         let mut r = Vec::new();
-        while (self.generated_to < x) {
+        while self.generated_to < x {
             self.generated_to += self.blocksize;
             let y = self.gen_floor + /*self.blocksize * */ STEPSIZE * (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             r.push((self.generated_to, y));
@@ -86,7 +86,7 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
             //  last value and generate the next
             if o.last_read == 0 {
                 o.pvalue = o.value;
-                o.value = if (rng.gen::<i32>() % 2 == 1) {-1} else {1};
+                o.value = if rng.gen::<i32>() % 2 == 1 {-1} else {1};
                 o.last_read = i * PERLIN_SPACING;
 
                 o.pvalue as f64

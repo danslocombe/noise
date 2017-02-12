@@ -119,7 +119,7 @@ fn does_collide_step(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor]
     let mut col_flag = false;
     call_once_on_col!(p, bb, bbs, pass_platforms, testbb, {
         let step_bb = BoundingBox{x : bb.x, y : bb.y - STEPHEIGHT, w : bb.w, h : bb.h};
-        if (step_bb.check_col(testbb)){
+        if step_bb.check_col(testbb){
             col_flag = true;
             break;
         }
@@ -271,7 +271,7 @@ fn resolveCollisionItRec(its : i32,
                         pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
                         (xend, yend) : (fphys, fphys)) -> PosDelta {
-    if (its <= 0) {
+    if its <= 0 {
         let bb_test = BoundingBox {
             x : xend, 
             y : yend,
