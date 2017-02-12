@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use super::fphys as fphys;
 use framework::physics::Physical;
+use framework::bb::BBProperties;
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<super::draw::Drawable>>,
@@ -71,6 +72,8 @@ impl super::Logical for PlayerLogic {
             }
         }
 
+        phys.pass_platforms = yvel < 0.0 || self.i_down;
+
     }
 }
 
@@ -119,8 +122,9 @@ pub fn create(id : u32, x : fphys, y : fphys)
     -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
     let g = super::arc_mut(
         super::draw::GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
+    let props = BBProperties::new(id);
     let p = super::arc_mut(
-        super::physics::PhysDyn::new(id, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+        super::physics::PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
     let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 

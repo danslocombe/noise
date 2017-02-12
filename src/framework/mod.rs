@@ -42,7 +42,16 @@ pub struct GameObj {
 
 pub fn create_block(id : u32, x : fphys, y : fphys) -> GameObj {
     let g = arc_mut(draw::GrphxRect {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let p = arc_mut(physics::PhysStatic {id : id, x : x, y : y, draw : g.clone()});
+    let props = bb::BBProperties {id : id, platform : false};
+    let p = arc_mut(physics::PhysStatic {p : props, x : x, y : y, w : 32.0, h : 32.0,  draw : g.clone()});
+    let l = arc_mut(DumbLogic {});
+    GameObj {draws : g, physics : p, logic : l}
+}
+
+pub fn create_platform(id : u32, x : fphys, y : fphys) -> GameObj {
+    let g = arc_mut(draw::GrphxRect {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
+    let props = bb::BBProperties {id : id, platform : true};
+    let p = arc_mut(physics::PhysStatic {p : props, x : x, y : y, w : 32.0, h : 8.0,  draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -105,6 +114,12 @@ pub fn game_loop(mut window : Window
                         p.init(bb_sender.clone());
                     }
                     objs.push(b);
+                    let p = create_platform(bb_handler.generate_id(), x, 100.0);
+                    {
+                        let mut ph = p.physics.lock().unwrap();
+                        ph.init(bb_sender.clone());
+                    }
+                    objs.push(p);
                 }
 
                 //  Update bounding box list
@@ -129,7 +144,7 @@ pub fn game_loop(mut window : Window
                 const offset_factor : fphys = 30.6;
                 const scale_mult : fphys = 1.0 / 2000.0;
                 match bb_handler.get(follow_id){
-                    Some(bb) => {
+                    Some((_, bb)) => {
                         let obj_view_diff = bb.x - vt.x;
                         let bb_xvel = bb.x - follow_prev_x;
                         let bb_yvel = bb.y - follow_prev_y;

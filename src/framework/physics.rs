@@ -8,11 +8,11 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, Receiver};
 
 use super::fphys as fphys;
-use super::bb::IdBB as IdBB;
+use super::bb::{BBDescriptor, BBProperties};
 
 pub trait Physical {
-    fn init(&mut self, bb_sender : Sender<IdBB>);
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[IdBB], bb_sender : Sender<IdBB>);
+    fn init(&mut self, bb_sender : Sender<BBDescriptor>);
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>);
     fn apply_force(&mut self, xforce : fphys, yforce : fphys);
 	fn get_position(&self) -> (fphys, fphys);
 	fn get_vel(&self) -> (fphys, fphys);
@@ -20,14 +20,16 @@ pub trait Physical {
 
 
 pub struct PhysStatic {
-    pub id : u32,
+    pub p : BBProperties,
     pub x : fphys,
     pub y : fphys,
+    pub w : fphys,
+    pub h : fphys,
     pub draw : Arc<Mutex<super::draw::Drawable>>
 }
 
 pub struct PhysDyn {
-    pub id : u32,
+    pub p : BBProperties,
     pub mass : fphys,
     xvel   : fphys,
     yvel   : fphys,
@@ -36,6 +38,7 @@ pub struct PhysDyn {
     xforce : fphys,
     yforce : fphys,
 	maxspeed : fphys,
+    pub pass_platforms : bool,
     pub on_ground : bool,
     bb : BoundingBox,
     pub draw : Arc<Mutex<super::draw::Drawable>>
@@ -43,16 +46,16 @@ pub struct PhysDyn {
 
 
 impl Physical for PhysStatic {
-    fn init(&mut self, bb_sender : Sender<IdBB>) {
+    fn init(&mut self, bb_sender : Sender<BBDescriptor>) {
         let bb = BoundingBox{
             x : self.x,
             y : self.y,
-            w : 32.0,
-            h : 32.0
+            w : self.w,
+            h : self.h,
         };
-        bb_sender.send((self.id, bb)).unwrap();
+        bb_sender.send((self.p.clone(), bb)).unwrap();
     }
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[IdBB], bb_sender : Sender<IdBB>){
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>){
         //  Do nothing
     }
     fn apply_force(&mut self, _ : fphys, _ : fphys){
@@ -89,15 +92,18 @@ impl BoundingBox {
  *
  * $id is the id of the testing bounding box
  * $test is the testing bounding box
- * $bbs is the vector of IdBBs to test against
+ * $bbs is the vector of BBDescriptors to test against
  * $bb is an ident to give a positively testing block
  * f is the statement to run
  */
 macro_rules! call_once_on_col {
-    ($id : expr, $test : expr, $bbs : expr, $bb : ident, $f : stmt) => {
-        for idbb in $bbs {
-            let (id, ref $bb) = *idbb;
-            if id == $id{
+    ($p : expr, $test : expr, $bbs : expr, $pass_plats : expr, $bb : ident, $f : stmt) => {
+        for descr in $bbs {
+            let (ref p, ref $bb) = *descr;
+            if p.id == $p.id {
+                continue;
+            }
+            if p.platform && $pass_plats {
                 continue;
             }
             if $test.check_col($bb){
@@ -107,23 +113,11 @@ macro_rules! call_once_on_col {
         }
     }
 }
-macro_rules! call_mult_on_col {
-    ($id : expr, $test : expr, $bbs : expr, $bb : ident, $f : stmt) => {
-        for idbb in $bbs {
-            let (id, ref $bb) = *idbb;
-            if id == $id{
-                continue;
-            }
-            if $test.check_col($bb){
-                $f;
-            }
-        }
-    }
-}
+
 const STEPHEIGHT : fphys = 8.5;
-fn does_collide_step(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
+fn does_collide_step(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pass_platforms : bool) -> bool {
     let mut col_flag = false;
-    call_once_on_col!(id, bb, bbs, testbb, {
+    call_once_on_col!(p, bb, bbs, pass_platforms, testbb, {
         let step_bb = BoundingBox{x : bb.x, y : bb.y - STEPHEIGHT, w : bb.w, h : bb.h};
         if (step_bb.check_col(testbb)){
             col_flag = true;
@@ -134,20 +128,20 @@ fn does_collide_step(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
     col_flag
 }
 
-fn does_collide(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
+fn does_collide(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pass_platforms : bool) -> bool {
     let mut col_flag = false;
-    call_once_on_col!(id, bb, bbs, unused, col_flag = true);
+    call_once_on_col!(p, bb, bbs, pass_platforms, unused, col_flag = true);
     col_flag
 }
 
 const TIMESCALE : fphys = 10.0;
 
 impl Physical for PhysDyn {
-    fn init(&mut self, bb_sender : Sender<IdBB>) {
-        bb_sender.send((self.id, self.bb.clone())).unwrap();
+    fn init(&mut self, bb_sender : Sender<BBDescriptor>) {
+        bb_sender.send((self.p.clone(), self.bb.clone())).unwrap();
     }
     fn tick(&mut self, args : &UpdateArgs
-            ,bbs : &[IdBB], bb_sender : Sender<IdBB>){
+            ,bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>){
 
         let dt = TIMESCALE * args.dt as fphys;
 
@@ -176,10 +170,10 @@ impl Physical for PhysDyn {
         };
 
         //  Collision Resolution
-        if does_collide(self.id, &bb_test, bbs) {
+        if does_collide(&self.p, &bb_test, bbs, self.pass_platforms) {
 
-            let pos_delta = resolveCollisionBase(self.id, bbs, self.bb.w, 
-                                                 self.bb.h, self.on_ground,
+            let pos_delta = resolveCollisionBase(&self.p, bbs, self.bb.w, 
+                                                 self.bb.h, self.on_ground, self.pass_platforms,
                                                 (self.bb.x, self.bb.y), 
                                                 (bb_test.x, bb_test.y));
             bb_test.x = pos_delta.x;
@@ -193,12 +187,13 @@ impl Physical for PhysDyn {
 
         //  Test if on the ground
         self.on_ground = false;
-        call_once_on_col!(self.id, 
+        call_once_on_col!(self.p, 
             BoundingBox {x : self.bb.x,
                          y : self.bb.y + 1.0, 
                          w : self.bb.w, 
                          h : self.bb.h}, 
                          bbs, 
+                         self.pass_platforms,
                          bb, 
                          self.on_ground = true
         );
@@ -214,7 +209,7 @@ impl Physical for PhysDyn {
         }
 
         //  Send new bounding box to manager
-        bb_sender.send((self.id, self.bb.clone())).unwrap();
+        bb_sender.send((self.p.clone(), self.bb.clone())).unwrap();
     }
     fn apply_force(&mut self, xforce : fphys, yforce : fphys){
         self.xforce += xforce;
@@ -228,16 +223,17 @@ impl Physical for PhysDyn {
 	}
 }
 
-fn resolveCollisionBase(id : u32,
-                        bbs : &[IdBB], 
+fn resolveCollisionBase(p : &BBProperties,
+                        bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
                         on_ground : bool,
+                        pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
                         (xend, yend) : (fphys, fphys)) -> PosDelta {
-    let pdelta_x = resolveCollisionIt(8, id, bbs, w, h, on_ground, (xstart, ystart), (xend, ystart));
+    let pdelta_x = resolveCollisionIt(8, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, ystart));
     let x = pdelta_x.x;
-    let pdelta_y = resolveCollisionIt(8, id, bbs, w, h,  on_ground,(x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
+    let pdelta_y = resolveCollisionIt(8, p, bbs, w, h,  on_ground, pass_platforms, (x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
     let y = pdelta_y.y;
 
     PosDelta { x : x, 
@@ -254,23 +250,25 @@ struct PosDelta{
 }
 
 fn resolveCollisionIt(its : i32, 
-                        id : u32,
-                        bbs : &[IdBB], 
+                        p : &BBProperties,
+                        bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
                         on_ground : bool,
+                        pass_platforms : bool,
                         pos_start : (fphys, fphys), 
                         pos_end : (fphys, fphys)) -> PosDelta {
-    resolveCollisionItRec(its - 1, its, id, bbs, w, h, on_ground, pos_start, pos_end)
+    resolveCollisionItRec(its - 1, its, p, bbs, w, h, on_ground, pass_platforms, pos_start, pos_end)
 }
 
 fn resolveCollisionItRec(its : i32, 
                         its_total : i32, 
-                        id : u32,
-                        bbs : &[IdBB], 
+                        p : &BBProperties,
+                        bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
                         on_ground : bool,
+                        pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
                         (xend, yend) : (fphys, fphys)) -> PosDelta {
     if (its <= 0) {
@@ -278,7 +276,7 @@ fn resolveCollisionItRec(its : i32,
             x : xend, 
             y : yend,
             w : w, h : h};
-        if does_collide(id, &bb_test, bbs) {
+        if does_collide(p, &bb_test, bbs, pass_platforms) {
             PosDelta {x : xstart, y : ystart, dx : 0.0, dy : 0.0}
         }
         else {
@@ -293,10 +291,10 @@ fn resolveCollisionItRec(its : i32,
             y : ystart + (yend - ystart) * prop,
             w : w, h : h};
 
-        if does_collide(id, &bb_test, bbs) {
+        if does_collide(p, &bb_test, bbs, pass_platforms) {
             let bb_test_step = BoundingBox{x : bb_test.x, y : bb_test.y - STEPHEIGHT, w : bb_test.w, h : bb_test.h};
-            if on_ground && ystart == yend && !does_collide(id, &bb_test_step, bbs) {
-                resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, on_ground, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
+            if on_ground && ystart == yend && !does_collide(p, &bb_test_step, bbs, pass_platforms) {
+                resolveCollisionItRec(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
                 
             }
             else {
@@ -307,13 +305,13 @@ fn resolveCollisionItRec(its : i32,
             }
         }
         else {
-            resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, on_ground, (xstart, ystart), (xend, yend))
+            resolveCollisionItRec(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, yend))
         }
     }
 }
 
 impl PhysDyn {
-    pub fn new(id       : u32
+    pub fn new(p       : BBProperties
               ,x        : fphys
               ,y        : fphys
               ,mass     : fphys
@@ -329,7 +327,7 @@ impl PhysDyn {
         };
 
         PhysDyn {
-            id : id,
+            p : p,
             mass : mass,
             xvel   : 0.0,
             yvel   : 0.0,
@@ -338,6 +336,7 @@ impl PhysDyn {
             xforce : 0.0,
             yforce : 0.0,
             on_ground : false,
+            pass_platforms : false,
             bb : bb,
 			maxspeed : maxspeed,
             draw : dr
