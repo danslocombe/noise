@@ -120,7 +120,7 @@ macro_rules! call_mult_on_col {
         }
     }
 }
-const STEPHEIGHT : fphys = 5.0;
+const STEPHEIGHT : fphys = 8.5;
 fn does_collide_step(id : u32, bb : &BoundingBox, bbs : &[IdBB]) -> bool {
     let mut col_flag = false;
     call_once_on_col!(id, bb, bbs, testbb, {
@@ -178,15 +178,15 @@ impl Physical for PhysDyn {
         //  Collision Resolution
         if does_collide(self.id, &bb_test, bbs) {
 
-            let (xnew, ynew) = resolveCollisionBase(self.id, bbs, self.bb.w, 
-                                                    self.bb.h, 
-                                                    (self.bb.x, self.bb.y), 
-                                                    (bb_test.x, bb_test.y));
-            bb_test.x = xnew;
-            bb_test.y = ynew;
+            let pos_delta = resolveCollisionBase(self.id, bbs, self.bb.w, 
+                                                 self.bb.h, self.on_ground,
+                                                (self.bb.x, self.bb.y), 
+                                                (bb_test.x, bb_test.y));
+            bb_test.x = pos_delta.x;
+            bb_test.y = pos_delta.y;
 
-            self.xvel = (bb_test.x - self.bb.x) / dt;
-            self.yvel = (bb_test.y - self.bb.y) / dt;
+            self.xvel = (pos_delta.dx) / dt;
+            self.yvel = (pos_delta.dy) / dt;
         }
 
         self.bb = bb_test;
@@ -232,20 +232,36 @@ fn resolveCollisionBase(id : u32,
                         bbs : &[IdBB], 
                         w : fphys, 
                         h : fphys, 
+                        on_ground : bool,
                         (xstart, ystart) : (fphys, fphys), 
-                        (xend, yend) : (fphys, fphys)) -> (fphys, fphys) {
-    let (_, y) = resolveCollisionIt(8, id, bbs, w, h, (xstart, ystart), (xstart, yend));
-    let (x, _) = resolveCollisionIt(8, id, bbs, w, h, (xstart, y), (xend, y));
-    (x, y)
+                        (xend, yend) : (fphys, fphys)) -> PosDelta {
+    let pdelta_x = resolveCollisionIt(8, id, bbs, w, h, on_ground, (xstart, ystart), (xend, ystart));
+    let x = pdelta_x.x;
+    let pdelta_y = resolveCollisionIt(8, id, bbs, w, h,  on_ground,(x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
+    let y = pdelta_y.y;
+
+    PosDelta { x : x, 
+              y : y, 
+             dx : pdelta_x.dx + pdelta_y.dx, 
+             dy : pdelta_x.dy + pdelta_y.dy}
 }
+
+struct PosDelta{
+    pub x : fphys,
+    pub y : fphys,
+    pub dx : fphys,
+    pub dy : fphys,
+}
+
 fn resolveCollisionIt(its : i32, 
                         id : u32,
                         bbs : &[IdBB], 
                         w : fphys, 
                         h : fphys, 
+                        on_ground : bool,
                         pos_start : (fphys, fphys), 
-                        pos_end : (fphys, fphys)) -> (fphys, fphys) {
-    resolveCollisionItRec(its, its, id, bbs, w, h, pos_start, pos_end)
+                        pos_end : (fphys, fphys)) -> PosDelta {
+    resolveCollisionItRec(its - 1, its, id, bbs, w, h, on_ground, pos_start, pos_end)
 }
 
 fn resolveCollisionItRec(its : i32, 
@@ -254,10 +270,20 @@ fn resolveCollisionItRec(its : i32,
                         bbs : &[IdBB], 
                         w : fphys, 
                         h : fphys, 
+                        on_ground : bool,
                         (xstart, ystart) : (fphys, fphys), 
-                        (xend, yend) : (fphys, fphys)) -> (fphys, fphys) {
+                        (xend, yend) : (fphys, fphys)) -> PosDelta {
     if (its <= 0) {
-        (xend, yend)
+        let bb_test = BoundingBox {
+            x : xend, 
+            y : yend,
+            w : w, h : h};
+        if does_collide(id, &bb_test, bbs) {
+            PosDelta {x : xstart, y : ystart, dx : 0.0, dy : 0.0}
+        }
+        else {
+            PosDelta {x : xend, y : yend, dx : xend - xstart, dy : yend - ystart}
+        }
     }
     else {
         let currentIt = its_total - its;
@@ -267,14 +293,21 @@ fn resolveCollisionItRec(its : i32,
             y : ystart + (yend - ystart) * prop,
             w : w, h : h};
 
-        if (does_collide(id, &bb_test, bbs)) {
-            let prop_prev = ((currentIt - 1) as fphys) / (its_total as fphys);
-            let prev_x : fphys = xstart + (xend - xstart) * prop_prev;
-            let prev_y : fphys = ystart + (yend - ystart) * prop_prev;
-            (prev_x, prev_y)
+        if does_collide(id, &bb_test, bbs) {
+            let bb_test_step = BoundingBox{x : bb_test.x, y : bb_test.y - STEPHEIGHT, w : bb_test.w, h : bb_test.h};
+            if on_ground && ystart == yend && !does_collide(id, &bb_test_step, bbs) {
+                resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, on_ground, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
+                
+            }
+            else {
+                let prop_prev = ((currentIt - 1) as fphys) / (its_total as fphys);
+                let prev_x : fphys = xstart + (xend - xstart) * prop_prev;
+                let prev_y : fphys = ystart + (yend - ystart) * prop_prev;
+                PosDelta {x : prev_x, y : prev_y, dx : prev_x - xstart, dy : prev_y - ystart}
+            }
         }
         else {
-            resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, (xstart, ystart), (xend, yend))
+            resolveCollisionItRec(its - 1, its_total, id, bbs, w, h, on_ground, (xstart, ystart), (xend, yend))
         }
     }
 }

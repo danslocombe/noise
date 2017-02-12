@@ -39,7 +39,7 @@ void main() {
     float dir = atan(-vel.y, vel.x);
     float speed = sqrt(pow(vel.y, 2) + pow(vel.x, 2));
     if (speed < SPEED_MIN) speed = SPEED_MIN;
-    float xmod = floor(out_pos.x / pow(speed, 2) * GRAIN_MOVE);
+    float xmod = floor((1 + out_pos.x) / pow(speed, 2) * GRAIN_MOVE);
     vec2 roundPos = 
         vec2(floor((out_pos.y - out_pos.x * dir) * GRAIN_SCALE * sqrt(speed)), 
              xmod + time);
