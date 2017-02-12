@@ -41,7 +41,7 @@ pub struct GameObj {
 }
 
 pub fn create_block(id : u32, x : fphys, y : fphys) -> GameObj {
-    let g = arc_mut(draw::GrphxSquare {x : x, y : y, radius : 32.0});
+    let g = arc_mut(draw::GrphxRect {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
     let p = arc_mut(physics::PhysStatic {id : id, x : x, y : y, draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
@@ -60,6 +60,9 @@ pub fn game_loop(mut window : Window
                 ,input_handler : Arc<Mutex<InputHandler>>) {
 
     let mut follow_prev_x : fphys = 0.0;
+    let mut follow_prev_y : fphys = 0.0;
+    let mut shader_xv : fphys = 0.0;
+    let mut shader_yv : fphys = 0.0;
     let mut vt = draw::ViewTransform{
         x : 0.0,
         y : 0.0,
@@ -67,7 +70,6 @@ pub fn game_loop(mut window : Window
     };
 
     let mut time : f32 = 0.0;
-    println!("Getting");
 
     let mut gen = gen::Gen::new(32.0, 500.0);
 
@@ -83,8 +85,17 @@ pub fn game_loop(mut window : Window
     while let Some(e) = events.next(&mut window) {
         match e {
             Input::Update(u_args) => {
+                //  Update time shader uniform
                 let uniform_time : ShaderUniform<SUFloat> = ctx.get_uniform("time").unwrap();
+                
+                time = time + 0.001;
                 uniform_time.set(&ctx, time);
+
+                bb_handler.get(follow_id).map(|bb|{
+                    let uniform_vel : ShaderUniform<SUVec2> = ctx.get_uniform("vel").unwrap();
+                    uniform_vel.set(&ctx, &[shader_xv as f32, shader_yv as f32]);
+                });
+
 
                 //  Generate world
                 for (x, y) in gen.gen_to(vt.x + 1000.0) {
@@ -113,8 +124,6 @@ pub fn game_loop(mut window : Window
 
             },
             Input::Render(r_args) => {
-                //  Update time shader uniform
-                time = time + 0.001;
                 //  Update viewport
                 const w : fphys = 20.0;
                 const offset_factor : fphys = 30.6;
@@ -122,14 +131,20 @@ pub fn game_loop(mut window : Window
                 match bb_handler.get(follow_id){
                     Some(bb) => {
                         let obj_view_diff = bb.x - vt.x;
-                        let bb_speed = bb.x - follow_prev_x;
-                        let offset = bb_speed * offset_factor;
+                        let bb_xvel = bb.x - follow_prev_x;
+                        let bb_yvel = bb.y - follow_prev_y;
+                        let offset = bb_xvel * offset_factor;
 
                         vt.x = tools::weight(vt.x, bb.x + offset - 320.0, w);
                         vt.y = tools::weight(vt.y, bb.y - 320.0, w);
                         vt.scale = tools::weight(vt.scale, 1.0 - obj_view_diff.abs() * scale_mult, w); 
+                        let bb_xvel = bb.x - follow_prev_x;
+                        let bb_yvel = bb.y - follow_prev_y;
+                        shader_xv = tools::weight(shader_xv, bb_xvel, w);
+                        shader_yv = tools::weight(shader_yv, bb_yvel, w);
 
                         follow_prev_x = bb.x;
+                        follow_prev_y = bb.y;
                     }
                     None => {}
                 }

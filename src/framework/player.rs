@@ -113,11 +113,12 @@ impl super::InputHandler for PlayerLogic {
 
 pub const MAXSPEED : fphys = 200.0;
 const SIZE     : fphys = 24.0;
+const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub fn create(id : u32, x : fphys, y : fphys) 
     -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
     let g = super::arc_mut(
-        super::draw::GrphxSquare {x : x, y : y, radius : SIZE});
+        super::draw::GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
     let p = super::arc_mut(
         super::physics::PhysDyn::new(id, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
