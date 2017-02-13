@@ -50,11 +50,6 @@ fn main() {
 	let context = GlGraphics::from_colored_textured(c, t);
     println!("Compiled shaders");
 
-    println!("Creating objects");
-    let mut bb_handler = BBHandler::new();
-
-    let mut objs : Vec<GameObj> = Vec::new();
-
     println!("Starting");
-    game_loop(window, context, objs, bb_handler);
+    game_loop(window, context);
 }

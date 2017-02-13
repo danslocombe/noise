@@ -48,35 +48,36 @@ pub trait InputHandler{
     fn release (&mut self, button: Button);
 }
 
-const DESTROY_BUFFER : fphys = 200.0;
+const DESTROY_BUFFER : fphys = 800.0;
 
-pub fn game_loop(mut window : Window
-                ,mut ctx : GlGraphics
-                ,mut objs : Vec<GameObj>
-                ,mut bb_handler : BBHandler){
-
-    let vt = ViewTransform{
-        x : 0.0,
-        y : 0.0,
-        scale : 1.0
-    };
+pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
     //  Initialise world generator
     let mut gen = Gen::new(32.0, 500.0);
 
+    //  Create new world
+    let mut bb_handler = BBHandler::new();
 
+    //  Initialise set of objects
+    let mut objs : Vec<GameObj> = Vec::new();
+
+    //  Get a sender from world to send location updates to
     let bb_sender = bb_handler.get_sender();
 
     let player_id = bb_handler.generate_id();
-    let (player_obj, input_handler) = player_create(player_id, 300.0, -250.0, bb_sender.clone());
+    let (player_obj, input_handler) = 
+        player_create(player_id, 300.0, -250.0, bb_sender.clone());
     objs.push(player_obj);
 
+
+    //  Set up view following and shader uniform setter
+    let vt = ViewTransform{x : 0.0, y : 0.0, scale : 1.0};
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
     let mut noisy_shader = NoisyShader::new(player_id);
 
-
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
+        //  Get update from window and match against appropriate type
         match e {
             Input::Update(u_args) => {
                 //  Generate world

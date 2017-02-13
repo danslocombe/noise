@@ -35,6 +35,8 @@ pub struct ViewFollower {
     pub scale_mult : fphys,
     pub follow_prev_x : fphys,
     pub follow_prev_y : fphys,
+    pub x_max         : fphys,
+    pub min_buffer    : fphys,
 }
 
 impl ViewFollower {
@@ -47,16 +49,26 @@ impl ViewFollower {
             scale_mult : 1.0 / 2000.0,
             follow_prev_x : 0.0,
             follow_prev_y : 0.0,
+            x_max         : 0.0,
+            min_buffer    : 500.0,
         }
     }
     pub fn update(&mut self, bb_handler : &BBHandler){
         bb_handler.get(self.follow_id).map(|(_, bb)| {
             let obj_view_diff = bb.x - self.vt.x;
             let bb_xvel = bb.x - self.follow_prev_x;
+            if bb.x > self.x_max {
+                self.x_max = bb.x;
+            }
+
             let offset = bb_xvel * self.offset_factor;
 
             self.vt.x = weight(self.vt.x, bb.x + offset - 320.0, self.w);
             self.vt.y = weight(self.vt.y, bb.y - 320.0, self.w);
+
+            if self.vt.x < self.x_max - self.min_buffer {
+                self.vt.x = self.x_max - self.min_buffer;
+            }
             self.vt.scale = weight(self.vt.scale, 1.0 - obj_view_diff.abs() * self.scale_mult, self.w); 
 
             self.follow_prev_x = bb.x;
@@ -91,7 +103,7 @@ impl NoisyShader {
 
         self.time = self.time + 0.001;
 
-        let uniform_time : ShaderUniform<SUFloat> = ctx.get_uniform("time").unwrap();
+        let uniform_time = ctx.get_uniform::<SUFloat>("time").unwrap();
         uniform_time.set(ctx, self.time);
         
         bb_handler.get(self.obj_id).map(|(_, bb)| {
@@ -100,7 +112,7 @@ impl NoisyShader {
             self.vel_x = weight(self.vel_x, bb_xvel, self.weight);
             self.vel_y = weight(self.vel_y, bb_yvel, self.weight);
 
-            let uniform_vel : ShaderUniform<SUVec2> = ctx.get_uniform("vel").unwrap();
+            let uniform_vel = ctx.get_uniform::<SUVec2>("vel").unwrap();
             uniform_vel.set(&ctx, &[self.vel_x as f32, self.vel_y as f32]);
 
             self.obj_prev_x = bb.x;

@@ -19,6 +19,11 @@ impl BBProperties {
 }
 
 //  Handles all bounding boxes for a given world
+//
+//  Listens for updates on its receiver then updates its representation of the world
+//
+//  For each physics tick it generates a list of bounding boxes that can be used
+//  for collisions
 pub struct BBHandler {
     world : HashMap<u32, BBDescriptor>,
     receiver : Receiver<SendType>,
