@@ -38,7 +38,7 @@ pub fn create_block(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>
 pub fn create_platform(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) -> GameObj {
     let g = arc_mut(GrphxRect {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, platform : true};
-    let p = arc_mut(PhysStatic::new(props,x,y,32.0,32.0,bb_sender, g.clone()));
+    let p = arc_mut(PhysStatic::new(props,x,y,32.0,4.0,bb_sender, g.clone()));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }

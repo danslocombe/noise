@@ -130,7 +130,8 @@ macro_rules! call_once_on_col {
             if p.id == $p.id {
                 continue;
             }
-            if p.platform && $pass_plats {
+            //  Collide with a platform only if above and pass_plats set
+            if p.platform && (($test.y + $test.h >= $bb.y + $bb.h) || $pass_plats) {
                 continue;
             }
             if $test.check_col($bb){
@@ -166,7 +167,6 @@ const TIMESCALE : fphys = 10.0;
 impl Physical for PhysDyn {
     fn tick(&mut self, args : &UpdateArgs
             ,bbs : &[BBDescriptor]){
-
         let dt = TIMESCALE * args.dt as fphys;
 
         //  Newtonian equations

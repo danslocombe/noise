@@ -77,7 +77,6 @@ impl Logical for PlayerLogic {
         }
 
         phys.pass_platforms = yvel < 0.0 || self.i_down;
-
     }
 }
 
