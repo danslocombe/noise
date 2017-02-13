@@ -1,7 +1,10 @@
 extern crate graphics;
 
+use bb::BBHandler;
 use opengl_graphics::GlGraphics;
+use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
+use tools::weight;
 
 use game::fphys;
 
@@ -19,9 +22,91 @@ pub struct GrphxRect {
 }
 
 pub struct ViewTransform {
-    pub x : fphys,
-    pub y : fphys,
+    pub x     : fphys,
+    pub y     : fphys,
     pub scale : fphys,
+}
+
+pub struct ViewFollower {
+    pub vt     : ViewTransform,
+    pub follow_id   : u32,
+    pub w : fphys,
+    pub offset_factor : fphys,
+    pub scale_mult : fphys,
+    pub follow_prev_x : fphys,
+    pub follow_prev_y : fphys,
+}
+
+impl ViewFollower {
+    pub fn new_defaults(vt : ViewTransform, id : u32) -> Self {
+        ViewFollower {
+            vt : vt,
+            follow_id : id,
+            w : 20.0,
+            offset_factor : 30.0,
+            scale_mult : 1.0 / 2000.0,
+            follow_prev_x : 0.0,
+            follow_prev_y : 0.0,
+        }
+    }
+    pub fn update(&mut self, bb_handler : &BBHandler){
+        bb_handler.get(self.follow_id).map(|(_, bb)| {
+            let obj_view_diff = bb.x - self.vt.x;
+            let bb_xvel = bb.x - self.follow_prev_x;
+            let offset = bb_xvel * self.offset_factor;
+
+            self.vt.x = weight(self.vt.x, bb.x + offset - 320.0, self.w);
+            self.vt.y = weight(self.vt.y, bb.y - 320.0, self.w);
+            self.vt.scale = weight(self.vt.scale, 1.0 - obj_view_diff.abs() * self.scale_mult, self.w); 
+
+            self.follow_prev_x = bb.x;
+            self.follow_prev_y = bb.y;
+        });
+    }
+}
+
+pub struct NoisyShader {
+    obj_id : u32,
+    time : f32,
+    vel_x : fphys,
+    vel_y : fphys,
+    obj_prev_x : fphys,
+    obj_prev_y : fphys,
+    weight : fphys
+}
+
+impl NoisyShader {
+    pub fn new(obj_id : u32) -> Self {
+        NoisyShader {
+            obj_id : obj_id,
+            time : 0.0,
+            vel_x : 0.0,
+            vel_y : 0.0,
+            obj_prev_x : 0.0,
+            obj_prev_y : 0.0,
+            weight : 20.0,
+        }
+    }
+    pub fn update(&mut self, ctx : &GlGraphics, bb_handler : &BBHandler) {
+
+        self.time = self.time + 0.001;
+
+        let uniform_time : ShaderUniform<SUFloat> = ctx.get_uniform("time").unwrap();
+        uniform_time.set(ctx, self.time);
+        
+        bb_handler.get(self.obj_id).map(|(_, bb)| {
+            let bb_xvel = bb.x - self.obj_prev_x;
+            let bb_yvel = bb.y - self.obj_prev_y;
+            self.vel_x = weight(self.vel_x, bb_xvel, self.weight);
+            self.vel_y = weight(self.vel_y, bb_yvel, self.weight);
+
+            let uniform_vel : ShaderUniform<SUVec2> = ctx.get_uniform("vel").unwrap();
+            uniform_vel.set(&ctx, &[self.vel_x as f32, self.vel_y as f32]);
+
+            self.obj_prev_x = bb.x;
+            self.obj_prev_y = bb.y;
+        });
+    }
 }
 
 impl Drawable for GrphxRect {

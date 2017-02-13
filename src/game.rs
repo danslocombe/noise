@@ -8,14 +8,13 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
-use opengl_graphics::shader_uniforms::*;
 
 use logic::{Logical, DumbLogic};
-use draw::{Drawable, GrphxRect, draw_background, ViewTransform};
+use draw::{Drawable, GrphxRect, draw_background, ViewTransform, ViewFollower, NoisyShader};
 use physics::{Physical, PhysStatic};
 use bb::{BBProperties, BBHandler};
 use gen::Gen;
-use tools::{arc_mut, weight};
+use tools::{arc_mut};
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -51,21 +50,19 @@ pub fn game_loop(mut window : Window
                 ,mut ctx : GlGraphics
                 ,mut objs : Vec<GameObj>
                 ,mut bb_handler : BBHandler
-                ,follow_id         : u32
+                ,player_id     : u32
                 ,input_handler : Arc<Mutex<InputHandler>>) {
 
-    let mut follow_prev_x : fphys = 0.0;
-    let mut follow_prev_y : fphys = 0.0;
-    let mut shader_xv : fphys = 0.0;
-    let mut shader_yv : fphys = 0.0;
-    let mut vt = ViewTransform{
+    let vt = ViewTransform{
         x : 0.0,
         y : 0.0,
         scale : 1.0
     };
 
-    let mut time : f32 = 0.0;
+    let mut view_follower = ViewFollower::new_defaults(vt, player_id);
+    let mut noisy_shader = NoisyShader::new(player_id);
 
+    //  Initialise world generator
     let mut gen = Gen::new(32.0, 500.0);
 
     let bb_sender = bb_handler.get_sender();
@@ -80,20 +77,8 @@ pub fn game_loop(mut window : Window
     while let Some(e) = events.next(&mut window) {
         match e {
             Input::Update(u_args) => {
-                //  Update time shader uniform
-                let uniform_time : ShaderUniform<SUFloat> = ctx.get_uniform("time").unwrap();
-                
-                time = time + 0.001;
-                uniform_time.set(&ctx, time);
-
-                bb_handler.get(follow_id).map(|bb|{
-                    let uniform_vel : ShaderUniform<SUVec2> = ctx.get_uniform("vel").unwrap();
-                    uniform_vel.set(&ctx, &[shader_xv as f32, shader_yv as f32]);
-                });
-
-
                 //  Generate world
-                for (x, y) in gen.gen_to(vt.x + 1000.0) {
+                for (x, y) in gen.gen_to(view_follower.vt.x + 1000.0) {
                     let b = create_block(bb_handler.generate_id(), x, y);
                     {
                         let mut p = b.physics.lock().unwrap();
@@ -123,37 +108,16 @@ pub fn game_loop(mut window : Window
                     }
                 }
 
+                noisy_shader.update(&ctx, &bb_handler);
+
             },
             Input::Render(r_args) => {
-                //  Update viewport
-                const w : fphys = 20.0;
-                const offset_factor : fphys = 30.6;
-                const scale_mult : fphys = 1.0 / 2000.0;
-                match bb_handler.get(follow_id){
-                    Some((_, bb)) => {
-                        let obj_view_diff = bb.x - vt.x;
-                        let bb_xvel = bb.x - follow_prev_x;
-                        let bb_yvel = bb.y - follow_prev_y;
-                        let offset = bb_xvel * offset_factor;
+                view_follower.update(&bb_handler);
 
-                        vt.x = weight(vt.x, bb.x + offset - 320.0, w);
-                        vt.y = weight(vt.y, bb.y - 320.0, w);
-                        vt.scale = weight(vt.scale, 1.0 - obj_view_diff.abs() * scale_mult, w); 
-                        let bb_xvel = bb.x - follow_prev_x;
-                        let bb_yvel = bb.y - follow_prev_y;
-                        shader_xv = weight(shader_xv, bb_xvel, w);
-                        shader_yv = weight(shader_yv, bb_yvel, w);
-
-                        follow_prev_x = bb.x;
-                        follow_prev_y = bb.y;
-                    }
-                    None => {}
-                }
-                
                 draw_background(&r_args, &mut ctx);
                 for o in &objs{
                     let gphx = o.draws.lock().unwrap();
-                    gphx.draw(&r_args, &mut ctx, &vt);
+                    gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                 }
             },
             Input::Press(i) => {

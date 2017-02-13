@@ -172,7 +172,7 @@ impl Physical for PhysDyn {
         //  Collision Resolution
         if does_collide(&self.p, &bb_test, bbs, self.pass_platforms) {
 
-            let pos_delta = resolveCollisionBase(&self.p, bbs, self.bb.w, 
+            let pos_delta = resolve_col_base(&self.p, bbs, self.bb.w, 
                                                  self.bb.h, self.on_ground, self.pass_platforms,
                                                 (self.bb.x, self.bb.y), 
                                                 (bb_test.x, bb_test.y));
@@ -223,7 +223,7 @@ impl Physical for PhysDyn {
 	}
 }
 
-fn resolveCollisionBase(p : &BBProperties,
+fn resolve_col_base(p : &BBProperties,
                         bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
@@ -231,9 +231,9 @@ fn resolveCollisionBase(p : &BBProperties,
                         pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
                         (xend, yend) : (fphys, fphys)) -> PosDelta {
-    let pdelta_x = resolveCollisionIt(8, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, ystart));
+    let pdelta_x = resolve_col_it(8, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, ystart));
     let x = pdelta_x.x;
-    let pdelta_y = resolveCollisionIt(8, p, bbs, w, h,  on_ground, pass_platforms, (x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
+    let pdelta_y = resolve_col_it(8, p, bbs, w, h,  on_ground, pass_platforms, (x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
     let y = pdelta_y.y;
 
     PosDelta { x : x, 
@@ -249,7 +249,7 @@ struct PosDelta{
     pub dy : fphys,
 }
 
-fn resolveCollisionIt(its : i32, 
+fn resolve_col_it(its : i32, 
                         p : &BBProperties,
                         bbs : &[BBDescriptor], 
                         w : fphys, 
@@ -258,10 +258,10 @@ fn resolveCollisionIt(its : i32,
                         pass_platforms : bool,
                         pos_start : (fphys, fphys), 
                         pos_end : (fphys, fphys)) -> PosDelta {
-    resolveCollisionItRec(its - 1, its, p, bbs, w, h, on_ground, pass_platforms, pos_start, pos_end)
+    resolve_col_it_recurse(its - 1, its, p, bbs, w, h, on_ground, pass_platforms, pos_start, pos_end)
 }
 
-fn resolveCollisionItRec(its : i32, 
+fn resolve_col_it_recurse(its : i32, 
                         its_total : i32, 
                         p : &BBProperties,
                         bbs : &[BBDescriptor], 
@@ -284,8 +284,8 @@ fn resolveCollisionItRec(its : i32,
         }
     }
     else {
-        let currentIt = its_total - its;
-        let prop = ((currentIt) as fphys) / (its_total as fphys);
+        let current_it = its_total - its;
+        let prop = ((current_it) as fphys) / (its_total as fphys);
         let bb_test = BoundingBox {
             x : xstart + (xend - xstart) * prop, 
             y : ystart + (yend - ystart) * prop,
@@ -294,18 +294,18 @@ fn resolveCollisionItRec(its : i32,
         if does_collide(p, &bb_test, bbs, pass_platforms) {
             let bb_test_step = BoundingBox{x : bb_test.x, y : bb_test.y - STEPHEIGHT, w : bb_test.w, h : bb_test.h};
             if on_ground && ystart == yend && !does_collide(p, &bb_test_step, bbs, pass_platforms) {
-                resolveCollisionItRec(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
+                resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
                 
             }
             else {
-                let prop_prev = ((currentIt - 1) as fphys) / (its_total as fphys);
+                let prop_prev = ((current_it - 1) as fphys) / (its_total as fphys);
                 let prev_x : fphys = xstart + (xend - xstart) * prop_prev;
                 let prev_y : fphys = ystart + (yend - ystart) * prop_prev;
                 PosDelta {x : prev_x, y : prev_y, dx : prev_x - xstart, dy : prev_y - ystart}
             }
         }
         else {
-            resolveCollisionItRec(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, yend))
+            resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, yend))
         }
     }
 }

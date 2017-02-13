@@ -81,7 +81,7 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
     let mut i : i32 = 0;
     for o in octaves {
 
-        let value : f64 = (
+        let value : f64 = 
             //  If we are directly on the node we return the
             //  last value and generate the next
             if o.last_read == 0 {
@@ -97,7 +97,7 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
                 let x : f64 = (o.last_read as f64) / ((i * PERLIN_SPACING + 1) as f64);
 
                 cosine_interpolate(o.pvalue, o.value, x)
-            });
+            };
 
         sum += amplitude * value;
 

@@ -7,7 +7,6 @@ extern crate opengl_graphics;
 use piston::window::WindowSettings;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
-use opengl_graphics::shader_uniforms::*;
 
 mod bb;
 mod draw;
@@ -19,9 +18,9 @@ mod player;
 mod shaders;
 mod tools;
 
-
-use game::{fphys , GameObj, game_loop};
+use game::{GameObj, game_loop};
 use bb::{BBHandler};
+
 fn main() {
 
     // Change this to OpenGL::V2_1 if not working.

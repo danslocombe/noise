@@ -36,7 +36,7 @@ const FRICTION_AIR : fphys = FRICTION * 0.5;
 const GRAVITY_UP  : fphys = 9.8;
 const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 const MOVEFORCE: fphys = 10.0;
-const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.2;
+const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.4;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED : fphys = 75.0;
 
@@ -51,7 +51,7 @@ impl Logical for PlayerLogic {
 
         if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
             let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
-            phys.apply_force(MOVEFORCE * xdir, 0.0);
+            phys.apply_force(force * xdir, 0.0);
         }
         else{
             let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
