@@ -8,14 +8,15 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, Receiver};
 
 use game::fphys;
-use bb::{BBDescriptor, BBProperties};
+use bb::{SendType, BBDescriptor, BBProperties};
+use draw::Drawable;
 
 pub trait Physical {
-    fn init(&mut self, bb_sender : Sender<BBDescriptor>);
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>);
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]);
     fn apply_force(&mut self, xforce : fphys, yforce : fphys);
 	fn get_position(&self) -> (fphys, fphys);
 	fn get_vel(&self) -> (fphys, fphys);
+    fn get_id(&self) -> u32;
 }
 
 
@@ -25,7 +26,8 @@ pub struct PhysStatic {
     pub y : fphys,
     pub w : fphys,
     pub h : fphys,
-    pub draw : Arc<Mutex<super::draw::Drawable>>
+    draw : Arc<Mutex<Drawable>>,
+    bb_sender : Sender<SendType>,
 }
 
 pub struct PhysDyn {
@@ -41,21 +43,43 @@ pub struct PhysDyn {
     pub pass_platforms : bool,
     pub on_ground : bool,
     bb : BoundingBox,
-    pub draw : Arc<Mutex<super::draw::Drawable>>
+    draw : Arc<Mutex<Drawable>>,
+    bb_sender : Sender<SendType>,
 }
 
+impl PhysStatic {
+    pub fn new(p : BBProperties, x : fphys, y : fphys, 
+           w : fphys, h : fphys,bb_sender : Sender<SendType>,
+           draw : Arc<Mutex<Drawable>>) -> Self{
+        let bb = BoundingBox{
+            x : x,
+            y : y,
+            w : w,
+            h : h,
+        };
+        bb_sender.send((p.clone(), Some(bb))).unwrap();
+
+        PhysStatic {
+            p : p,
+            x : x,
+            y : y,
+            w : w,
+            h : h,
+            draw : draw,
+            bb_sender : bb_sender,
+        }
+    }
+
+}
+
+impl Drop for PhysStatic {
+    fn drop(&mut self) {
+        self.bb_sender.send((self.p.clone(), None)).unwrap();
+    }
+}
 
 impl Physical for PhysStatic {
-    fn init(&mut self, bb_sender : Sender<BBDescriptor>) {
-        let bb = BoundingBox{
-            x : self.x,
-            y : self.y,
-            w : self.w,
-            h : self.h,
-        };
-        bb_sender.send((self.p.clone(), bb)).unwrap();
-    }
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>){
+    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]){
         //  Do nothing
     }
     fn apply_force(&mut self, _ : fphys, _ : fphys){
@@ -67,6 +91,9 @@ impl Physical for PhysStatic {
 	fn get_vel(&self) -> (fphys, fphys){
 		(0.0, 0.0)
 	}
+    fn get_id(&self) -> u32 {
+        self.p.id
+    }
 }
 
 #[derive(Clone)]
@@ -137,11 +164,8 @@ fn does_collide(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pas
 const TIMESCALE : fphys = 10.0;
 
 impl Physical for PhysDyn {
-    fn init(&mut self, bb_sender : Sender<BBDescriptor>) {
-        bb_sender.send((self.p.clone(), self.bb.clone())).unwrap();
-    }
     fn tick(&mut self, args : &UpdateArgs
-            ,bbs : &[BBDescriptor], bb_sender : Sender<BBDescriptor>){
+            ,bbs : &[BBDescriptor]){
 
         let dt = TIMESCALE * args.dt as fphys;
 
@@ -209,7 +233,7 @@ impl Physical for PhysDyn {
         }
 
         //  Send new bounding box to manager
-        bb_sender.send((self.p.clone(), self.bb.clone())).unwrap();
+        self.bb_sender.send((self.p.clone(), Some(self.bb.clone()))).unwrap();
     }
     fn apply_force(&mut self, xforce : fphys, yforce : fphys){
         self.xforce += xforce;
@@ -221,6 +245,15 @@ impl Physical for PhysDyn {
 	fn get_vel(&self) -> (fphys, fphys){
 		(self.xvel, self.yvel)
 	}
+    fn get_id(&self) -> u32 {
+        self.p.id
+    }
+}
+
+impl Drop for PhysDyn {
+    fn drop(&mut self) {
+        self.bb_sender.send((self.p.clone(), None)).unwrap();
+    }
 }
 
 fn resolve_col_base(p : &BBProperties,
@@ -318,6 +351,7 @@ impl PhysDyn {
               ,maxspeed : fphys
               ,height   : fphys
               ,width    : fphys
+              , bb_sender : Sender<SendType>
               ,dr       : Arc<Mutex<super::draw::Drawable>>) -> PhysDyn {
         let bb = BoundingBox {
             x : x,
@@ -339,7 +373,8 @@ impl PhysDyn {
             pass_platforms : false,
             bb : bb,
 			maxspeed : maxspeed,
-            draw : dr
+            bb_sender : bb_sender,
+            draw : dr,
         }
     }
 }

@@ -21,15 +21,17 @@ impl BBProperties {
 //  Handles all bounding boxes for a given world
 pub struct BBHandler {
     world : HashMap<u32, BBDescriptor>,
-    receiver : Receiver<BBDescriptor>,
-    sender : Sender<BBDescriptor>,
+    receiver : Receiver<SendType>,
+    sender : Sender<SendType>,
     //  For static generation of ids
     new_id : u32,
 }
 
+pub type SendType = (BBProperties, Option<BoundingBox>);
+
 impl BBHandler {
     pub fn new() -> BBHandler {
-        let (s, r) : (Sender<BBDescriptor>, Receiver<BBDescriptor>) = channel();
+        let (s, r) : (Sender<SendType>, Receiver<SendType>) = channel();
         let world = HashMap::new();
         BBHandler {
             world : world,
@@ -40,8 +42,15 @@ impl BBHandler {
     }
     pub fn update(&mut self) {
         //  Leave loop on first instance of None
-        while let Some((p, bb)) = self.receiver.try_iter().next(){
-            self.world.insert(p.id, (p,bb));
+        while let Some((p, maybe_bb)) = self.receiver.try_iter().next(){
+            match maybe_bb{
+                Some(bb) => {
+                    self.world.insert(p.id, (p,bb));
+                }
+                None => {
+                    self.world.remove(&p.id);
+                }
+            }
         }
     }
 
@@ -55,7 +64,7 @@ impl BBHandler {
         r
     }
 
-    pub fn get_sender(&self) -> Sender<BBDescriptor> {
+    pub fn get_sender(&self) -> Sender<SendType> {
         self.sender.clone()
     }
 

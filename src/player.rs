@@ -1,11 +1,12 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
+use std::sync::mpsc::Sender;
 
 use logic::Logical;
 use game::{fphys, GameObj, InputHandler};
 use draw::{Drawable, GrphxRect};
 use physics::{Physical, PhysDyn};
-use bb::BBProperties;
+use bb::{SendType, BBProperties};
 use tools::arc_mut;
 
 pub struct PlayerLogic {
@@ -121,13 +122,13 @@ pub const MAXSPEED : fphys = 200.0;
 const SIZE     : fphys = 24.0;
 const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-pub fn create(id : u32, x : fphys, y : fphys) 
+pub fn create(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) 
     -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g = arc_mut(
         GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
     let props = BBProperties::new(id);
     let p = arc_mut(
-        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 

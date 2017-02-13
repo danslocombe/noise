@@ -55,11 +55,6 @@ fn main() {
 
     let mut objs : Vec<GameObj> = Vec::new();
 
-    let id = bb_handler.generate_id();
-    let (player, ih) = player::create(id, 300.0, -250.0);
-    objs.push(player);
-
     println!("Starting");
-
-    game_loop(window, context, objs, bb_handler, id, ih);
+    game_loop(window, context, objs, bb_handler);
 }
