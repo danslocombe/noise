@@ -9,11 +9,20 @@ use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
 use opengl_graphics::shader_uniforms::*;
 
-mod shaders;
+mod bb;
+mod draw;
 mod game;
+mod gen;
+mod logic;
+mod physics;
+mod player;
+mod shaders;
+mod tools;
 
+
+use game::{fphys , GameObj, game_loop};
+use bb::{BBHandler};
 fn main() {
-    use game::fphys as fphys;
 
     // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
@@ -35,7 +44,6 @@ fn main() {
     let mut vss = Shaders::new();
     vss.set(GLSL::V1_50, shaders::VERT);
 
-
 	let c = Colored::from_vs_fs(opengl.to_glsl(), &vss, &fss).unwrap();
 
 	let t = Textured::new(opengl.to_glsl());
@@ -44,15 +52,15 @@ fn main() {
     println!("Compiled shaders");
 
     println!("Creating objects");
-    let mut bb_handler = game::bb::BBHandler::new();
+    let mut bb_handler = BBHandler::new();
 
-    let mut objs : Vec<game::GameObj> = Vec::new();
+    let mut objs : Vec<GameObj> = Vec::new();
 
     let id = bb_handler.generate_id();
-    let (player, ih) = game::player::create(id, 300.0, -250.0);
+    let (player, ih) = player::create(id, 300.0, -250.0);
     objs.push(player);
 
     println!("Starting");
 
-    game::game_loop(window, context, objs, bb_handler, id, ih);
+    game_loop(window, context, objs, bb_handler, id, ih);
 }

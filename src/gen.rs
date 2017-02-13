@@ -3,7 +3,7 @@ extern crate rand;
 use self::rand::{Rng, thread_rng};
 use std::f64;
 
-use super::fphys as fphys;
+use game::fphys;
 
 //  Single perlin octave
 struct PerlinOctave {

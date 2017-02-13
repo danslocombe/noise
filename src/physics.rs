@@ -7,8 +7,8 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, Receiver};
 
-use super::fphys as fphys;
-use super::bb::{BBDescriptor, BBProperties};
+use game::fphys;
+use bb::{BBDescriptor, BBProperties};
 
 pub trait Physical {
     fn init(&mut self, bb_sender : Sender<BBDescriptor>);

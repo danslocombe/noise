@@ -10,48 +10,34 @@ use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
 use opengl_graphics::shader_uniforms::*;
 
-pub mod draw;
-pub mod player;
-pub mod physics;
-pub mod bb;
-pub mod tools;
-
-mod gen;
+use logic::{Logical, DumbLogic};
+use draw::{Drawable, GrphxRect, draw_background, ViewTransform};
+use physics::{Physical, PhysStatic};
+use bb::{BBProperties, BBHandler};
+use gen::Gen;
+use tools::{arc_mut, weight};
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
-pub trait Logical {
-    fn tick(&mut self, args : &UpdateArgs);
-}
-
-
-pub struct DumbLogic {
-}
-
-impl Logical for DumbLogic {
-    fn tick(&mut self, _ : &UpdateArgs){
-    }
-}
-
 pub struct GameObj {
-    pub draws    : Arc<Mutex<draw::Drawable>>,
-    pub physics  : Arc<Mutex<physics::Physical>>,
+    pub draws    : Arc<Mutex<Drawable>>,
+    pub physics  : Arc<Mutex<Physical>>,
     pub logic    : Arc<Mutex<Logical>>
 }
 
 pub fn create_block(id : u32, x : fphys, y : fphys) -> GameObj {
-    let g = arc_mut(draw::GrphxRect {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = bb::BBProperties {id : id, platform : false};
-    let p = arc_mut(physics::PhysStatic {p : props, x : x, y : y, w : 32.0, h : 32.0,  draw : g.clone()});
+    let g = arc_mut(GrphxRect {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
+    let props = BBProperties {id : id, platform : false};
+    let p = arc_mut(PhysStatic {p : props, x : x, y : y, w : 32.0, h : 32.0,  draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
 
 pub fn create_platform(id : u32, x : fphys, y : fphys) -> GameObj {
-    let g = arc_mut(draw::GrphxRect {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = bb::BBProperties {id : id, platform : true};
-    let p = arc_mut(physics::PhysStatic {p : props, x : x, y : y, w : 32.0, h : 8.0,  draw : g.clone()});
+    let g = arc_mut(GrphxRect {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
+    let props = BBProperties {id : id, platform : true};
+    let p = arc_mut(PhysStatic {p : props, x : x, y : y, w : 32.0, h : 8.0,  draw : g.clone()});
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -64,7 +50,7 @@ pub trait InputHandler{
 pub fn game_loop(mut window : Window
                 ,mut ctx : GlGraphics
                 ,mut objs : Vec<GameObj>
-                ,mut bb_handler : bb::BBHandler
+                ,mut bb_handler : BBHandler
                 ,follow_id         : u32
                 ,input_handler : Arc<Mutex<InputHandler>>) {
 
@@ -72,7 +58,7 @@ pub fn game_loop(mut window : Window
     let mut follow_prev_y : fphys = 0.0;
     let mut shader_xv : fphys = 0.0;
     let mut shader_yv : fphys = 0.0;
-    let mut vt = draw::ViewTransform{
+    let mut vt = ViewTransform{
         x : 0.0,
         y : 0.0,
         scale : 1.0
@@ -80,7 +66,7 @@ pub fn game_loop(mut window : Window
 
     let mut time : f32 = 0.0;
 
-    let mut gen = gen::Gen::new(32.0, 500.0);
+    let mut gen = Gen::new(32.0, 500.0);
 
     let bb_sender = bb_handler.get_sender();
     for o in &objs{
@@ -150,13 +136,13 @@ pub fn game_loop(mut window : Window
                         let bb_yvel = bb.y - follow_prev_y;
                         let offset = bb_xvel * offset_factor;
 
-                        vt.x = tools::weight(vt.x, bb.x + offset - 320.0, w);
-                        vt.y = tools::weight(vt.y, bb.y - 320.0, w);
-                        vt.scale = tools::weight(vt.scale, 1.0 - obj_view_diff.abs() * scale_mult, w); 
+                        vt.x = weight(vt.x, bb.x + offset - 320.0, w);
+                        vt.y = weight(vt.y, bb.y - 320.0, w);
+                        vt.scale = weight(vt.scale, 1.0 - obj_view_diff.abs() * scale_mult, w); 
                         let bb_xvel = bb.x - follow_prev_x;
                         let bb_yvel = bb.y - follow_prev_y;
-                        shader_xv = tools::weight(shader_xv, bb_xvel, w);
-                        shader_yv = tools::weight(shader_yv, bb_yvel, w);
+                        shader_xv = weight(shader_xv, bb_xvel, w);
+                        shader_yv = weight(shader_yv, bb_yvel, w);
 
                         follow_prev_x = bb.x;
                         follow_prev_y = bb.y;
@@ -164,7 +150,7 @@ pub fn game_loop(mut window : Window
                     None => {}
                 }
                 
-                draw::draw_background(&r_args, &mut ctx);
+                draw_background(&r_args, &mut ctx);
                 for o in &objs{
                     let gphx = o.draws.lock().unwrap();
                     gphx.draw(&r_args, &mut ctx, &vt);
@@ -184,6 +170,3 @@ pub fn game_loop(mut window : Window
 }
 
 
-fn arc_mut<T> (x : T) -> Arc<Mutex<T>>{
-    Arc::new(Mutex::new(x))
-}

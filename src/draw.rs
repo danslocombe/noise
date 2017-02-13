@@ -3,7 +3,7 @@ extern crate graphics;
 use opengl_graphics::GlGraphics;
 use piston::input::*;
 
-use super::fphys as fphys;
+use game::fphys;
 
 pub trait Drawable {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform);

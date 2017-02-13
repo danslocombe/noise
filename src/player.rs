@@ -1,13 +1,16 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 
-use super::fphys as fphys;
-use game::physics::Physical;
-use game::bb::BBProperties;
+use logic::Logical;
+use game::{fphys, GameObj, InputHandler};
+use draw::{Drawable, GrphxRect};
+use physics::{Physical, PhysDyn};
+use bb::BBProperties;
+use tools::arc_mut;
 
 pub struct PlayerLogic {
-    pub draw : Arc<Mutex<super::draw::Drawable>>,
-    pub physics : Arc<Mutex<super::physics::PhysDyn>>,
+    pub draw : Arc<Mutex<Drawable>>,
+    pub physics : Arc<Mutex<PhysDyn>>,
     i_left  : bool,
     i_up    : bool,
     i_right : bool,
@@ -15,8 +18,8 @@ pub struct PlayerLogic {
 }
 
 impl PlayerLogic {
-    pub fn new(draw : Arc<Mutex<super::draw::Drawable>>, 
-               physics : Arc<Mutex<super::physics::PhysDyn>>) -> PlayerLogic{
+    pub fn new(draw : Arc<Mutex<Drawable>>, 
+               physics : Arc<Mutex<PhysDyn>>) -> PlayerLogic{
         PlayerLogic{
             draw : draw,
             physics : physics,
@@ -37,7 +40,7 @@ const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.2;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED : fphys = 75.0;
 
-impl super::Logical for PlayerLogic {
+impl Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
 
         let mut phys = self.physics.lock().unwrap();
@@ -77,7 +80,7 @@ impl super::Logical for PlayerLogic {
     }
 }
 
-impl super::InputHandler for PlayerLogic {
+impl InputHandler for PlayerLogic {
     fn press (&mut self, button : Button){
         match button {
             Button::Keyboard(Key::Up) => {
@@ -119,15 +122,15 @@ const SIZE     : fphys = 24.0;
 const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub fn create(id : u32, x : fphys, y : fphys) 
-    -> (super::GameObj, Arc<Mutex<super::InputHandler>>) {
-    let g = super::arc_mut(
-        super::draw::GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
+    -> (GameObj, Arc<Mutex<InputHandler>>) {
+    let g = arc_mut(
+        GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
     let props = BBProperties::new(id);
-    let p = super::arc_mut(
-        super::physics::PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+    let p = arc_mut(
+        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
-    let l = super::arc_mut(PlayerLogic::new(g.clone(), p.clone()));
+    let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 
-    (super::GameObj {draws : g, physics : p, logic : l.clone()}, l)
+    (GameObj {draws : g, physics : p, logic : l.clone()}, l)
 }
 
