@@ -34,6 +34,8 @@ float lig(vec4 c){
 #define GRAIN_MOVE 400
 #define SPEED_MIN 1
 
+#define NOISE_OTHER (0.0 / 100.0)
+
 void main() {
 
     float dir = sign(vel.x) * atan(-vel.y / 2.0, abs(vel.x));
@@ -50,20 +52,20 @@ void main() {
         o_Color.r = 1.0;
     }
     else {
-        o_Color.r = o_Color.r / 2.0;
+        o_Color.r = v_Color.r * NOISE_OTHER;
     }
 
     if (v_Color.g < rand(roundPos)) {
         o_Color.g = 1.0;
     }
     else {
-        o_Color.b = o_Color.b / 2.0;
+        o_Color.b = v_Color.b * NOISE_OTHER;
     }
 
     if (v_Color.b < rand(roundPos)) {
         o_Color.b = 1.0;
     }
     else {
-        o_Color.g = o_Color.g / 2.0;
+        o_Color.g = v_Color.g * NOISE_OTHER;
     }
 }";

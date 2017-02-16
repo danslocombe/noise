@@ -4,10 +4,11 @@ use std::sync::mpsc::Sender;
 
 use logic::Logical;
 use game::{fphys, GameObj, InputHandler};
-use draw::{Drawable, GrphxRect};
+use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
 use physics::{Physical, PhysDyn};
 use bb::{SendType, BBProperties};
 use tools::arc_mut;
+use grapple::{GrappleHolster, GrappleDraw};
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<Drawable>>,
@@ -15,19 +16,20 @@ pub struct PlayerLogic {
     i_left  : bool,
     i_up    : bool,
     i_right : bool,
-    i_down  : bool
+    i_down  : bool,
 }
 
 impl PlayerLogic {
     pub fn new(draw : Arc<Mutex<Drawable>>, 
                physics : Arc<Mutex<PhysDyn>>) -> PlayerLogic{
+
         PlayerLogic{
             draw : draw,
             physics : physics,
             i_left  : false,
             i_up    : false,
             i_down  : false,
-            i_right : false
+            i_right : false,
         }
     }
 }
@@ -83,16 +85,16 @@ impl Logical for PlayerLogic {
 impl InputHandler for PlayerLogic {
     fn press (&mut self, button : Button){
         match button {
-            Button::Keyboard(Key::Up) => {
+            Button::Keyboard(Key::W) => {
                 self.i_up = true;
             }
-            Button::Keyboard(Key::Down) => {
+            Button::Keyboard(Key::S) => {
                 self.i_down = true;
             }
-            Button::Keyboard(Key::Left) => {
+            Button::Keyboard(Key::A) => {
                 self.i_left = true;
             }
-            Button::Keyboard(Key::Right) => {
+            Button::Keyboard(Key::D) => {
                 self.i_right = true;
             }
             _ => {}
@@ -100,16 +102,16 @@ impl InputHandler for PlayerLogic {
     }
     fn release (&mut self, button: Button) {
         match button {
-            Button::Keyboard(Key::Up) => {
+            Button::Keyboard(Key::W) => {
                 self.i_up = false;
             }
-            Button::Keyboard(Key::Down) => {
+            Button::Keyboard(Key::S) => {
                 self.i_down = false;
             }
-            Button::Keyboard(Key::Left) => {
+            Button::Keyboard(Key::A) => {
                 self.i_left = false;
             }
-            Button::Keyboard(Key::Right) => {
+            Button::Keyboard(Key::D) => {
                 self.i_right = false;
             }
             _ => {}
@@ -123,8 +125,8 @@ const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub fn create(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) 
     -> (GameObj, Arc<Mutex<InputHandler>>) {
-    let g = arc_mut(
-        GrphxRect {x : x, y : y, w : SIZE, h : SIZE, color : COLOR});
+    let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
+    let g = arc_mut(rect);
     let props = BBProperties::new(id);
     let p = arc_mut(
         PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));

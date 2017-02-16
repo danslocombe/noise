@@ -1,5 +1,7 @@
 extern crate graphics;
 
+use std::sync::{Arc, Mutex};
+
 use bb::BBHandler;
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
@@ -11,6 +13,38 @@ use game::fphys;
 pub trait Drawable {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform);
     fn set_position(&mut self, x : fphys, y : fphys);
+}
+
+pub struct GrphxContainer {
+    pub x_offset : fphys,
+    pub y_offset : fphys,
+    pub drawables : Vec<Arc<Mutex<Drawable>>>
+}
+
+pub struct GrphxNoDraw {
+}
+impl Drawable for GrphxNoDraw {
+    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+    }
+    fn set_position(&mut self, x : fphys, y : fphys) {
+    }
+}
+
+impl Drawable for GrphxContainer {
+    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+        for arc_mut_d in &self.drawables {
+            let d = arc_mut_d.lock().unwrap();
+            let vt_mod = ViewTransform {
+                x : vt.x - self.x_offset, 
+                y : vt.y - self.y_offset,
+                scale : vt.scale};
+            d.draw(args, ctx, &vt_mod);
+        }
+    }
+    fn set_position(&mut self, x : fphys, y : fphys) {
+        self.x_offset = x;
+        self.y_offset = y;
+    }
 }
 
 pub struct GrphxRect {

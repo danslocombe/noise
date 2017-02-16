@@ -12,6 +12,7 @@ mod bb;
 mod draw;
 mod game;
 mod gen;
+mod grapple;
 mod logic;
 mod physics;
 mod player;
