@@ -17,6 +17,7 @@ use bb::{BBProperties, BBHandler, SendType};
 use gen::Gen;
 use tools::{arc_mut};
 use player::create as player_create;
+use grapple::create as grapple_create;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -61,13 +62,26 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     //  Initialise set of objects
     let mut objs : Vec<GameObj> = Vec::new();
 
+    //  Initialise set of input handlers
+    let mut input_handlers = Vec::new();
+
     //  Get a sender from world to send location updates to
     let bb_sender = bb_handler.get_sender();
 
     let player_id = bb_handler.generate_id();
-    let (player_obj, input_handler) = 
+    let (player_obj, player_input_handler) = 
         player_create(player_id, 300.0, -250.0, bb_sender.clone());
+
+    let grapple_id = bb_handler.generate_id();
+    let (grapple_obj, grapple_input_handler) 
+        = grapple_create(grapple_id, player_obj.physics.clone());
+
     objs.push(player_obj);
+    objs.push(grapple_obj);
+
+    input_handlers.push(player_input_handler);
+    input_handlers.push(grapple_input_handler);
+
 
 
     //  Set up view following and shader uniform setter
@@ -147,12 +161,16 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 }
             },
             Input::Press(i) => {
-                let mut ih = input_handler.lock().unwrap();
-                ih.press(i);
+                for input_handler in &input_handlers {
+                    let mut ih = input_handler.lock().unwrap();
+                    ih.press(i);
+                }
             },
             Input::Release(i) => {
-                let mut ih = input_handler.lock().unwrap();
-                ih.release(i);
+                for input_handler in &input_handlers {
+                    let mut ih = input_handler.lock().unwrap();
+                    ih.release(i);
+                }
             },
             _ => {}
         }

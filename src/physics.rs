@@ -15,6 +15,7 @@ pub trait Physical {
     fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]);
     fn apply_force(&mut self, xforce : fphys, yforce : fphys);
 	fn get_position(&self) -> (fphys, fphys);
+	fn get_width_height(&self) -> (fphys, fphys);
 	fn get_vel(&self) -> (fphys, fphys);
     fn get_id(&self) -> u32;
 }
@@ -93,6 +94,9 @@ impl Physical for PhysStatic {
 	}
     fn get_id(&self) -> u32 {
         self.p.id
+    }
+	fn get_width_height(&self) -> (fphys, fphys) {
+        (self.w, self.h)
     }
 }
 
@@ -247,6 +251,9 @@ impl Physical for PhysDyn {
 	}
     fn get_id(&self) -> u32 {
         self.p.id
+    }
+	fn get_width_height(&self) -> (fphys, fphys) {
+        (self.bb.w, self.bb.h)
     }
 }
 
