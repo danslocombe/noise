@@ -23,7 +23,7 @@ impl GrappleHolster {
     }
 }
 
-const GRAPPLE_SPEED : fphys = 1000.0;
+const GRAPPLE_SPEED : fphys = 2000.0;
 
 impl InputHandler for GrappleHolster {
     fn press (&mut self, button : Button) {
@@ -109,12 +109,17 @@ impl Grapple {
         self.state = GrappleState::GrappleOut;
         self.vel_x = vel_x;
         self.vel_y = vel_y;
+        self.end_x = self.start_x;
+        self.end_y = self.start_y;
         {
             let mut d = self.draw.lock().unwrap();
             d.drawing = true;
         }
     }
 }
+
+const MAX_LENGTH_SQR : fphys = 100000.0;
+
 impl Physical for Grapple {
     fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]){
         match self.state {
@@ -124,7 +129,16 @@ impl Physical for Grapple {
                 let dt = args.dt as fphys;
                 self.end_x = self.end_x + self.vel_x * dt;
                 self.end_y = self.end_y + self.vel_y * dt;
-                {
+                let len_2 = (self.end_x - self.start_x).powi(2) + 
+                            (self.end_y - self.start_y).powi(2);
+                if len_2 > MAX_LENGTH_SQR {
+                    self.state = GrappleState::GrappleNone;
+                    let mut d = self.draw.lock().unwrap();
+                    d.drawing = false;
+                    self.end_x = self.start_x;
+                    self.end_y = self.start_y;
+                }
+                else {
                     let mut d = self.draw.lock().unwrap();
                     d.end_x = self.end_x;
                     d.end_y = self.end_y;
@@ -191,7 +205,7 @@ impl Drawable for GrappleDraw {
         use graphics::*;
         if self.drawing {
             let l = [self.start_x, self.start_y, self.end_x, self.end_y];
-            let color = [0.0, 1.0, 1.0, 1.0];
+            let color = [0.0, 0.0, 0.0, 1.0];
             ctx.draw(args.viewport(), |c, gl| {
                 let transform = c.transform.scale(vt.scale, vt.scale).trans(-vt.x, -vt.y);
                 line(color, 2.0, l, transform, gl);
