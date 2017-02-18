@@ -2,6 +2,8 @@ extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
+#[macro_use]
+extern crate bitflags;
 
 
 use piston::window::WindowSettings;
