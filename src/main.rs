@@ -12,6 +12,7 @@ use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
 
 mod bb;
 mod draw;
+mod enemy;
 mod game;
 mod gen;
 mod grapple;

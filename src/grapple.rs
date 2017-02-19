@@ -5,7 +5,7 @@ use game::{GameObj, fphys, InputHandler};
 use draw::{Drawable, ViewTransform};
 use logic::{Logical};
 use opengl_graphics::GlGraphics;
-use bb::{SendType, BBDescriptor, BBProperties};
+use bb::*;
 use physics::{Physical, BoundingBox};
 use tools::{arc_mut, normalise};
 
@@ -258,7 +258,8 @@ impl Physical for Grapple {
 
                     for bbprops in bbs {
                         let (ref props, ref bb) = *bbprops;
-                        if (props.id == self.player_id) {
+                        if (props.owner_type.contains(BBO_PLAYER) ||
+                            props.owner_type.contains(BBO_ENEMY)) {
                             continue;
                         }
                         lineCollide(end_x0, end_y0, self.end_x, self.end_y, bb)
@@ -493,6 +494,9 @@ impl Drawable for GrappleDraw {
     fn set_position(&mut self, x : fphys, y : fphys) {
         self.end_x = x;
         self.end_y = y;
+    }
+
+    fn set_color(&mut self, color : [f32; 4]) {
     }
 }
 

@@ -13,6 +13,7 @@ use game::fphys;
 pub trait Drawable {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform);
     fn set_position(&mut self, x : fphys, y : fphys);
+    fn set_color(&mut self, color : [f32; 4]);
 }
 
 pub struct GrphxContainer {
@@ -27,6 +28,8 @@ impl Drawable for GrphxNoDraw {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
     }
     fn set_position(&mut self, x : fphys, y : fphys) {
+    }
+    fn set_color(&mut self, color : [f32; 4]) {
     }
 }
 
@@ -44,6 +47,8 @@ impl Drawable for GrphxContainer {
     fn set_position(&mut self, x : fphys, y : fphys) {
         self.x_offset = x;
         self.y_offset = y;
+    }
+    fn set_color(&mut self, color : [f32; 4]) {
     }
 }
 
@@ -171,6 +176,9 @@ impl Drawable for GrphxRect {
     fn set_position(&mut self, x : fphys, y : fphys){
         self.x = x;
         self.y = y;
+    }
+    fn set_color(&mut self, color : [f32; 4]) {
+        self.color = color;
     }
 }
 

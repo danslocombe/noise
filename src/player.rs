@@ -3,10 +3,10 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 
 use logic::Logical;
-use game::{fphys, GameObj, InputHandler};
+use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
 use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
-use physics::{Physical, PhysDyn};
-use bb::{SendType, BBProperties};
+use physics::{Physical, PhysDyn, CollisionHandler};
+use bb::*;
 use tools::arc_mut;
 use grapple::{GrappleHolster, GrappleDraw};
 
@@ -43,15 +43,19 @@ impl PlayerLogic {
 
 const FRICTION : fphys = 0.7;
 const FRICTION_AIR : fphys = FRICTION * 0.5;
-const GRAVITY_UP  : fphys = 9.8;
-const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 const MOVEFORCE: fphys = 10.0;
 const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.4;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED : fphys = 75.0;
 const DASH_CD : fphys = 0.75;
 const DASH_DURATION : fphys = 0.1;
+const DASH_INVULN : fphys = 0.3;
 const DASH_FORCE: fphys = 300.0;
+
+const ENEMY_FORCE : fphys = 300.0;
+
+const COLOR_NORMAL : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const COLOR_DASH   : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
 impl Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
@@ -63,6 +67,10 @@ impl Logical for PlayerLogic {
 
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
+            if self.dash_cd < DASH_CD - DASH_INVULN {
+                let mut d = self.draw.lock().unwrap();
+                d.set_color(COLOR_NORMAL);
+            }
         }
         if self.dash_cd < DASH_CD - DASH_DURATION {
             let xdir = 0.0 + (if self.input.contains(PI_RIGHT) {1.0} else {0.0})
@@ -74,6 +82,10 @@ impl Logical for PlayerLogic {
                     (if self.input.contains(PI_DOWN) {1.0} else {0.0})
                   - (if self.input.contains(PI_UP)   {1.0} else {0.0});
                 phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
+                {
+                    let mut d = self.draw.lock().unwrap();
+                    d.set_color(COLOR_DASH);
+                }
             }
 
             if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
@@ -150,6 +162,30 @@ impl InputHandler for PlayerLogic {
     }
 }
 
+impl CollisionHandler for PlayerLogic {
+    fn handle (&mut self, other_type : BBOwnerType) {
+        if (other_type == BBO_ENEMY) {
+            if self.dash_cd < DASH_CD - DASH_INVULN {
+                //  Die
+            }
+            else {
+                // Survive
+            }
+        }
+    }
+    fn get_collide_types(&self) -> BBOwnerType {
+
+        let blocks = BBO_PLATFORM | BBO_BLOCK;
+
+        if self.dash_cd < DASH_CD - DASH_INVULN {
+            blocks | BBO_ENEMY
+        }
+        else {
+            blocks
+        }
+    }
+}
+
 pub const MAXSPEED : fphys = 200.0;
 const SIZE     : fphys = 24.0;
 const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
@@ -158,11 +194,16 @@ pub fn create(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>)
     -> (GameObj, Arc<Mutex<InputHandler>>) {
     let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
     let g = arc_mut(rect);
-    let props = BBProperties::new(id);
+    let props = BBProperties::new(id, BBO_PLAYER);
     let p = arc_mut(
         PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
+
+    {
+        let mut phys = p.lock().unwrap();
+        phys.collision_handler = Some(l.clone());
+    }
 
     (GameObj {draws : g, physics : p, logic : l.clone()}, l)
 }

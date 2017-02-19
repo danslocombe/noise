@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender, Receiver};
 
 use game::fphys;
-use bb::{SendType, BBDescriptor, BBProperties};
+use bb::*;
 use draw::Drawable;
 
 pub trait Physical {
@@ -20,6 +20,10 @@ pub trait Physical {
     fn get_id(&self) -> u32;
 }
 
+pub trait CollisionHandler{
+    fn handle (&mut self, other_type : BBOwnerType);
+    fn get_collide_types(&self) -> BBOwnerType; 
+}
 
 pub struct PhysStatic {
     pub p : BBProperties,
@@ -46,6 +50,7 @@ pub struct PhysDyn {
     bb : BoundingBox,
     draw : Arc<Mutex<Drawable>>,
     bb_sender : Sender<SendType>,
+    pub collision_handler : Option<Arc<Mutex<CollisionHandler>>>,
 }
 
 impl PhysStatic {
@@ -128,18 +133,24 @@ impl BoundingBox {
  * f is the statement to run
  */
 macro_rules! call_once_on_col {
-    ($p : expr, $test : expr, $bbs : expr, $pass_plats : expr, $bb : ident, $f : stmt) => {
+    //  Make more general with owner_types
+    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr, $bb : ident, $f : stmt, $owner : ident) => {
         for descr in $bbs {
             let (ref p, ref $bb) = *descr;
             if p.id == $p.id {
                 continue;
             }
+            if !$to_collide.contains(p.owner_type) {
+                continue;
+            }
             //  Collide with a platform only if above and pass_plats set
-            if p.platform && (($test.y + $test.h >= $bb.y + $bb.h) || $pass_plats) {
+            if p.owner_type == BBO_PLATFORM && 
+                (($test.y + $test.h >= $bb.y + $bb.h) || $pass_plats) {
                 continue;
             }
             if $test.check_col($bb){
                 $f;
+                $owner = Some(p.owner_type.clone());
                 break;
             }
         }
@@ -147,6 +158,7 @@ macro_rules! call_once_on_col {
 }
 
 const STEPHEIGHT : fphys = 8.5;
+/*
 fn does_collide_step(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pass_platforms : bool) -> bool {
     let mut col_flag = false;
     call_once_on_col!(p, bb, bbs, pass_platforms, testbb, {
@@ -159,10 +171,21 @@ fn does_collide_step(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor]
     );
     col_flag
 }
+*/
 
-fn does_collide(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pass_platforms : bool) -> bool {
+fn does_collide(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], to_collide : BBOwnerType,
+                pass_platforms : bool) -> Option<BBOwnerType> {
     let mut col_flag = false;
-    call_once_on_col!(p, bb, bbs, pass_platforms, unused, col_flag = true);
+    let mut col_owner = None;
+    call_once_on_col!(p, bb, bbs, to_collide, pass_platforms, unused, col_flag = true, col_owner);
+    col_owner
+}
+
+fn does_collide_bool(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], to_collide : BBOwnerType,
+                pass_platforms : bool) -> bool {
+    let mut col_flag = false;
+    let mut col_owner = None;
+    call_once_on_col!(p, bb, bbs, to_collide, pass_platforms, unused, col_flag = true, col_owner);
     col_flag
 }
 
@@ -197,11 +220,25 @@ impl Physical for PhysDyn {
             h : self.bb.h
         };
 
+        let to_collide = match self.collision_handler.as_ref() {
+            Some(ch) => {
+                ch.lock().unwrap().get_collide_types()
+            }
+            None => {
+                BBO_ALL
+            }
+        };
+
         //  Collision Resolution
-        if does_collide(&self.p, &bb_test, bbs, self.pass_platforms) {
+        if let Some(col_type) = 
+            does_collide(&self.p, &bb_test, bbs, to_collide, self.pass_platforms) {
+
+            self.collision_handler.as_ref().map(|ch| {
+                ch.lock().unwrap().handle(col_type);
+            });
 
             let pos_delta = resolve_col_base(&self.p, bbs, self.bb.w, 
-                                                 self.bb.h, self.on_ground, self.pass_platforms,
+                                                 self.bb.h, to_collide, self.on_ground, self.pass_platforms,
                                                 (self.bb.x, self.bb.y), 
                                                 (bb_test.x, bb_test.y));
             bb_test.x = pos_delta.x;
@@ -215,15 +252,18 @@ impl Physical for PhysDyn {
 
         //  Test if on the ground
         self.on_ground = false;
+        let mut col_type = None;
         call_once_on_col!(self.p, 
             BoundingBox {x : self.bb.x,
                          y : self.bb.y + 1.0, 
                          w : self.bb.w, 
                          h : self.bb.h}, 
-                         bbs, 
+                         bbs,
+                         to_collide,
                          self.pass_platforms,
                          bb, 
-                         self.on_ground = true
+                         self.on_ground = true,
+                         col_type
         );
 
         //  Reset forces
@@ -267,13 +307,14 @@ fn resolve_col_base(p : &BBProperties,
                         bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
+                        collide_types : BBOwnerType,
                         on_ground : bool,
                         pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
                         (xend, yend) : (fphys, fphys)) -> PosDelta {
-    let pdelta_x = resolve_col_it(8, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, ystart));
+    let pdelta_x = resolve_col_it(8, p, bbs, w, h, collide_types, on_ground, pass_platforms,  (xstart, ystart), (xend, ystart));
     let x = pdelta_x.x;
-    let pdelta_y = resolve_col_it(8, p, bbs, w, h,  on_ground, pass_platforms, (x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
+    let pdelta_y = resolve_col_it(8, p, bbs, w, h,  collide_types, on_ground, pass_platforms, (x, ystart + pdelta_x.dy), (x, yend + pdelta_x.dy));
     let y = pdelta_y.y;
 
     PosDelta { x : x, 
@@ -294,11 +335,12 @@ fn resolve_col_it(its : i32,
                         bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
+                        collide_types : BBOwnerType,
                         on_ground : bool,
                         pass_platforms : bool,
                         pos_start : (fphys, fphys), 
                         pos_end : (fphys, fphys)) -> PosDelta {
-    resolve_col_it_recurse(its - 1, its, p, bbs, w, h, on_ground, pass_platforms, pos_start, pos_end)
+    resolve_col_it_recurse(its - 1, its, p, bbs, w, h, collide_types, on_ground, pass_platforms, pos_start, pos_end)
 }
 
 fn resolve_col_it_recurse(its : i32, 
@@ -307,6 +349,7 @@ fn resolve_col_it_recurse(its : i32,
                         bbs : &[BBDescriptor], 
                         w : fphys, 
                         h : fphys, 
+                        collide_types : BBOwnerType,
                         on_ground : bool,
                         pass_platforms : bool,
                         (xstart, ystart) : (fphys, fphys), 
@@ -316,7 +359,7 @@ fn resolve_col_it_recurse(its : i32,
             x : xend, 
             y : yend,
             w : w, h : h};
-        if does_collide(p, &bb_test, bbs, pass_platforms) {
+        if does_collide_bool(p, &bb_test, bbs, collide_types, pass_platforms) {
             PosDelta {x : xstart, y : ystart, dx : 0.0, dy : 0.0}
         }
         else {
@@ -331,10 +374,18 @@ fn resolve_col_it_recurse(its : i32,
             y : ystart + (yend - ystart) * prop,
             w : w, h : h};
 
-        if does_collide(p, &bb_test, bbs, pass_platforms) {
-            let bb_test_step = BoundingBox{x : bb_test.x, y : bb_test.y - STEPHEIGHT, w : bb_test.w, h : bb_test.h};
-            if on_ground && ystart == yend && !does_collide(p, &bb_test_step, bbs, pass_platforms) {
-                resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms, (xstart, ystart - STEPHEIGHT), (xend, yend - STEPHEIGHT))
+        if does_collide_bool(p, &bb_test, bbs, collide_types, pass_platforms) {
+            let bb_test_step = 
+                BoundingBox{x : bb_test.x, y : bb_test.y - STEPHEIGHT, 
+                    w : bb_test.w, h : bb_test.h};
+            if on_ground && ystart == yend && 
+                !does_collide_bool(p, &bb_test_step, bbs, 
+                                   collide_types, pass_platforms) {
+                resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, 
+                                       collide_types, on_ground, 
+                                       pass_platforms, 
+                                       (xstart, ystart - STEPHEIGHT), 
+                                       (xend, yend - STEPHEIGHT))
                 
             }
             else {
@@ -345,7 +396,9 @@ fn resolve_col_it_recurse(its : i32,
             }
         }
         else {
-            resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, on_ground, pass_platforms,  (xstart, ystart), (xend, yend))
+            resolve_col_it_recurse(its - 1, its_total, p, bbs, w, h, collide_types, 
+                                   on_ground, pass_platforms,  
+                                   (xstart, ystart), (xend, yend))
         }
     }
 }
@@ -381,6 +434,7 @@ impl PhysDyn {
             bb : bb,
 			maxspeed : maxspeed,
             bb_sender : bb_sender,
+            collision_handler : None,
             draw : dr,
         }
     }

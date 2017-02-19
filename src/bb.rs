@@ -9,12 +9,23 @@ pub type BBDescriptor = (BBProperties, BoundingBox);
 #[derive(Clone)]
 pub struct BBProperties {
     pub id : u32,
-    pub platform : bool,
+    pub owner_type : BBOwnerType,
 } 
 
+bitflags! {
+    pub flags BBOwnerType : u8 {
+        const BBO_NONE     = 0b0000,
+        const BBO_PLATFORM = 0b0001,
+        const BBO_PLAYER   = 0b0010,
+        const BBO_ENEMY    = 0b0100,
+        const BBO_BLOCK    = 0b1000,
+        const BBO_ALL      = 0b1111,
+    }
+}
+
 impl BBProperties {
-    pub fn new(id : u32) -> Self {
-        BBProperties {id : id, platform : false}
+    pub fn new(id : u32, owner_type : BBOwnerType) -> Self {
+        BBProperties {id : id, owner_type : owner_type}
     }
 }
 

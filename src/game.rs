@@ -2,6 +2,7 @@ extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
+extern crate rand;
 
 use piston::event_loop::*;
 use piston::input::*;
@@ -9,15 +10,21 @@ use glutin_window::GlutinWindow as Window;
 use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender};
+use self::rand::{Rng, thread_rng};
 
 use logic::{Logical, DumbLogic};
-use draw::{Drawable, GrphxRect, draw_background, ViewTransform, ViewFollower, NoisyShader};
+use draw::{Drawable, GrphxRect, draw_background, 
+          ViewTransform, ViewFollower, NoisyShader};
 use physics::{Physical, PhysStatic};
-use bb::{BBProperties, BBHandler, SendType};
+use bb::*;
 use gen::Gen;
 use tools::{arc_mut};
 use player::create as player_create;
 use grapple::create as grapple_create;
+use enemy::create as enemy_create;
+
+pub const GRAVITY_UP  : fphys = 9.8;
+pub const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -28,17 +35,21 @@ pub struct GameObj {
     pub logic    : Arc<Mutex<Logical>>
 }
 
-pub fn create_block(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) -> GameObj {
-    let g = arc_mut(GrphxRect {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = BBProperties {id : id, platform : false};
+pub fn create_block(id : u32, x : fphys, y : fphys, 
+                    bb_sender : Sender<SendType>) -> GameObj {
+    let g = arc_mut(GrphxRect 
+        {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
+    let props = BBProperties {id : id, owner_type : BBO_BLOCK};
     let p = arc_mut(PhysStatic::new(props,x,y,32.0,32.0,bb_sender, g.clone()));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
 
-pub fn create_platform(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) -> GameObj {
-    let g = arc_mut(GrphxRect {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = BBProperties {id : id, platform : true};
+pub fn create_platform(id : u32, x : fphys, y : fphys, 
+                       bb_sender : Sender<SendType>) -> GameObj {
+    let g = arc_mut(GrphxRect 
+        {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
+    let props = BBProperties {id : id, owner_type : BBO_PLATFORM};
     let p = arc_mut(PhysStatic::new(props,x,y,32.0,4.0,bb_sender, g.clone()));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
@@ -82,8 +93,6 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     input_handlers.push(player_input_handler);
     input_handlers.push(grapple_input_handler);
 
-
-
     //  Set up view following and shader uniform setter
     let vt = ViewTransform{x : 0.0, y : 0.0, scale : 1.0};
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
@@ -96,10 +105,21 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
             Input::Update(u_args) => {
                 //  Generate world
                 for (x, y) in gen.gen_to(view_follower.vt.x + 1000.0) {
-                    let b = create_block(bb_handler.generate_id(), x, y, bb_sender.clone());
+                    let b = create_block
+                        (bb_handler.generate_id(), x, y, bb_sender.clone());
                     objs.push(b);
-                    let p = create_platform(bb_handler.generate_id(), x, 100.0, bb_sender.clone());
+                    let p = create_platform
+                        (bb_handler.generate_id(), x, 100.0, bb_sender.clone());
                     objs.push(p);
+
+                    let mut rng = thread_rng();
+                    if (rng.gen_range(0.0, 1.0) < 0.05) {
+                        let e_id = bb_handler.generate_id();
+                        let e = enemy_create
+                            (e_id, x, -100.0, bb_sender.clone());
+                        objs.push(e);
+
+                    }
                 }
 
                 //  Update bounding box list
@@ -109,23 +129,23 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 //  This is really inefficient way to read
                 //  TODO fix
                 let clip_positions = bb_handler.to_vec().iter()
-                              .filter(|bb_descr| {
-                                  let (_, ref bb) = **bb_descr;
-                                  bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER})
-                              .map(|bb_descr|{
-                                  let (ref props, _) = *bb_descr;
-                                  props.id})
-                              .map(|id| {
-                                  objs.iter().position(|obj| {
-                                    let obj_id : u32;
-                                    {
-                                        let p = obj.physics.lock().unwrap();
-                                        obj_id = p.get_id();
-                                    }
-                                    obj_id == id
-                                  })
-                              })
-                              .collect::<Vec<Option<usize>>>();
+                      .filter(|bb_descr| {
+                          let (_, ref bb) = **bb_descr;
+                          bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER})
+                      .map(|bb_descr|{
+                          let (ref props, _) = *bb_descr;
+                          props.id})
+                      .map(|id| {
+                          objs.iter().position(|obj| {
+                            let obj_id : u32;
+                            {
+                                let p = obj.physics.lock().unwrap();
+                                obj_id = p.get_id();
+                            }
+                            obj_id == id
+                          })
+                      })
+                      .collect::<Vec<Option<usize>>>();
 
                 for clip in clip_positions {
                     clip.map(|pos| objs.remove(pos));
