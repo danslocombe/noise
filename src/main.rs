@@ -27,7 +27,6 @@ use bb::{BBHandler};
 
 fn main() {
 
-    // Change this to OpenGL::V2_1 if not working.
     let opengl = OpenGL::V3_2;
     println!("Loading opengl");
 

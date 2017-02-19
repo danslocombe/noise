@@ -45,22 +45,22 @@ impl PlayerLogic {
     }
 }
 
-const FRICTION : fphys = 0.7;
-const FRICTION_AIR : fphys = FRICTION * 0.5;
-const MOVEFORCE: fphys = 10.0;
+const FRICTION      : fphys = 0.7;
+const FRICTION_AIR  : fphys = FRICTION * 0.5;
+const MOVEFORCE     : fphys = 10.0;
 const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.4;
-const JUMP_FORCE: fphys = 650.0;
-const MAX_RUNSPEED : fphys = 75.0;
-const DASH_CD : fphys = 0.75;
+const JUMP_FORCE    : fphys = 650.0;
+const MAX_RUNSPEED  : fphys = 75.0;
+const DASH_CD       : fphys = 0.75;
 const DASH_DURATION : fphys = 0.1;
-const DASH_INVULN : fphys = 0.3;
-const DASH_FORCE: fphys = 300.0;
-const JUMP_CD : fphys = 0.5;
+const DASH_INVULN   : fphys = 0.3;
+const DASH_FORCE    : fphys = 300.0;
+const JUMP_CD       : fphys = 0.5;
 
-const ENEMY_FORCE : fphys = 1000.0;
+const ENEMY_FORCE   : fphys = 1000.0;
 
-const COLOR_NORMAL : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const COLOR_DASH   : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
+const COLOR_NORMAL  : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const COLOR_DASH    : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
 impl Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
@@ -70,7 +70,6 @@ impl Logical for PlayerLogic {
         let (xvel, yvel) = phys.get_vel();
 
         //  Handle collisions from last tick
-
         for c in &self.collision_buffer {
             if c.other_type.contains(BBO_ENEMY) {
                 let diff_x = c.other_bb.x - c.bb.x;
@@ -79,18 +78,21 @@ impl Logical for PlayerLogic {
                 phys.apply_force(-nx * ENEMY_FORCE, -ny * ENEMY_FORCE);
             }
         }
+        //  Reset collisions
         self.collision_buffer = Vec::new();
 
 
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
             if self.dash_cd < DASH_CD - DASH_INVULN {
+                //  Out of invuln
                 phys.p.owner_type = BBO_PLAYER;
                 let mut d = self.draw.lock().unwrap();
                 d.set_color(COLOR_NORMAL);
             }
         }
         if self.dash_cd < DASH_CD - DASH_DURATION {
+            //  Performing regular physics
             let xdir = 0.0 + (if self.input.contains(PI_RIGHT) {1.0} else {0.0})
                            - (if self.input.contains(PI_LEFT)  {1.0} else {0.0});
 
@@ -210,9 +212,9 @@ impl CollisionHandler for PlayerLogic {
     }
 }
 
-pub const MAXSPEED : fphys = 200.0;
-const SIZE     : fphys = 24.0;
-const COLOR     : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+pub const MAXSPEED : fphys    = 200.0;
+const SIZE         : fphys    = 24.0;
+const COLOR        : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 pub fn create(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) 
     -> (GameObj, Arc<Mutex<InputHandler>>) {

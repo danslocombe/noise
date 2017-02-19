@@ -29,6 +29,9 @@ use enemy::create as enemy_create;
 pub const GRAVITY_UP  : fphys = 9.8;
 pub const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 
+const BLOCKSIZE : fphys = 32.0;
+const ENEMY_GEN_P : fphys = 0.015;
+
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
@@ -41,9 +44,9 @@ pub struct GameObj {
 pub fn create_block(id : u32, x : fphys, y : fphys, 
                     bb_sender : Sender<SendType>) -> GameObj {
     let g = arc_mut(GrphxRect 
-        {x : x, y : y, w : 32.0, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
+        {x : x, y : y, w : BLOCKSIZE, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, owner_type : BBO_BLOCK};
-    let p = arc_mut(PhysStatic::new(props,x,y,32.0,32.0,bb_sender, g.clone()));
+    let p = arc_mut(PhysStatic::new(props,x,y,BLOCKSIZE,BLOCKSIZE,bb_sender, g.clone()));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -58,7 +61,7 @@ pub fn create_platform(id : u32, x : fphys, y : fphys,
     GameObj {draws : g, physics : p, logic : l}
 }
 
-pub trait InputHandler{
+pub trait InputHandler {
     fn press (&mut self, button: Button);
     fn release (&mut self, button: Button);
 }
@@ -67,8 +70,10 @@ const DESTROY_BUFFER : fphys = 1000.0;
 
 pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
+    let mut rng = thread_rng();
+
     //  Initialise world generator
-    let mut gen = Gen::new(32.0, 500.0);
+    let mut gen = Gen::new(BLOCKSIZE, 500.0);
 
     //  Create new world
     let mut bb_handler = BBHandler::new();
@@ -111,35 +116,44 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 for (x, y, platform_length) in 
                         gen.gen_to(view_follower.vt.x + 1000.0) {
                     match platform_length {
+                        //  Create platform
                         Some(len) => {
                             let p = create_platform
                                 (bb_handler.generate_id(), x, y, len,  bb_sender.clone());
                             objs.push(p);
+                            //  Generate enemies on platform
+                            for i in 1..(len / BLOCKSIZE).floor() as usize {
+                                let ix = i as fphys * BLOCKSIZE + x;
+                                if (rng.gen_range(0.0, 1.0) < ENEMY_GEN_P) {
+                                    let e_id = bb_handler.generate_id();
+                                    let e = enemy_create
+                                        (e_id, ix, y - BLOCKSIZE, player_phys.clone(), 
+                                         bb_sender.clone());
+                                    objs.push(e);
+                                }
+                            }
                         },
+                        //  Generate block and enemies on block
                         None => {
                             let b = create_block
                                 (bb_handler.generate_id(), x, y, bb_sender.clone());
                             objs.push(b);
+                            if (rng.gen_range(0.0, 1.0) < ENEMY_GEN_P) {
+                                let e_id = bb_handler.generate_id();
+                                let e = enemy_create
+                                    (e_id, x, y - BLOCKSIZE, player_phys.clone(), 
+                                     bb_sender.clone());
+                                objs.push(e);
+                            }
                         }
                     }
 
-                    let mut rng = thread_rng();
-                    if (rng.gen_range(0.0, 1.0) < 0.02) {
-                        let e_id = bb_handler.generate_id();
-                        let e = enemy_create
-                            (e_id, x, y - 32.0, player_phys.clone(), 
-                             bb_sender.clone());
-                        objs.push(e);
-
-                    }
                 }
 
                 //  Update bounding box list
                 bb_handler.update();
 
-                //  Remove offscreen objects
-                //  This is really inefficient way to read
-                //  TODO fix
+                //  Get objects offscreen to remove
                 let clip_positions = bb_handler.to_vec().iter()
                       .filter(|bb_descr| {
                           let (_, ref bb) = **bb_descr;
@@ -187,15 +201,18 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
                 for o in &objs {
                     {
+                        //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
                         l.tick(&u_args);
                     }
                     {
+                        //  Physics ticks
                         let mut p = o.physics.lock().unwrap();
                         p.tick(&u_args, &bb_vec);
                     }
                 }
 
+                //  Update shader
                 noisy_shader.update(&ctx, &bb_handler);
 
             },
@@ -203,7 +220,10 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 view_follower.update(&bb_handler);
 
                 draw_background(&r_args, &mut ctx);
+
                 for o in &objs{
+                    //  Draw all objects
+                    //  Currently no concept of depth
                     let gphx = o.draws.lock().unwrap();
                     gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                 }

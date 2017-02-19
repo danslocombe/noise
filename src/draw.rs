@@ -24,6 +24,7 @@ pub struct GrphxContainer {
 
 pub struct GrphxNoDraw {
 }
+
 impl Drawable for GrphxNoDraw {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
     }
@@ -67,11 +68,11 @@ pub struct ViewTransform {
 }
 
 pub struct ViewFollower {
-    pub vt     : ViewTransform,
-    pub follow_id   : u32,
-    pub w : fphys,
+    pub vt            : ViewTransform,
+    pub follow_id     : u32,
+    pub w             : fphys,
     pub offset_factor : fphys,
-    pub scale_mult : fphys,
+    pub scale_mult    : fphys,
     pub follow_prev_x : fphys,
     pub follow_prev_y : fphys,
     pub x_max         : fphys,
@@ -81,15 +82,15 @@ pub struct ViewFollower {
 impl ViewFollower {
     pub fn new_defaults(vt : ViewTransform, id : u32) -> Self {
         ViewFollower {
-            vt : vt,
-            follow_id : id,
-            w : 20.0,
+            vt            : vt,
+            follow_id     : id,
+            w             : 20.0,
             offset_factor : 30.0,
-            scale_mult : 1.0 / 800.0,
+            scale_mult    : 1.0 / 800.0,
             follow_prev_x : 0.0,
             follow_prev_y : 0.0,
             x_max         : 0.0,
-            min_buffer    : 1200.0,
+            min_buffer    : 800.0,
         }
     }
     pub fn update(&mut self, bb_handler : &BBHandler){
