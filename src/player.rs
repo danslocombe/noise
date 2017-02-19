@@ -82,6 +82,7 @@ impl Logical for PlayerLogic {
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
             if self.dash_cd < DASH_CD - DASH_INVULN {
+                phys.p.owner_type = BBO_PLAYER;
                 let mut d = self.draw.lock().unwrap();
                 d.set_color(COLOR_NORMAL);
             }
@@ -95,6 +96,7 @@ impl Logical for PlayerLogic {
                 let ydir = 0.0 + 
                     (if self.input.contains(PI_DOWN) {1.0} else {0.0})
                   - (if self.input.contains(PI_UP)   {1.0} else {0.0});
+                phys.p.owner_type = BBO_PLAYER_DMG;
                 phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
                 {
                     let mut d = self.draw.lock().unwrap();
@@ -130,6 +132,14 @@ impl Logical for PlayerLogic {
 
 
         phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN);
+    }
+
+    fn suicidal(&self) -> bool {
+        false
+    }
+
+    fn dead_objs(&self) -> Vec<GameObj> {
+        Vec::new()
     }
 }
 

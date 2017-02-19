@@ -8,7 +8,7 @@ use self::rand::{Rng, thread_rng};
 use logic::{Logical, DumbLogic};
 use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
 use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
-use physics::{Physical, PhysDyn};
+use physics::{Physical, PhysDyn, CollisionHandler, Collision};
 use bb::*;
 use tools::arc_mut;
 
@@ -28,6 +28,7 @@ struct EnemyLogic {
     physics : Arc<Mutex<PhysDyn>>,
     target  : Arc<Mutex<Physical>>,
     state : EnemyState,
+    dead : bool,
 }
 
 const FRICTION : fphys = 0.7;
@@ -69,13 +70,13 @@ impl Logical for EnemyLogic {
                 else{
                     match movedir {
                         Some(xdir) => {
-                            if (rng.gen_range(0.0, dt) < IDLE_STOP_CHANCE) {
+                            if (rng.gen_range(0.0, 100.0*dt) < IDLE_STOP_CHANCE) {
                                 self.state = EnemyIdle(None);
                             }
                             (xdir, false, false)
                         },
                         None => {
-                            if (rng.gen_range(0.0, dt) < IDLE_MOVE_CHANCE) {
+                            if (rng.gen_range(0.0, 100.0*dt) < IDLE_MOVE_CHANCE) {
                                 let xdir =  if rng.gen_range(0.0, 1.0) > 0.5
                                         {1.0} else {-1.0};
                                 self.state = EnemyIdle(Some(xdir));
@@ -120,6 +121,22 @@ impl Logical for EnemyLogic {
 
         phys.pass_platforms = fall;
     }
+
+    fn suicidal(&self) -> bool {
+        self.dead
+    }
+    fn dead_objs(&self) -> Vec<GameObj> {
+        Vec::new()
+    }
+}
+
+impl CollisionHandler for EnemyLogic {
+    fn handle (&mut self, col : Collision) {
+        self.dead |= col.other_type.contains(BBO_PLAYER_DMG);
+    }
+    fn get_collide_types(&self) -> BBOwnerType {
+        BBO_ALL
+    }
 }
 
 pub fn create(id : u32, x : fphys, y : fphys, player : Arc<Mutex<Physical>>, 
@@ -132,7 +149,11 @@ pub fn create(id : u32, x : fphys, y : fphys, player : Arc<Mutex<Physical>>,
         PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));
 
     let l = arc_mut(EnemyLogic {target : player, physics : p.clone(), 
-                                state : EnemyIdle(None)});
+                                state : EnemyIdle(None), dead : false});
 
+    {
+        let mut phys = p.lock().unwrap();
+        phys.collision_handler = Some(l.clone());
+    }
     GameObj {draws : g, physics : p, logic : l.clone()}
 }

@@ -13,13 +13,14 @@ pub struct BBProperties {
 } 
 
 bitflags! {
-    pub flags BBOwnerType : u8 {
-        const BBO_NONE     = 0b0000,
-        const BBO_PLATFORM = 0b0001,
-        const BBO_PLAYER   = 0b0010,
-        const BBO_ENEMY    = 0b0100,
-        const BBO_BLOCK    = 0b1000,
-        const BBO_ALL      = 0b1111,
+    pub flags BBOwnerType : u16 {
+        const BBO_NONE       = 0b00000000,
+        const BBO_PLATFORM   = 0b00000001,
+        const BBO_PLAYER     = 0b00000010,
+        const BBO_PLAYER_DMG = 0b00000100,
+        const BBO_ENEMY      = 0b00001000,
+        const BBO_BLOCK      = 0b00010000,
+        const BBO_ALL        = 0b11111111,
     }
 }
 

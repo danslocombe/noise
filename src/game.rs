@@ -155,6 +155,26 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
                 let bb_vec = bb_handler.to_vec();
 
+                //  Remove objects based on remove method on logicals
+                let to_remove = objs.iter().enumerate().filter(|x| {
+                    let (_, ref o) = *x;
+                    o.logic.lock().unwrap().suicidal()
+                }).map(|x| {
+                    let (i, _) = x; i
+                }).collect::<Vec<usize>>();
+
+                //  Objects created on the death of to_remove
+                let mut pheonix_objs = Vec::new();
+                for r in to_remove {
+                    {
+                        let l = objs[r].logic.lock().unwrap();
+                        pheonix_objs.extend(l.dead_objs());
+                    }
+                    objs.remove(r);
+                }
+
+                objs.extend(pheonix_objs);
+
                 for o in &objs {
                     {
                         let mut l = o.logic.lock().unwrap();

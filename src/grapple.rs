@@ -108,6 +108,13 @@ impl Logical for GrappleHolster {
             }
         }
     }
+
+    fn suicidal(&self) -> bool {
+        false
+    }
+    fn dead_objs(&self) -> Vec<GameObj> {
+        Vec::new()
+    }
 }
 
 impl InputHandler for GrappleHolster {
@@ -258,7 +265,8 @@ impl Physical for Grapple {
 
                     for bbprops in bbs {
                         let (ref props, ref bb) = *bbprops;
-                        if (props.owner_type.contains(BBO_PLAYER) ||
+                        if (props.owner_type.contains(BBO_PLAYER)     ||
+                            props.owner_type.contains(BBO_PLAYER_DMG) ||
                             props.owner_type.contains(BBO_ENEMY)) {
                             continue;
                         }
