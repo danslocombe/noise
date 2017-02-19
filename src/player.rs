@@ -15,6 +15,7 @@ pub struct PlayerLogic {
     pub physics : Arc<Mutex<PhysDyn>>,
     input : PlayerInput,
     dash_cd : fphys,
+    jump_cd : fphys,
     collision_buffer : Vec<Collision>,
 }
 
@@ -37,6 +38,7 @@ impl PlayerLogic {
             draw : draw,
             physics : physics,
             dash_cd : 0.0,
+            jump_cd : 0.0,
             input : PI_NONE,
             collision_buffer : Vec::new(),
         }
@@ -53,6 +55,7 @@ const DASH_CD : fphys = 0.75;
 const DASH_DURATION : fphys = 0.1;
 const DASH_INVULN : fphys = 0.3;
 const DASH_FORCE: fphys = 300.0;
+const JUMP_CD : fphys = 0.5;
 
 const ENEMY_FORCE : fphys = 1000.0;
 
@@ -114,8 +117,12 @@ impl Logical for PlayerLogic {
                 phys.apply_force(friction, 0.0);
             }
 
+            if self.jump_cd > 0.0 {
+                self.jump_cd -= dt;
+            }
+
             if phys.on_ground {
-                if self.input.contains(PI_UP) {
+                if self.jump_cd <= 0.0 && self.input.contains(PI_UP) {
                     phys.apply_force(0.0, -JUMP_FORCE);
                 }
             }

@@ -60,8 +60,8 @@ impl Logical for EnemyLogic {
 
         let (xdir, jump, fall) = match self.state {
             EnemyIdle(movedir) => {
-                const IDLE_MOVE_CHANCE : fphys = 0.001;
-                const IDLE_STOP_CHANCE : fphys = 0.01;
+                const IDLE_MOVE_CHANCE : fphys = 0.009;
+                const IDLE_STOP_CHANCE : fphys = 0.035;
                 const ALERT_DIST : fphys = 200.0;
                 if target_dist < ALERT_DIST {
                     self.state = EnemyActive;
