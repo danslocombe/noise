@@ -105,19 +105,24 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
         match e {
             Input::Update(u_args) => {
                 //  Generate world
-                for (x, y) in gen.gen_to(view_follower.vt.x + 1000.0) {
-                    let b = create_block
-                        (bb_handler.generate_id(), x, y, bb_sender.clone());
-                    objs.push(b);
-                    let p = create_platform
-                        (bb_handler.generate_id(), x, 100.0, bb_sender.clone());
-                    objs.push(p);
+                for (x, y, is_platform) in 
+                        gen.gen_to(view_follower.vt.x + 1000.0) {
+                    if is_platform {
+                        let p = create_platform
+                            (bb_handler.generate_id(), x, y, bb_sender.clone());
+                        objs.push(p);
+                    }
+                    else {
+                        let b = create_block
+                            (bb_handler.generate_id(), x, y, bb_sender.clone());
+                        objs.push(b);
+                    }
 
                     let mut rng = thread_rng();
-                    if (rng.gen_range(0.0, 1.0) < 0.05) {
+                    if (rng.gen_range(0.0, 1.0) < 0.02) {
                         let e_id = bb_handler.generate_id();
                         let e = enemy_create
-                            (e_id, x, -100.0, player_phys.clone(), 
+                            (e_id, x, y - 32.0, player_phys.clone(), 
                              bb_sender.clone());
                         objs.push(e);
 

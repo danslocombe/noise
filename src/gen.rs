@@ -5,6 +5,14 @@ use std::f64;
 
 use game::fphys;
 
+const BLOCKWIDTH : fphys = 32.0;
+const STRUCTURE_SPACING_MIN : fphys = BLOCKWIDTH * 12.0;
+const STRUCTURE_SPACING_MAX : fphys = BLOCKWIDTH * 70.0;
+const STRUCTURE_LENGTH_MIN : fphys = BLOCKWIDTH * 4.0;
+const STRUCTURE_LENGTH_MAX : fphys = BLOCKWIDTH * 80.0;
+const STRUCTURE_PLATFORM_HEIGHT : fphys = BLOCKWIDTH * 12.0;
+const MAX_HEIGHT : u32 = 6;
+
 //  Single perlin octave
 struct PerlinOctave {
     //  Previous value
@@ -19,6 +27,8 @@ pub struct Gen {
     blocksize      : fphys,
     generated_to   : fphys,
     gen_floor      : fphys,
+    last_block_y   : fphys,
+    next_structure : fphys,
     octaves        : Vec<PerlinOctave>,
 }
 
@@ -39,16 +49,29 @@ impl Gen {
             blocksize : blocksize,
             generated_to : 0.0,
             gen_floor : gen_floor,
+            last_block_y : 0.0,
+            next_structure : 256.0,
             octaves : os,
         }
     }
 
-    pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys)> {
+    pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, bool)> {
         let mut r = Vec::new();
         while self.generated_to < x {
+            if (self.next_structure <= 0.0) {
+                self.next_structure = STRUCTURE_SPACING_MIN + rand_gauss() *
+                    (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN);
+                r.extend(create_structure(self.generated_to, self.last_block_y 
+                                         - STRUCTURE_PLATFORM_HEIGHT,
+                                           STRUCTURE_LENGTH_MIN + rand_gauss()*
+                               (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN), 1));
+            }
             self.generated_to += self.blocksize;
-            let y = self.gen_floor + /*self.blocksize * */ STEPSIZE * (next_perlin(&mut self.octaves) / STEPSIZE).floor();
-            r.push((self.generated_to, y));
+            self.next_structure -= self.blocksize;
+            let y = self.gen_floor + STEPSIZE * 
+                (next_perlin(&mut self.octaves) / STEPSIZE).floor();
+            self.last_block_y = y;
+            r.push((self.generated_to, y, false));
         }
         r
     }
@@ -62,10 +85,35 @@ fn cosine_interpolate(a : i32, b : i32, x : f64) -> f64 {
     af * f + bf * (1.0 - f)
 }
 
+
+fn create_structure(x : fphys, y : fphys, length : fphys, height : u32) 
+        -> Vec<(fphys, fphys, bool)> {
+    let end = x + length;
+    let mut created_next_floor = false;
+    let mut ret = Vec::new();
+    if (height > MAX_HEIGHT) {
+        return ret;
+    }
+
+    const UPPER_FLOOR_P : fphys = 0.38;
+
+    for i in 1..(length / BLOCKWIDTH).floor() as usize {
+        let ix = i as fphys * BLOCKWIDTH + x;
+        ret.push((ix, y, true));
+
+        if !created_next_floor && end - ix > length / 2.0 && 
+            (rand_gauss() < UPPER_FLOOR_P) {
+            ret.extend(create_structure(ix, y - BLOCKWIDTH - STRUCTURE_PLATFORM_HEIGHT,
+                                         2.0 * (end - ix) - length, height + 1));
+            created_next_floor = true;
+        }
+    }
+    ret
+}
+
 const PERLIN_SPACING : i32 = 16;
 const PERLIN_PERSIST_RECIPROCAL : f64 = 0.25;
 const OCTAVES : i32 = 5; 
-
 
 //  Get the next value from the sequence of perlin octaves
 //
@@ -113,9 +161,8 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
 //  Approximate central limit theorem
 fn rand_gauss() -> f64 {
     const GAUSS_ITS : i32 = 8;
-    use std::f64::MAX as MAX;
 
     let mut rng = thread_rng();
-    (0..GAUSS_ITS).fold(0.0, |x, _| {x + rng.gen::<f64>() / MAX})
+    (0..GAUSS_ITS).fold(0.0, |x, _| {x + rng.gen_range(0.0, 1.0)})
         / (GAUSS_ITS as f64)
 }
