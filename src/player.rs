@@ -5,9 +5,9 @@ use std::sync::mpsc::Sender;
 use logic::Logical;
 use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
 use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
-use physics::{Physical, PhysDyn, CollisionHandler};
+use physics::{Collision, Physical, PhysDyn, CollisionHandler};
 use bb::*;
-use tools::arc_mut;
+use tools::{arc_mut, normalise};
 use grapple::{GrappleHolster, GrappleDraw};
 
 pub struct PlayerLogic {
@@ -15,6 +15,7 @@ pub struct PlayerLogic {
     pub physics : Arc<Mutex<PhysDyn>>,
     input : PlayerInput,
     dash_cd : fphys,
+    collision_buffer : Vec<Collision>,
 }
 
 bitflags! {
@@ -37,6 +38,7 @@ impl PlayerLogic {
             physics : physics,
             dash_cd : 0.0,
             input : PI_NONE,
+            collision_buffer : Vec::new(),
         }
     }
 }
@@ -52,7 +54,7 @@ const DASH_DURATION : fphys = 0.1;
 const DASH_INVULN : fphys = 0.3;
 const DASH_FORCE: fphys = 300.0;
 
-const ENEMY_FORCE : fphys = 300.0;
+const ENEMY_FORCE : fphys = 1000.0;
 
 const COLOR_NORMAL : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH   : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
@@ -63,6 +65,18 @@ impl Logical for PlayerLogic {
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
         let (xvel, yvel) = phys.get_vel();
+
+        //  Handle collisions from last tick
+
+        for c in &self.collision_buffer {
+            if c.other_type.contains(BBO_ENEMY) {
+                let diff_x = c.other_bb.x - c.bb.x;
+                let diff_y = c.other_bb.y - c.bb.y;
+                let (nx, ny) = normalise((diff_x, diff_y));
+                phys.apply_force(-nx * ENEMY_FORCE, -ny * ENEMY_FORCE);
+            }
+        }
+        self.collision_buffer = Vec::new();
 
 
         if self.dash_cd > 0.0 {
@@ -163,15 +177,8 @@ impl InputHandler for PlayerLogic {
 }
 
 impl CollisionHandler for PlayerLogic {
-    fn handle (&mut self, other_type : BBOwnerType) {
-        if (other_type == BBO_ENEMY) {
-            if self.dash_cd < DASH_CD - DASH_INVULN {
-                //  Die
-            }
-            else {
-                // Survive
-            }
-        }
+    fn handle (&mut self, col : Collision) {
+        self.collision_buffer.push(col);
     }
     fn get_collide_types(&self) -> BBOwnerType {
 

@@ -20,8 +20,14 @@ pub trait Physical {
     fn get_id(&self) -> u32;
 }
 
-pub trait CollisionHandler{
-    fn handle (&mut self, other_type : BBOwnerType);
+pub struct Collision {
+    pub other_type : BBOwnerType,
+    pub bb : BoundingBox,
+    pub other_bb : BoundingBox,
+}
+
+pub trait CollisionHandler {
+    fn handle (&mut self, col : Collision);
     fn get_collide_types(&self) -> BBOwnerType; 
 }
 
@@ -158,27 +164,33 @@ macro_rules! call_once_on_col {
 }
 
 const STEPHEIGHT : fphys = 8.5;
-/*
-fn does_collide_step(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], pass_platforms : bool) -> bool {
-    let mut col_flag = false;
-    call_once_on_col!(p, bb, bbs, pass_platforms, testbb, {
-        let step_bb = BoundingBox{x : bb.x, y : bb.y - STEPHEIGHT, w : bb.w, h : bb.h};
-        if step_bb.check_col(testbb){
-            col_flag = true;
+
+fn does_collide (p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], 
+                 to_collide : BBOwnerType, pass_platforms : bool) 
+                    -> Option<Collision> {
+    let mut collision = None;
+
+    for descr in bbs {
+        let (ref other_p, ref other_bb) = *descr;
+        if other_p.id == p.id || !to_collide.contains(other_p.owner_type) {
+            continue;
+        }
+        if p.owner_type == BBO_PLATFORM && 
+            ((bb.y + bb.h >= other_bb.y + other_bb.h) || pass_platforms) {
+            continue;
+        }
+        if bb.check_col(other_bb){
+            collision = Some(Collision {
+                other_type : other_p.owner_type,
+                bb : bb.clone(),
+                other_bb : other_bb.clone(),
+            });
             break;
         }
-    }
-    );
-    col_flag
-}
-*/
 
-fn does_collide(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], to_collide : BBOwnerType,
-                pass_platforms : bool) -> Option<BBOwnerType> {
-    let mut col_flag = false;
-    let mut col_owner = None;
-    call_once_on_col!(p, bb, bbs, to_collide, pass_platforms, unused, col_flag = true, col_owner);
-    col_owner
+    }
+
+    collision
 }
 
 fn does_collide_bool(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], to_collide : BBOwnerType,
@@ -230,11 +242,11 @@ impl Physical for PhysDyn {
         };
 
         //  Collision Resolution
-        if let Some(col_type) = 
+        if let Some(collision) = 
             does_collide(&self.p, &bb_test, bbs, to_collide, self.pass_platforms) {
 
             self.collision_handler.as_ref().map(|ch| {
-                ch.lock().unwrap().handle(col_type);
+                ch.lock().unwrap().handle(collision);
             });
 
             let pos_delta = resolve_col_base(&self.p, bbs, self.bb.w, 
