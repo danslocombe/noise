@@ -12,6 +12,7 @@ use tools::{arc_mut, normalise};
 pub struct GrappleHolster {
     pub grapple : Arc<Mutex<Grapple>>,
     input : GrappleInput,
+    cd    : fphys,
 }
 
 impl GrappleHolster {
@@ -23,6 +24,7 @@ impl GrappleHolster {
         (GrappleHolster {
             grapple : grapple.clone(),
             input   : GI_NONE,
+            cd      : 0.0,
         }, grapple)
     }
     fn vel_from_inputs(&self) -> (fphys, fphys) {
@@ -46,28 +48,36 @@ impl GrappleHolster {
 }
 
 const GRAPPLE_SPEED : fphys = 2000.0;
+const RETRACT_SPEED : fphys =  400.0;
+const GRAPPLE_CD    : fphys = 0.65;
 
 bitflags! {
-    flags GrappleInput : u8 {
-        const GI_NONE  = 0b0000,
-        const GI_LEFT  = 0b0001,
-        const GI_RIGHT = 0b0010,
-        const GI_DOWN  = 0b0100,
-        const GI_UP    = 0b1000,
+    flags GrappleInput : u16 {
+        const GI_NONE    = 0b00000000,
+        const GI_LEFT    = 0b00000001,
+        const GI_RIGHT   = 0b00000010,
+        const GI_DOWN    = 0b00000100,
+        const GI_UP      = 0b00001000,
+        const GI_RETRACT = 0b00010000,
     }
 }
 
 impl Logical for GrappleHolster {
-    fn tick (&mut self, _ : &UpdateArgs) {
+    fn tick (&mut self, args : &UpdateArgs) {
+        let dt = args.dt as fphys;
+        if (self.cd > 0.0) {
+            self.cd -= dt;
+        }
         {
             use grapple::GrappleState::*;
 
             let mut g = self.grapple.lock().unwrap();
             match g.state {
                 GrappleNone => {
-                    if !self.input.is_empty() {
+                    if self.cd <= 0.0 && !self.input.is_empty() {
                         let (vx, vy) = self.vel_from_inputs();
                         g.shoot(vx, vy);
+                        self.cd = GRAPPLE_CD;
                     }
                 },
                 GrappleOut => {
@@ -79,9 +89,20 @@ impl Logical for GrappleHolster {
                         g.set_vel(vx, vy);
                     }
                 },
-                GrappleLocked(fphys) => {
+                GrappleLocked(len) => {
                     if self.input.is_empty() {
                         g.end_grapple();
+                    }
+                    else {
+                        if self.input.contains(GI_RETRACT) {
+                            let len_new = len - RETRACT_SPEED * dt;
+                            if (len_new < 0.0) {
+                                g.end_grapple();
+                            }
+                            else {
+                                g.state = GrappleLocked(len_new);
+                            }
+                        }
                     }
                 },
             }
@@ -104,6 +125,9 @@ impl InputHandler for GrappleHolster {
             Button::Keyboard(Key::Right) => {
                 self.input |= GI_RIGHT;
             },
+            Button::Keyboard(Key::LShift) => {
+                self.input |= GI_RETRACT;
+            },
             _ => {},
         }
     }
@@ -120,6 +144,9 @@ impl InputHandler for GrappleHolster {
             },
             Button::Keyboard(Key::Right) => {
                 self.input &= !GI_RIGHT;
+            },
+            Button::Keyboard(Key::LShift) => {
+                self.input &= !GI_RETRACT;
             },
             _ => {},
         }
@@ -203,7 +230,7 @@ impl Grapple {
     }
 }
 
-const MAX_LENGTH_SQR : fphys = 100000.0;
+const MAX_LENGTH_SQR : fphys = 200000.0;
 
 impl Physical for Grapple {
     fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]){

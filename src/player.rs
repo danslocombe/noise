@@ -13,10 +13,19 @@ use grapple::{GrappleHolster, GrappleDraw};
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<Drawable>>,
     pub physics : Arc<Mutex<PhysDyn>>,
-    i_left  : bool,
-    i_up    : bool,
-    i_right : bool,
-    i_down  : bool,
+    input : PlayerInput,
+    dash_cd : fphys,
+}
+
+bitflags! {
+    flags PlayerInput : u16 {
+        const PI_NONE    = 0b00000000,
+        const PI_LEFT    = 0b00000001,
+        const PI_RIGHT   = 0b00000010,
+        const PI_DOWN    = 0b00000100,
+        const PI_UP      = 0b00001000,
+        const PI_DASH    = 0b00010000,
+    }
 }
 
 impl PlayerLogic {
@@ -26,10 +35,8 @@ impl PlayerLogic {
         PlayerLogic{
             draw : draw,
             physics : physics,
-            i_left  : false,
-            i_up    : false,
-            i_down  : false,
-            i_right : false,
+            dash_cd : 0.0,
+            input : PI_NONE,
         }
     }
 }
@@ -42,43 +49,61 @@ const MOVEFORCE: fphys = 10.0;
 const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.4;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED : fphys = 75.0;
+const DASH_CD : fphys = 0.75;
+const DASH_DURATION : fphys = 0.1;
+const DASH_FORCE: fphys = 300.0;
 
 impl Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs){
 
+        let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
         let (xvel, yvel) = phys.get_vel();
 
-        let xdir = 0.0 + (if self.i_right {1.0} else {0.0})
-                       - (if self.i_left  {1.0} else {0.0});
 
-        if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
-            let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
-            phys.apply_force(force * xdir, 0.0);
+        if self.dash_cd > 0.0 {
+            self.dash_cd -= dt;
         }
-        else{
-            let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
-            let friction = xvel * -1.0 * friction_percent;
-            phys.apply_force(friction, 0.0);
-        }
+        if self.dash_cd < DASH_CD - DASH_DURATION {
+            let xdir = 0.0 + (if self.input.contains(PI_RIGHT) {1.0} else {0.0})
+                           - (if self.input.contains(PI_LEFT)  {1.0} else {0.0});
 
+            if self.dash_cd <= 0.0 && self.input.contains(PI_DASH) {
+                self.dash_cd = DASH_CD;
+                let ydir = 0.0 + 
+                    (if self.input.contains(PI_DOWN) {1.0} else {0.0})
+                  - (if self.input.contains(PI_UP)   {1.0} else {0.0});
+                phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
+            }
 
-        if phys.on_ground {
-            if self.i_up {
-                phys.apply_force(0.0, -JUMP_FORCE);
+            if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
+                let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
+                phys.apply_force(force * xdir, 0.0);
+            }
+            else{
+                let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
+                let friction = xvel * -1.0 * friction_percent;
+                phys.apply_force(friction, 0.0);
+            }
+
+            if phys.on_ground {
+                if self.input.contains(PI_UP) {
+                    phys.apply_force(0.0, -JUMP_FORCE);
+                }
+            }
+            else{
+                //  Gravity
+                if yvel < 0.0 {
+                    phys.apply_force(0.0, GRAVITY_UP);
+                }
+                else {
+                    phys.apply_force(0.0, GRAVITY_DOWN);
+                }
             }
         }
-        else{
-            //  Gravity
-            if yvel < 0.0 {
-                phys.apply_force(0.0, GRAVITY_UP);
-            }
-            else {
-                phys.apply_force(0.0, GRAVITY_DOWN);
-            }
-        }
 
-        phys.pass_platforms = yvel < 0.0 || self.i_down;
+
+        phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN);
     }
 }
 
@@ -86,16 +111,19 @@ impl InputHandler for PlayerLogic {
     fn press (&mut self, button : Button){
         match button {
             Button::Keyboard(Key::W) => {
-                self.i_up = true;
+                self.input |= PI_UP;
             }
             Button::Keyboard(Key::S) => {
-                self.i_down = true;
+                self.input |= PI_DOWN;
             }
             Button::Keyboard(Key::A) => {
-                self.i_left = true;
+                self.input |= PI_LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.i_right = true;
+                self.input |= PI_RIGHT;
+            }
+            Button::Keyboard(Key::Space) => {
+                self.input |= PI_DASH;
             }
             _ => {}
         }
@@ -103,16 +131,19 @@ impl InputHandler for PlayerLogic {
     fn release (&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
-                self.i_up = false;
+                self.input &= !PI_UP;
             }
             Button::Keyboard(Key::S) => {
-                self.i_down = false;
+                self.input &= !PI_DOWN;
             }
             Button::Keyboard(Key::A) => {
-                self.i_left = false;
+                self.input &= !PI_LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.i_right = false;
+                self.input &= !PI_RIGHT;
+            }
+            Button::Keyboard(Key::Space) => {
+                self.input &= !PI_DASH;
             }
             _ => {}
         }
