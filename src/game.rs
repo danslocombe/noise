@@ -82,6 +82,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let player_id = bb_handler.generate_id();
     let (player_obj, player_input_handler) = 
         player_create(player_id, 300.0, -250.0, bb_sender.clone());
+    let player_phys = player_obj.physics.clone();
 
     let grapple_id = bb_handler.generate_id();
     let (grapple_obj, grapple_input_handler) 
@@ -116,7 +117,8 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                     if (rng.gen_range(0.0, 1.0) < 0.05) {
                         let e_id = bb_handler.generate_id();
                         let e = enemy_create
-                            (e_id, x, -100.0, bb_sender.clone());
+                            (e_id, x, -100.0, player_phys.clone(), 
+                             bb_sender.clone());
                         objs.push(e);
 
                     }
