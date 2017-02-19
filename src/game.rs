@@ -60,7 +60,7 @@ pub trait InputHandler{
     fn release (&mut self, button: Button);
 }
 
-const DESTROY_BUFFER : fphys = 800.0;
+const DESTROY_BUFFER : fphys = 1000.0;
 
 pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 

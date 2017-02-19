@@ -85,11 +85,11 @@ impl ViewFollower {
             follow_id : id,
             w : 20.0,
             offset_factor : 30.0,
-            scale_mult : 1.0 / 2000.0,
+            scale_mult : 1.0 / 800.0,
             follow_prev_x : 0.0,
             follow_prev_y : 0.0,
             x_max         : 0.0,
-            min_buffer    : 500.0,
+            min_buffer    : 1200.0,
         }
     }
     pub fn update(&mut self, bb_handler : &BBHandler){
