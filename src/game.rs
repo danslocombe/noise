@@ -3,6 +3,7 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate rand;
+extern crate rayon;
 
 use piston::event_loop::*;
 use piston::input::*;
@@ -11,6 +12,8 @@ use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender};
 use self::rand::{Rng, thread_rng};
+
+use self::rayon::prelude::*;
 
 use logic::{Logical, DumbLogic};
 use draw::{Drawable, GrphxRect, draw_background, 
@@ -46,11 +49,11 @@ pub fn create_block(id : u32, x : fphys, y : fphys,
 }
 
 pub fn create_platform(id : u32, x : fphys, y : fphys, 
-                       bb_sender : Sender<SendType>) -> GameObj {
+                       width : fphys, bb_sender : Sender<SendType>) -> GameObj {
     let g = arc_mut(GrphxRect 
-        {x : x, y : y, w : 32.0, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
+        {x : x, y : y, w : width, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, owner_type : BBO_PLATFORM};
-    let p = arc_mut(PhysStatic::new(props,x,y,32.0,10.0,bb_sender, g.clone()));
+    let p = arc_mut(PhysStatic::new(props,x,y,width,10.0,bb_sender, g.clone()));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -105,17 +108,19 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
         match e {
             Input::Update(u_args) => {
                 //  Generate world
-                for (x, y, is_platform) in 
+                for (x, y, platform_length) in 
                         gen.gen_to(view_follower.vt.x + 1000.0) {
-                    if is_platform {
-                        let p = create_platform
-                            (bb_handler.generate_id(), x, y, bb_sender.clone());
-                        objs.push(p);
-                    }
-                    else {
-                        let b = create_block
-                            (bb_handler.generate_id(), x, y, bb_sender.clone());
-                        objs.push(b);
+                    match platform_length {
+                        Some(len) => {
+                            let p = create_platform
+                                (bb_handler.generate_id(), x, y, len,  bb_sender.clone());
+                            objs.push(p);
+                        },
+                        None => {
+                            let b = create_block
+                                (bb_handler.generate_id(), x, y, bb_sender.clone());
+                            objs.push(b);
+                        }
                     }
 
                     let mut rng = thread_rng();

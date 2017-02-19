@@ -6,10 +6,10 @@ use std::f64;
 use game::fphys;
 
 const BLOCKWIDTH : fphys = 32.0;
-const STRUCTURE_SPACING_MIN : fphys = BLOCKWIDTH * 12.0;
-const STRUCTURE_SPACING_MAX : fphys = BLOCKWIDTH * 70.0;
-const STRUCTURE_LENGTH_MIN : fphys = BLOCKWIDTH * 4.0;
-const STRUCTURE_LENGTH_MAX : fphys = BLOCKWIDTH * 80.0;
+const STRUCTURE_SPACING_MIN : fphys = BLOCKWIDTH * 4.0;
+const STRUCTURE_SPACING_MAX : fphys = BLOCKWIDTH * 24.0;
+const STRUCTURE_LENGTH_MIN : fphys = BLOCKWIDTH * 12.0;
+const STRUCTURE_LENGTH_MAX : fphys = BLOCKWIDTH * 160.0;
 const STRUCTURE_PLATFORM_HEIGHT : fphys = BLOCKWIDTH * 12.0;
 const MAX_HEIGHT : u32 = 6;
 
@@ -55,23 +55,25 @@ impl Gen {
         }
     }
 
-    pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, bool)> {
+    pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
         let mut r = Vec::new();
         while self.generated_to < x {
             if (self.next_structure <= 0.0) {
+                let length = STRUCTURE_LENGTH_MIN + rand_gauss() *
+                             (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
+
                 self.next_structure = STRUCTURE_SPACING_MIN + rand_gauss() *
-                    (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN);
+                    (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN) + length;
+
                 r.extend(create_structure(self.generated_to, self.last_block_y 
-                                         - STRUCTURE_PLATFORM_HEIGHT,
-                                           STRUCTURE_LENGTH_MIN + rand_gauss()*
-                               (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN), 1));
+                                         - STRUCTURE_PLATFORM_HEIGHT, length, 1));
             }
             self.generated_to += self.blocksize;
             self.next_structure -= self.blocksize;
             let y = self.gen_floor + STEPSIZE * 
                 (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             self.last_block_y = y;
-            r.push((self.generated_to, y, false));
+            r.push((self.generated_to, y, None));
         }
         r
     }
@@ -87,7 +89,7 @@ fn cosine_interpolate(a : i32, b : i32, x : f64) -> f64 {
 
 
 fn create_structure(x : fphys, y : fphys, length : fphys, height : u32) 
-        -> Vec<(fphys, fphys, bool)> {
+        -> Vec<(fphys, fphys, Option<fphys>)> {
     let end = x + length;
     let mut created_next_floor = false;
     let mut ret = Vec::new();
@@ -97,9 +99,9 @@ fn create_structure(x : fphys, y : fphys, length : fphys, height : u32)
 
     const UPPER_FLOOR_P : fphys = 0.38;
 
+    ret.push((x, y, Some(length)));
     for i in 1..(length / BLOCKWIDTH).floor() as usize {
         let ix = i as fphys * BLOCKWIDTH + x;
-        ret.push((ix, y, true));
 
         if !created_next_floor && end - ix > length / 2.0 && 
             (rand_gauss() < UPPER_FLOOR_P) {

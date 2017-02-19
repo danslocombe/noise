@@ -13,3 +13,4 @@ piston2d-graphics = "0.21.1"
 pistoncore-glutin_window = "0.35.0"
 piston2d-opengl_graphics = { git = "https://github.com/danslocombe/opengl_graphics" }
 bitflags = "0.7.0"
+rayon = "0.6.0"

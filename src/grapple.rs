@@ -270,7 +270,7 @@ impl Physical for Grapple {
                             props.owner_type.contains(BBO_ENEMY)) {
                             continue;
                         }
-                        lineCollide(end_x0, end_y0, self.end_x, self.end_y, bb)
+                        line_collide(end_x0, end_y0, self.end_x, self.end_y, bb)
                             .map(|(col_x, col_y)| {
                             self.end_x = col_x;
                             self.end_y = col_y;
@@ -393,7 +393,7 @@ fn cs_code (x : fphys, y : fphys,
     ret_code
 }
 
-fn lineCollide(mut start_x : fphys, mut start_y : fphys, 
+fn line_collide(mut start_x : fphys, mut start_y : fphys, 
                mut end_x   : fphys, mut end_y   : fphys,
                bb : &BoundingBox) -> Option<(fphys, fphys)> {
 
