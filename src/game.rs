@@ -76,8 +76,8 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let (grapple_obj, grapple_input_handler) 
         = grapple_create(grapple_id, player_obj.physics.clone());
 
-    objs.push(player_obj);
     objs.push(grapple_obj);
+    objs.push(player_obj);
 
     input_handlers.push(player_input_handler);
     input_handlers.push(grapple_input_handler);
@@ -130,10 +130,6 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 for clip in clip_positions {
                     clip.map(|pos| objs.remove(pos));
                 }
-
-                /*let clip_positions = objs.iter_mut().filter(|obj| {
-                }).collect::<Vec<GameObj>>();
-                */
 
                 let bb_vec = bb_handler.to_vec();
 

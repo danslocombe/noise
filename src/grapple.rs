@@ -63,7 +63,7 @@ impl InputHandler for GrappleHolster {
 enum GrappleState {
     GrappleNone,
     GrappleOut,
-    GrappleLocked,
+    GrappleLocked(fphys),
 }
 
 pub struct Grapple {
@@ -156,7 +156,7 @@ impl Physical for Grapple {
                             .map(|(col_x, col_y)| {
                             self.end_x = col_x;
                             self.end_y = col_y;
-                            self.state = GrappleState::GrappleLocked;
+                            self.state = GrappleState::GrappleLocked(len_2.sqrt());
                         });
                     }
 
@@ -165,7 +165,35 @@ impl Physical for Grapple {
                     d.end_y = self.end_y;
                 }
             },
-            GrappleState::GrappleLocked => {
+            GrappleState::GrappleLocked(grapple_len) => {
+                {
+                    let mut p = self.player.lock().unwrap();
+                    let (x, y) = p.get_position();
+                    let diff = ((x - self.end_x).powi(2) +
+                                 (y - self.end_y).powi(2)).sqrt() -
+                                 grapple_len;
+                    const GRAPPLE_ELAST : fphys = 0.25;
+                    const GRAPPLE_DAMP  : fphys = 0.001;
+
+                    if (diff > 0.0) {
+                        let angle = (self.end_y - y).atan2(self.end_x - x);
+
+                        //  Tension
+                        
+                        let g_force_x =  diff * GRAPPLE_ELAST * angle.cos();
+                        let g_force_y = diff * GRAPPLE_ELAST * angle.sin();
+
+                        p.apply_force(g_force_x, g_force_y);
+
+                        let (p_vel_x, p_vel_y) = p.get_vel();
+                        let dot = p_vel_x * (self.end_x - x) +
+                                  p_vel_y * (self.end_y - y);
+
+                        p.apply_force(-dot * GRAPPLE_DAMP * angle.cos(),
+                                      -dot * GRAPPLE_DAMP * angle.sin());
+
+                    }
+                }
             },
         };
 
