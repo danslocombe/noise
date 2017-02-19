@@ -3,63 +3,130 @@ use std::sync::{Arc, Mutex};
 
 use game::{GameObj, fphys, InputHandler};
 use draw::{Drawable, ViewTransform};
-use logic::{Logical, DumbLogic};
+use logic::{Logical};
 use opengl_graphics::GlGraphics;
 use bb::{SendType, BBDescriptor, BBProperties};
 use physics::{Physical, BoundingBox};
-use tools::arc_mut;
+use tools::{arc_mut, normalise};
 
 pub struct GrappleHolster {
     pub grapple : Arc<Mutex<Grapple>>,
+    input : GrappleInput,
 }
 
 impl GrappleHolster {
     pub fn create(id : u32, player : Arc<Mutex<Physical>>, 
                draw : Arc<Mutex<GrappleDraw>>) -> (Self, Arc<Mutex<Grapple>>) {
+
         let grapple = arc_mut(Grapple::new(id, 0.0, 0.0, player, draw));
+
         (GrappleHolster {
             grapple : grapple.clone(),
+            input   : GI_NONE,
         }, grapple)
+    }
+    fn vel_from_inputs(&self) -> (fphys, fphys) {
+        let mut x = 0.0;
+        let mut y = 0.0;
+        if self.input.contains(GI_LEFT) {
+            x -= 1.0;
+        }
+        if self.input.contains(GI_RIGHT) {
+            x += 1.0;
+        }
+        if self.input.contains(GI_UP) {
+            y -= 1.0;
+        }
+        if self.input.contains(GI_DOWN) {
+            y += 1.0;
+        }
+        let (xn, yn) = normalise((x,y));
+        (xn * GRAPPLE_SPEED, yn * GRAPPLE_SPEED)
     }
 }
 
 const GRAPPLE_SPEED : fphys = 2000.0;
 
+bitflags! {
+    flags GrappleInput : u8 {
+        const GI_NONE  = 0b0000,
+        const GI_LEFT  = 0b0001,
+        const GI_RIGHT = 0b0010,
+        const GI_DOWN  = 0b0100,
+        const GI_UP    = 0b1000,
+    }
+}
+
+impl Logical for GrappleHolster {
+    fn tick (&mut self, _ : &UpdateArgs) {
+        {
+            use grapple::GrappleState::*;
+
+            let mut g = self.grapple.lock().unwrap();
+            match g.state {
+                GrappleNone => {
+                    if !self.input.is_empty() {
+                        let (vx, vy) = self.vel_from_inputs();
+                        g.shoot(vx, vy);
+                    }
+                },
+                GrappleOut => {
+                    if self.input.is_empty() {
+                        g.end_grapple();
+                    }
+                    else {
+                        let (vx, vy) = self.vel_from_inputs();
+                        g.set_vel(vx, vy);
+                    }
+                },
+                GrappleLocked(fphys) => {
+                    if self.input.is_empty() {
+                        g.end_grapple();
+                    }
+                },
+            }
+        }
+    }
+}
+
 impl InputHandler for GrappleHolster {
     fn press (&mut self, button : Button) {
         match button {
             Button::Keyboard(Key::Up) => {
-                {
-                    let mut g = self.grapple.lock().unwrap();
-                    g.shoot(0.0, -GRAPPLE_SPEED);
-                }
+                self.input |= GI_UP;
             },
             Button::Keyboard(Key::Down) => {
-                {
-                    let mut g = self.grapple.lock().unwrap();
-                    g.shoot(0.0, GRAPPLE_SPEED);
-                }
+                self.input |= GI_DOWN;
             },
             Button::Keyboard(Key::Left) => {
-                {
-                    let mut g = self.grapple.lock().unwrap();
-                    g.shoot(-GRAPPLE_SPEED, 0.0);
-                }
+                self.input |= GI_LEFT;
             },
             Button::Keyboard(Key::Right) => {
-                {
-                    let mut g = self.grapple.lock().unwrap();
-                    g.shoot(GRAPPLE_SPEED, 0.0);
-                }
+                self.input |= GI_RIGHT;
             },
             _ => {},
         }
     }
     fn release (&mut self, button : Button) {
-        //  Ignore
+        match button {
+            Button::Keyboard(Key::Up) => {
+                self.input &= !GI_UP;
+            },
+            Button::Keyboard(Key::Down) => {
+                self.input &= !GI_DOWN;
+            },
+            Button::Keyboard(Key::Left) => {
+                self.input &= !GI_LEFT;
+            },
+            Button::Keyboard(Key::Right) => {
+                self.input &= !GI_RIGHT;
+            },
+            _ => {},
+        }
     }
 }
 
+#[derive(PartialEq)]
 enum GrappleState {
     GrappleNone,
     GrappleOut,
@@ -117,6 +184,21 @@ impl Grapple {
         {
             let mut d = self.draw.lock().unwrap();
             d.drawing = true;
+        }
+    }
+
+    fn set_vel(&mut self, vel_x : fphys, vel_y : fphys) {
+        if (self.state == GrappleState::GrappleOut) {
+            self.vel_x = vel_x;
+            self.vel_y = vel_y;
+        }
+    }
+
+    fn end_grapple(&mut self) {
+        self.state = GrappleState::GrappleNone;
+        {
+            let mut d = self.draw.lock().unwrap();
+            d.drawing = false;
         }
     }
 }
@@ -310,22 +392,22 @@ fn lineCollide(mut start_x : fphys, mut start_y : fphys,
             //  y = y0 + slope (x - x0)
             //  x = x0 + (1/slope) (y - y0)
 
-            if !((outside & CS_UP).is_empty()) {
+            if outside.contains(CS_UP) {
                 x = start_x + 
                     (end_x - start_x) * (bb.y + bb.h - start_y) / (end_y - start_y);
                 y = bb.y + bb.h;
             }
-            else if !((outside & CS_DOWN).is_empty()) {
+            else if outside.contains(CS_DOWN) {
                 x = start_x + 
                     (end_x - start_x) * (bb.y - start_y) / (end_y - start_y);
                 y = bb.y;
             }
-            else if !((outside & CS_RIGHT).is_empty()) {
+            else if outside.contains(CS_RIGHT) {
                 x = bb.x + bb.w;
                 y = start_y + 
                     (end_y - start_y) * (bb.x + bb.w - start_x) / (end_x - start_x);
             }
-            else if !((outside & CS_LEFT).is_empty()) {
+            else if outside.contains(CS_LEFT) {
                 x = bb.x;
                 y = start_y + 
                     (end_y - start_y) * (bb.x - start_x) / (end_x - start_x);
@@ -391,7 +473,7 @@ pub fn create (id : u32, player : Arc<Mutex<Physical>>)
                     -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g : Arc<Mutex<GrappleDraw>> = arc_mut(GrappleDraw::new());
     let (holster, grapple) = GrappleHolster::create(id, player, g.clone());
-    let input = arc_mut(holster);
-    let l = arc_mut(DumbLogic {});
-    (GameObj {logic : l, draws : g, physics : grapple}, input)
+    let holster_ref = arc_mut(holster);
+    (GameObj {logic : holster_ref.clone(), draws : g, physics : grapple}, 
+        holster_ref.clone())
 }
