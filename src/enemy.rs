@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Sender};
 use self::rand::{Rng, thread_rng};
 
-use logic::{Logical, DumbLogic};
-use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
-use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
+use logic::{Logical};
+use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN};
+use draw::{GrphxRect};
 use physics::{Physical, PhysDyn, CollisionHandler, Collision};
 use bb::*;
 use tools::arc_mut;
@@ -70,13 +70,13 @@ impl Logical for EnemyLogic {
                 else{
                     match movedir {
                         Some(xdir) => {
-                            if (rng.gen_range(0.0, 100.0*dt) < IDLE_STOP_CHANCE) {
+                            if rng.gen_range(0.0, 100.0*dt) < IDLE_STOP_CHANCE {
                                 self.state = EnemyIdle(None);
                             }
                             (xdir, false, false)
                         },
                         None => {
-                            if (rng.gen_range(0.0, 100.0*dt) < IDLE_MOVE_CHANCE) {
+                            if rng.gen_range(0.0, 100.0*dt) < IDLE_MOVE_CHANCE {
                                 let xdir =  if rng.gen_range(0.0, 1.0) > 0.5
                                         {1.0} else {-1.0};
                                 self.state = EnemyIdle(Some(xdir));

@@ -5,7 +5,7 @@ extern crate opengl_graphics;
 
 use piston::input::*;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{Sender};
 
 use game::fphys;
 use bb::*;
@@ -37,7 +37,6 @@ pub struct PhysStatic {
     pub y : fphys,
     pub w : fphys,
     pub h : fphys,
-    draw : Arc<Mutex<Drawable>>,
     bb_sender : Sender<SendType>,
 }
 
@@ -61,8 +60,7 @@ pub struct PhysDyn {
 
 impl PhysStatic {
     pub fn new(p : BBProperties, x : fphys, y : fphys, 
-           w : fphys, h : fphys,bb_sender : Sender<SendType>,
-           draw : Arc<Mutex<Drawable>>) -> Self{
+           w : fphys, h : fphys,bb_sender : Sender<SendType>) -> Self{
         let bb = BoundingBox{
             x : x,
             y : y,
@@ -77,7 +75,6 @@ impl PhysStatic {
             y : y,
             w : w,
             h : h,
-            draw : draw,
             bb_sender : bb_sender,
         }
     }
@@ -91,7 +88,7 @@ impl Drop for PhysStatic {
 }
 
 impl Physical for PhysStatic {
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]){
+    fn tick(&mut self, _ : &UpdateArgs, _ : &[BBDescriptor]){
         //  Do nothing
     }
     fn apply_force(&mut self, _ : fphys, _ : fphys){
@@ -140,7 +137,7 @@ impl BoundingBox {
  */
 macro_rules! call_once_on_col {
     //  Make more general with owner_types
-    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr, $bb : ident, $f : stmt, $owner : ident) => {
+    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr, $bb : ident, $f : stmt) => {
         for descr in $bbs {
             let (ref p, ref $bb) = *descr;
             if p.id == $p.id {
@@ -156,7 +153,6 @@ macro_rules! call_once_on_col {
             }
             if $test.check_col($bb){
                 $f;
-                $owner = Some(p.owner_type.clone());
                 break;
             }
         }
@@ -196,8 +192,7 @@ fn does_collide (p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor],
 fn does_collide_bool(p : &BBProperties, bb : &BoundingBox, bbs : &[BBDescriptor], to_collide : BBOwnerType,
                 pass_platforms : bool) -> bool {
     let mut col_flag = false;
-    let mut col_owner = None;
-    call_once_on_col!(p, bb, bbs, to_collide, pass_platforms, unused, col_flag = true, col_owner);
+    call_once_on_col!(p, bb, bbs, to_collide, pass_platforms, unused, col_flag = true);
     col_flag
 }
 
@@ -263,20 +258,14 @@ impl Physical for PhysDyn {
         self.bb = bb_test;
 
         //  Test if on the ground
-        self.on_ground = false;
-        let mut col_type = None;
-        call_once_on_col!(self.p, 
-            BoundingBox {x : self.bb.x,
+        self.on_ground = does_collide_bool(&self.p, 
+            &BoundingBox {x : self.bb.x,
                          y : self.bb.y + 1.0, 
                          w : self.bb.w, 
                          h : self.bb.h}, 
                          bbs,
                          to_collide,
-                         self.pass_platforms,
-                         bb, 
-                         self.on_ground = true,
-                         col_type
-        );
+                         self.pass_platforms);
 
         //  Reset forces
         self.xforce = 0.0;

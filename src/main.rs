@@ -22,8 +22,7 @@ mod player;
 mod shaders;
 mod tools;
 
-use game::{GameObj, game_loop};
-use bb::{BBHandler};
+use game::game_loop;
 
 fn main() {
 

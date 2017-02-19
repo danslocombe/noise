@@ -4,11 +4,10 @@ use std::sync::mpsc::Sender;
 
 use logic::Logical;
 use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
-use draw::{Drawable, GrphxRect, GrphxContainer, GrphxNoDraw};
+use draw::{Drawable, GrphxRect};
 use physics::{Collision, Physical, PhysDyn, CollisionHandler};
 use bb::*;
 use tools::{arc_mut, normalise};
-use grapple::{GrappleHolster, GrappleDraw};
 
 pub struct PlayerLogic {
     pub draw : Arc<Mutex<Drawable>>,

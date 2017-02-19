@@ -65,7 +65,7 @@ bitflags! {
 impl Logical for GrappleHolster {
     fn tick (&mut self, args : &UpdateArgs) {
         let dt = args.dt as fphys;
-        if (self.cd > 0.0) {
+        if self.cd > 0.0 {
             self.cd -= dt;
         }
         {
@@ -96,7 +96,7 @@ impl Logical for GrappleHolster {
                     else {
                         if self.input.contains(GI_RETRACT) {
                             let len_new = len - RETRACT_SPEED * dt;
-                            if (len_new < 0.0) {
+                            if len_new < 0.0 {
                                 g.end_grapple();
                             }
                             else {
@@ -169,7 +169,6 @@ enum GrappleState {
 
 pub struct Grapple {
     id       : u32,
-    player_id: u32,
     state    : GrappleState,
     start_x  : fphys,
     start_y  : fphys,
@@ -186,17 +185,14 @@ impl Grapple {
            player : Arc<Mutex<Physical>>,
            draw : Arc<Mutex<GrappleDraw>>) -> Self {
         let (init_x, init_y) : (fphys, fphys);
-        let player_id : u32;
         {
             let p = player.lock().unwrap();
             let (x, y) = p.get_position();
             init_x = x;
             init_y = y;
-            player_id = p.get_id();
         }
         Grapple {
             id : id,
-            player_id : player_id,
             state : GrappleState::GrappleNone,
             start_x : init_x,
             start_y : init_y,
@@ -222,7 +218,7 @@ impl Grapple {
     }
 
     fn set_vel(&mut self, vel_x : fphys, vel_y : fphys) {
-        if (self.state == GrappleState::GrappleOut) {
+        if self.state == GrappleState::GrappleOut {
             self.vel_x = vel_x;
             self.vel_y = vel_y;
         }
@@ -265,9 +261,9 @@ impl Physical for Grapple {
 
                     for bbprops in bbs {
                         let (ref props, ref bb) = *bbprops;
-                        if (props.owner_type.contains(BBO_PLAYER)     ||
+                        if props.owner_type.contains(BBO_PLAYER)     ||
                             props.owner_type.contains(BBO_PLAYER_DMG) ||
-                            props.owner_type.contains(BBO_ENEMY)) {
+                            props.owner_type.contains(BBO_ENEMY) {
                             continue;
                         }
                         line_collide(end_x0, end_y0, self.end_x, self.end_y, bb)
@@ -293,7 +289,7 @@ impl Physical for Grapple {
                     const GRAPPLE_ELAST : fphys = 0.25;
                     const GRAPPLE_DAMP  : fphys = 0.001;
 
-                    if (diff > 0.0) {
+                    if diff > 0.0 {
                         let angle = (self.end_y - y).atan2(self.end_x - x);
 
                         //  Tension
@@ -328,7 +324,7 @@ impl Physical for Grapple {
             d.start_y = self.start_y;
         }
     }
-    fn apply_force(&mut self, xforce : fphys, yforce : fphys) {
+    fn apply_force(&mut self, _ : fphys, _ : fphys) {
         //  Empty for now
     }
 	fn get_position(&self) -> (fphys, fphys) {
@@ -377,17 +373,17 @@ fn cs_code (x : fphys, y : fphys,
             x_min : fphys, x_max : fphys, y_min : fphys, y_max : fphys) 
                 -> CSFlags {
     let mut ret_code = CS_IN;
-    if (x < x_min) {
+    if x < x_min {
         ret_code |= CS_LEFT;
     } 
-    else if (x > x_max) {
+    else if x > x_max {
         ret_code |= CS_RIGHT;
     }
 
-    if (y < y_min) {
+    if y < y_min {
         ret_code |= CS_UP;
     } 
-    else if (y > y_max) {
+    else if y > y_max {
         ret_code |= CS_DOWN;
     }
     ret_code
@@ -504,7 +500,7 @@ impl Drawable for GrappleDraw {
         self.end_y = y;
     }
 
-    fn set_color(&mut self, color : [f32; 4]) {
+    fn set_color(&mut self, _ : [f32; 4]) {
     }
 }
 

@@ -26,11 +26,11 @@ pub struct GrphxNoDraw {
 }
 
 impl Drawable for GrphxNoDraw {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+    fn draw(&self, _ : &RenderArgs, _ : &mut GlGraphics, _ : &ViewTransform) {
     }
-    fn set_position(&mut self, x : fphys, y : fphys) {
+    fn set_position(&mut self, _ : fphys, _ : fphys) {
     }
-    fn set_color(&mut self, color : [f32; 4]) {
+    fn set_color(&mut self, _ : [f32; 4]) {
     }
 }
 
@@ -49,7 +49,7 @@ impl Drawable for GrphxContainer {
         self.x_offset = x;
         self.y_offset = y;
     }
-    fn set_color(&mut self, color : [f32; 4]) {
+    fn set_color(&mut self, _ : [f32; 4]) {
     }
 }
 
@@ -187,7 +187,7 @@ pub fn draw_background(args : &RenderArgs, ctx : &mut GlGraphics){
     use graphics::*;
     const CLEAR: [f32; 4] = [0.9, 1.0, 0.95, 1.0];
     const BG: [f32; 4] = [0.95, 1.0, 0.985, 1.0];
-    ctx.draw(args.viewport(), |c, gl| {clear(CLEAR, gl);});
+    ctx.draw(args.viewport(), |_, gl| {clear(CLEAR, gl);});
     ctx.draw(args.viewport(), |c, gl| {
         match c.viewport {
                 Some (v) => {

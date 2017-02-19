@@ -58,7 +58,7 @@ impl Gen {
     pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
         let mut r = Vec::new();
         while self.generated_to < x {
-            if (self.next_structure <= 0.0) {
+            if self.next_structure <= 0.0 {
                 let length = STRUCTURE_LENGTH_MIN + rand_gauss() *
                              (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
 
@@ -93,7 +93,7 @@ fn create_structure(x : fphys, y : fphys, length : fphys, height : u32)
     let end = x + length;
     let mut created_next_floor = false;
     let mut ret = Vec::new();
-    if (height > MAX_HEIGHT) {
+    if height > MAX_HEIGHT {
         return ret;
     }
 

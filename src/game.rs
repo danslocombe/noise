@@ -46,7 +46,7 @@ pub fn create_block(id : u32, x : fphys, y : fphys,
     let g = arc_mut(GrphxRect 
         {x : x, y : y, w : BLOCKSIZE, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, owner_type : BBO_BLOCK};
-    let p = arc_mut(PhysStatic::new(props,x,y,BLOCKSIZE,BLOCKSIZE,bb_sender, g.clone()));
+    let p = arc_mut(PhysStatic::new(props,x,y,BLOCKSIZE,BLOCKSIZE,bb_sender));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -56,7 +56,7 @@ pub fn create_platform(id : u32, x : fphys, y : fphys,
     let g = arc_mut(GrphxRect 
         {x : x, y : y, w : width, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, owner_type : BBO_PLATFORM};
-    let p = arc_mut(PhysStatic::new(props,x,y,width,10.0,bb_sender, g.clone()));
+    let p = arc_mut(PhysStatic::new(props,x,y,width,10.0,bb_sender));
     let l = arc_mut(DumbLogic {});
     GameObj {draws : g, physics : p, logic : l}
 }
@@ -124,7 +124,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                             //  Generate enemies on platform
                             for i in 1..(len / BLOCKSIZE).floor() as usize {
                                 let ix = i as fphys * BLOCKSIZE + x;
-                                if (rng.gen_range(0.0, 1.0) < ENEMY_GEN_P) {
+                                if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                     let e_id = bb_handler.generate_id();
                                     let e = enemy_create
                                         (e_id, ix, y - BLOCKSIZE, player_phys.clone(), 
@@ -138,7 +138,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                             let b = create_block
                                 (bb_handler.generate_id(), x, y, bb_sender.clone());
                             objs.push(b);
-                            if (rng.gen_range(0.0, 1.0) < ENEMY_GEN_P) {
+                            if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                 let e_id = bb_handler.generate_id();
                                 let e = enemy_create
                                     (e_id, x, y - BLOCKSIZE, player_phys.clone(), 
