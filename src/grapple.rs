@@ -47,9 +47,11 @@ impl GrappleHolster {
     }
 }
 
-const GRAPPLE_SPEED : fphys = 2000.0;
-const RETRACT_SPEED : fphys =  400.0;
-const GRAPPLE_CD    : fphys = 0.65;
+const GRAPPLE_SPEED   : fphys = 2000.0;
+const RETRACT_SPEED   : fphys =  400.0;
+const RETRACT_FORCE   : fphys =  15.0;
+const RETRACT_EPSILON : fphys = 15.0;
+const GRAPPLE_CD      : fphys = 0.65;
 
 bitflags! {
     flags GrappleInput : u16 {
@@ -95,13 +97,17 @@ impl Logical for GrappleHolster {
                     }
                     else {
                         if self.input.contains(GI_RETRACT) {
+                            g.retracting = true;
                             let len_new = len - RETRACT_SPEED * dt;
                             if len_new < 0.0 {
-                                g.end_grapple();
+                                g.state = GrappleLocked(0.0);
                             }
                             else {
                                 g.state = GrappleLocked(len_new);
                             }
+                        }
+                        else {
+                            g.retracting = false;
                         }
                     }
                 },
@@ -168,16 +174,17 @@ enum GrappleState {
 }
 
 pub struct Grapple {
-    id       : u32,
-    state    : GrappleState,
-    start_x  : fphys,
-    start_y  : fphys,
-    end_x    : fphys,
-    end_y    : fphys,
-    vel_x    : fphys,
-    vel_y    : fphys,
-    player   : Arc<Mutex<Physical>>,
-    draw     : Arc<Mutex<GrappleDraw>>,
+    id         : u32,
+    state      : GrappleState,
+    start_x    : fphys,
+    start_y    : fphys,
+    end_x      : fphys,
+    end_y      : fphys,
+    vel_x      : fphys,
+    vel_y      : fphys,
+    retracting : bool,
+    player     : Arc<Mutex<Physical>>,
+    draw       : Arc<Mutex<GrappleDraw>>,
 }
 
 impl Grapple {
@@ -202,6 +209,7 @@ impl Grapple {
             vel_y : vel_y,
             player : player,
             draw : draw,
+            retracting : false,
         }
     }
 
@@ -306,7 +314,20 @@ impl Physical for Grapple {
                         p.apply_force(-dot * GRAPPLE_DAMP * angle.cos(),
                                       -dot * GRAPPLE_DAMP * angle.sin());
 
+                        if self.retracting {
+                            p.apply_force(RETRACT_FORCE * angle.cos(),
+                                          RETRACT_FORCE * angle.sin());
+                        }
                     }
+
+                    if self.retracting && diff < RETRACT_EPSILON {
+                        self.state = GrappleState::GrappleNone;
+                        {
+                            let mut d = self.draw.lock().unwrap();
+                            d.drawing = false;
+                        }
+                    }
+
                 }
             },
         };

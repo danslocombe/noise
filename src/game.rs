@@ -44,7 +44,7 @@ pub struct GameObj {
 pub fn create_block(id : u32, x : fphys, y : fphys, 
                     bb_sender : Sender<SendType>) -> GameObj {
     let g = arc_mut(GrphxRect 
-        {x : x, y : y, w : BLOCKSIZE, h : 700.0, color: [0.15, 0.15, 0.15, 1.0]});
+        {x : x, y : y, w : BLOCKSIZE, h : 1500.0, color: [0.15, 0.15, 0.15, 1.0]});
     let props = BBProperties {id : id, owner_type : BBO_BLOCK};
     let p = arc_mut(PhysStatic::new(props,x,y,BLOCKSIZE,BLOCKSIZE,bb_sender));
     let l = arc_mut(DumbLogic {});
