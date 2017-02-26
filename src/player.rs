@@ -3,19 +3,21 @@ use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
 
 use logic::Logical;
-use game::{fphys, GameObj, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
+use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, 
+           GRAVITY_UP, GRAVITY_DOWN};
 use draw::{Drawable, GrphxRect};
 use physics::{Collision, Physical, PhysDyn, CollisionHandler};
 use bb::*;
 use tools::{arc_mut, normalise};
 
 pub struct PlayerLogic {
-    pub draw : Arc<Mutex<Drawable>>,
-    pub physics : Arc<Mutex<PhysDyn>>,
-    input : PlayerInput,
-    dash_cd : fphys,
-    jump_cd : fphys,
+    pub draw         : Arc<Mutex<Drawable>>,
+    pub physics      : Arc<Mutex<PhysDyn>>,
+    input            : PlayerInput,
+    dash_cd          : fphys,
+    jump_cd          : fphys,
     collision_buffer : Vec<Collision>,
+    hp               : fphys,
 }
 
 bitflags! {
@@ -40,9 +42,13 @@ impl PlayerLogic {
             jump_cd : 0.0,
             input : PI_NONE,
             collision_buffer : Vec::new(),
+            hp : START_HP,
         }
     }
 }
+
+const START_HP      : fphys = 100.0;
+const ENEMY_DMG     : fphys = 15.0;
 
 const FRICTION      : fphys = 0.7;
 const FRICTION_AIR  : fphys = FRICTION * 0.5;
@@ -62,7 +68,7 @@ const COLOR_NORMAL  : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH    : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
 impl Logical for PlayerLogic {
-    fn tick(&mut self, args : &UpdateArgs){
+    fn tick(&mut self, args : &UpdateArgs, metabuffer : &MetaCommandBuffer){
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
@@ -75,6 +81,7 @@ impl Logical for PlayerLogic {
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
                 phys.apply_force(-nx * ENEMY_FORCE, -ny * ENEMY_FORCE);
+                self.hp -= ENEMY_DMG;
             }
         }
         //  Reset collisions
@@ -141,14 +148,6 @@ impl Logical for PlayerLogic {
 
 
         phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN);
-    }
-
-    fn suicidal(&self) -> bool {
-        false
-    }
-
-    fn dead_objs(&self) -> Vec<GameObj> {
-        Vec::new()
     }
 }
 

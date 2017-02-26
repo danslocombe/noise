@@ -1,7 +1,7 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 
-use game::{GameObj, fphys, InputHandler};
+use game::{GameObj, fphys, InputHandler, MetaCommandBuffer, MetaCommand};
 use draw::{Drawable, ViewTransform};
 use logic::{Logical};
 use opengl_graphics::GlGraphics;
@@ -65,7 +65,7 @@ bitflags! {
 }
 
 impl Logical for GrappleHolster {
-    fn tick (&mut self, args : &UpdateArgs) {
+    fn tick (&mut self, args : &UpdateArgs, metabuffer : &MetaCommandBuffer) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
@@ -113,13 +113,6 @@ impl Logical for GrappleHolster {
                 },
             }
         }
-    }
-
-    fn suicidal(&self) -> bool {
-        false
-    }
-    fn dead_objs(&self) -> Vec<GameObj> {
-        Vec::new()
     }
 }
 

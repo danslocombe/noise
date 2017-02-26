@@ -10,8 +10,8 @@ use piston::input::*;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::GlGraphics;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender};
 use self::rand::{Rng, thread_rng};
+use std::sync::mpsc::{channel, Sender, Receiver};
 
 use self::rayon::prelude::*;
 
@@ -61,6 +61,34 @@ pub fn create_platform(id : u32, x : fphys, y : fphys,
     GameObj {draws : g, physics : p, logic : l}
 }
 
+pub enum MetaCommand {
+    RestartGame,
+    RemoveObject(u32),
+    CreateObject(GameObj),
+}
+
+pub struct MetaCommandBuffer {
+    receiver : Receiver<MetaCommand>,
+    sender : Sender<MetaCommand>,
+}
+
+impl MetaCommandBuffer {
+    fn new () -> MetaCommandBuffer {
+        let (tx, rx) : (Sender<MetaCommand>, Receiver<MetaCommand>) = channel();
+        MetaCommandBuffer {
+            receiver : rx,
+            sender : tx,
+        }
+
+    }
+    pub fn issue(&self, command : MetaCommand) {
+        self.sender.send(command);
+    }
+    pub fn read_buffer(&self) -> Vec<MetaCommand> {
+        self.receiver.try_iter().collect::<Vec<MetaCommand>>()
+    }
+}
+
 pub trait InputHandler {
     fn press (&mut self, button: Button);
     fn release (&mut self, button: Button);
@@ -106,6 +134,8 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let vt = ViewTransform{x : 0.0, y : 0.0, scale : 1.0};
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
     let mut noisy_shader = NoisyShader::new(player_id);
+
+    let metabuffer = MetaCommandBuffer::new();
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
@@ -153,57 +183,65 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 //  Update bounding box list
                 bb_handler.update();
 
+
+                let mut ids_remove : Vec<u32> = Vec::new();
+                let mut objects_add : Vec<GameObj> = Vec::new();
+
+                //  Meta commands
+                let meta_commands = metabuffer.read_buffer();
+                for c in meta_commands {
+                    match c {
+                        MetaCommand::RestartGame => {
+                            //  TODO
+                        },
+                        MetaCommand::RemoveObject(id) => {
+                            ids_remove.push(id);
+                        },
+                        MetaCommand::CreateObject(obj) => {
+                            objects_add.push(obj);
+                        },
+                    }
+                }
+
                 //  Get objects offscreen to remove
-                let clip_positions = bb_handler.to_vec().iter()
+                let clip_objects = bb_handler.to_vec().iter()
                       .filter(|bb_descr| {
                           let (_, ref bb) = **bb_descr;
                           bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER})
                       .map(|bb_descr|{
                           let (ref props, _) = *bb_descr;
-                          props.id})
-                      .map(|id| {
+                          props.id}).collect::<Vec<u32>>();
+
+                ids_remove.extend(clip_objects);
+
+                //  Get positions in gameobject vec from ids
+                let remove_positions = ids_remove.iter().map(|id| {
                           objs.iter().position(|obj| {
                             let obj_id : u32;
                             {
                                 let p = obj.physics.lock().unwrap();
                                 obj_id = p.get_id();
                             }
-                            obj_id == id
+                            obj_id == *id
                           })
                       })
                       .collect::<Vec<Option<usize>>>();
 
-                for clip in clip_positions {
-                    clip.map(|pos| objs.remove(pos));
+                //  Remove objects
+                for remove in remove_positions {
+                    remove.map(|pos| objs.remove(pos));
                 }
+
+                //  Add new objects
+                objs.extend(objects_add);
 
                 let bb_vec = bb_handler.to_vec();
-
-                //  Remove objects based on remove method on logicals
-                let to_remove = objs.iter().enumerate().filter(|x| {
-                    let (_, ref o) = *x;
-                    o.logic.lock().unwrap().suicidal()
-                }).map(|x| {
-                    let (i, _) = x; i
-                }).collect::<Vec<usize>>();
-
-                //  Objects created on the death of to_remove
-                let mut pheonix_objs = Vec::new();
-                for r in to_remove {
-                    {
-                        let l = objs[r].logic.lock().unwrap();
-                        pheonix_objs.extend(l.dead_objs());
-                    }
-                    objs.remove(r);
-                }
-
-                objs.extend(pheonix_objs);
 
                 for o in &objs {
                     {
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
-                        l.tick(&u_args);
+                        l.tick(&u_args, &metabuffer);
                     }
                     {
                         //  Physics ticks

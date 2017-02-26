@@ -6,7 +6,7 @@ use std::sync::mpsc::{Sender};
 use self::rand::{Rng, thread_rng};
 
 use logic::{Logical};
-use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN};
+use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, MetaCommandBuffer, MetaCommand};
 use draw::{GrphxRect};
 use physics::{Physical, PhysDyn, CollisionHandler, Collision};
 use bb::*;
@@ -41,7 +41,12 @@ const MAX_RUNSPEED : fphys = 85.0;
 //  TODO code reuse from player
 
 impl Logical for EnemyLogic {
-    fn tick(&mut self, args : &UpdateArgs){
+    fn tick(&mut self, args : &UpdateArgs, metabuffer : &MetaCommandBuffer){
+        if self.dead {
+            let phys = self.physics.lock().unwrap();
+            metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
+            return;
+        }
         let dt = args.dt as fphys;
 
         let tx;
@@ -120,13 +125,6 @@ impl Logical for EnemyLogic {
         }
 
         phys.pass_platforms = fall;
-    }
-
-    fn suicidal(&self) -> bool {
-        self.dead
-    }
-    fn dead_objs(&self) -> Vec<GameObj> {
-        Vec::new()
     }
 }
 

@@ -1,5 +1,4 @@
-use std::sync::mpsc::channel;
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{channel, Sender, Receiver};
 use std::collections::HashMap;
 
 use super::physics::BoundingBox as BoundingBox;
