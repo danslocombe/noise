@@ -351,6 +351,13 @@ impl Physical for Grapple {
     fn get_id(&self) -> u32 {
         self.id
     }
+    fn set_position(&mut self, x : fphys, y : fphys) {
+        //  TODO
+    }
+    fn set_velocity(&mut self, x : fphys, y : fphys) {
+        self.vel_x = x;
+        self.vel_y = y;
+    }
 	fn get_width_height(&self) -> (fphys, fphys) {
         ((self.start_x - self.end_x).abs(), 
          (self.start_y - self.end_y).abs())

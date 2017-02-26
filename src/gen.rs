@@ -55,6 +55,12 @@ impl Gen {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.generated_to = 0.0;
+        self.last_block_y = self.gen_floor;
+
+    }
+
     pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
         let mut r = Vec::new();
         while self.generated_to < x {

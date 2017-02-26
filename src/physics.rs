@@ -19,6 +19,8 @@ pub trait Physical {
 	fn get_width_height(&self) -> (fphys, fphys);
 	fn get_vel(&self) -> (fphys, fphys);
     fn get_id(&self) -> u32;
+    fn set_velocity(&mut self, x : fphys, y : fphys);
+    fn set_position(&mut self, x : fphys, y : fphys);
     fn destroy(&mut self, world : &World);
 }
 
@@ -65,7 +67,7 @@ pub struct PhysDyn {
 	maxspeed : fphys,
     pub pass_platforms : bool,
     pub on_ground : bool,
-    bb : BoundingBox,
+    pub bb : BoundingBox,
     draw : Arc<Mutex<Drawable>>,
     pub collision_handler : Option<Arc<Mutex<CollisionHandler>>>,
 }
@@ -118,6 +120,11 @@ impl Physical for PhysStatic {
 	fn get_vel(&self) -> (fphys, fphys){
 		(0.0, 0.0)
 	}
+    fn set_position(&mut self, x : fphys, y : fphys) {
+        //  TODO
+    }
+    fn set_velocity(&mut self, x : fphys, y : fphys) {
+    }
     fn get_id(&self) -> u32 {
         self.p.id
     }
@@ -229,6 +236,15 @@ impl Physical for PhysDyn {
     }
 	fn get_width_height(&self) -> (fphys, fphys) {
         (self.bb.w, self.bb.h)
+    }
+
+    fn set_position(&mut self, x : fphys, y : fphys) {
+        self.bb.x = x;
+        self.bb.y = y;
+    }
+    fn set_velocity(&mut self, x : fphys, y : fphys) {
+        self.xvel = x;
+        self.yvel = y;
     }
 
     fn destroy(&mut self, world : &World) {

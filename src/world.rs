@@ -20,15 +20,24 @@ pub type SendType = (BBProperties, Option<BoundingBox>);
 
 impl World {
     pub fn new() -> Self {
-        let (s, r) : (Sender<SendType>, Receiver<SendType>) = channel();
+        let (tx, rx) : (Sender<SendType>, Receiver<SendType>) = channel();
         let world = HashMap::new();
         World {
             world : world,
-            receiver : r,
-            sender : s,
+            receiver : rx,
+            sender : tx,
             new_id : 0,
             buffer : Vec::new(),
         }
+    }
+
+    pub fn reset(&mut self, id : u32) {
+        let (tx, rx) : (Sender<SendType>, Receiver<SendType>) = channel();
+        self.receiver = rx;
+        self.sender = tx;
+        self.world = HashMap::new();
+        self.buffer = Vec::new();
+        self.new_id = id;
     }
     pub fn update(&mut self) {
         //  Leave loop on first instance of None

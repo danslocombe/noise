@@ -22,6 +22,7 @@ use physics::{Physical, PhysStatic};
 use world::World;
 use gen::Gen;
 use tools::{arc_mut};
+use player::PlayerLogic;
 use player::create as player_create;
 use grapple::create as grapple_create;
 use enemy::create as enemy_create;
@@ -36,6 +37,7 @@ const ENEMY_GEN_P : fphys = 0.015;
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
+#[derive(Clone)]
 pub struct GameObj {
     pub draws    : Arc<Mutex<Drawable>>,
     pub physics  : Arc<Mutex<Physical>>,
@@ -60,12 +62,13 @@ impl MetaCommandBuffer {
             receiver : rx,
             sender : tx,
         }
-
     }
+
     pub fn issue(&self, command : MetaCommand) {
         self.sender.send(command);
     }
-    pub fn read_buffer(&self) -> Vec<MetaCommand> {
+
+    fn read_buffer(&self) -> Vec<MetaCommand> {
         self.receiver.try_iter().collect::<Vec<MetaCommand>>()
     }
 }
@@ -76,6 +79,7 @@ pub trait InputHandler {
 }
 
 const DESTROY_BUFFER : fphys = 1000.0;
+
 
 pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
@@ -102,8 +106,8 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let (grapple_obj, grapple_input_handler) 
         = grapple_create(grapple_id, player_obj.physics.clone());
 
-    objs.push(grapple_obj);
-    objs.push(player_obj);
+    objs.push(grapple_obj.clone());
+    objs.push(player_obj.clone());
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
@@ -117,7 +121,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let metabuffer = MetaCommandBuffer::new();
 
     let mut events = Events::new(EventSettings::new());
-    while let Some(e) = events.next(&mut window) {
+    'events : while let Some(e) = events.next(&mut window) {
         //  Get update from window and match against appropriate type
         match e {
             Input::Update(u_args) => {
@@ -169,8 +173,12 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 for c in meta_commands {
                     match c {
                         MetaCommand::RestartGame => {
-                            //  TODO
-                            return;
+                            let mut ids_remove : Vec<u32> = Vec::new();
+                            let mut objects_add : Vec<GameObj> = Vec::new();
+                            objs = restart_game(&mut gen, &mut world, &player_obj, 
+                                         player_logic.clone(), &grapple_obj, 
+                                         &mut view_follower);
+                            continue 'events;
                         },
                         MetaCommand::RemoveObject(id) => {
                             ids_remove.push(id);
@@ -184,8 +192,9 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 //  Get objects offscreen to remove
                 let clip_objects = world.buffer().iter()
                       .filter(|bb_descr| {
-                          let (_, ref bb) = **bb_descr;
-                          bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER})
+                          let (ref p, ref bb) = **bb_descr;
+                          bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER &&
+                            p.id != player_id && p.id != grapple_id})
                       .map(|bb_descr|{
                           let (ref props, _) = *bb_descr;
                           props.id}).collect::<Vec<u32>>();
@@ -266,3 +275,33 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
         }
     }
 }
+
+pub fn restart_game(gen : &mut Gen, world : &mut World, player : &GameObj, 
+                    player_logic : Arc<Mutex<PlayerLogic>>,
+                    grapple : &GameObj, view_follower : &mut ViewFollower) 
+                        -> Vec<GameObj> {
+    println!("RESTARTING GAME");
+    gen.reset();
+    world.reset(2);
+
+    let mut p_logic     = player_logic.lock().unwrap();
+    let mut p_physics = player.physics.lock().unwrap();
+    p_physics.set_position(300.0, -1000.0);
+    p_physics.set_velocity(0.0, 0.0);
+    p_logic.hp = p_logic.hp_max;
+
+    view_follower.vt.y = -200.0;
+    view_follower.vt.x = 150.0;
+    view_follower.vt.scale = 1.0;
+    view_follower.x_max = 0.0;
+    view_follower.follow_prev_x = view_follower.vt.x;
+    view_follower.follow_prev_y = view_follower.vt.y;
+
+    let mut objs = Vec::new();
+    objs.push(grapple.clone());
+    objs.push(player.clone());
+
+    objs
+
+}
+

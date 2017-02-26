@@ -82,7 +82,7 @@ impl Logical for PlayerLogic {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
-        let (_, y) = phys.get_position();
+        let (x, y) = phys.get_position();
         if self.hp < 0.0 || y > MAX_HEIGHT {
             metabuffer.issue(MetaCommand::RestartGame);
             return;
