@@ -18,6 +18,7 @@ pub struct PlayerLogic {
     input            : PlayerInput,
     dash_cd          : fphys,
     jump_cd          : fphys,
+    damage_cd        : fphys,
     collision_buffer : Vec<Collision>,
     pub hp           : fphys,
     pub hp_max       : fphys,
@@ -39,20 +40,21 @@ impl PlayerLogic {
                physics : Arc<Mutex<PhysDyn>>) -> PlayerLogic{
 
         PlayerLogic{
-            draw : draw,
-            physics : physics,
-            dash_cd : 0.0,
-            jump_cd : 0.0,
-            input : PI_NONE,
+            draw             : draw,
+            physics          : physics,
+            dash_cd          : 0.0,
+            jump_cd          : 0.0,
+            damage_cd        : 0.0,
+            input            : PI_NONE,
             collision_buffer : Vec::new(),
-            hp : START_HP,
-            hp_max : START_HP,
+            hp               : START_HP,
+            hp_max           : START_HP,
         }
     }
 }
 
 const START_HP      : fphys = 100.0;
-const ENEMY_DMG     : fphys = 15.0;
+const ENEMY_DMG     : fphys = 25.0;
 
 const SIZE          : fphys = 24.0;
 
@@ -68,6 +70,8 @@ const DASH_INVULN   : fphys = 0.3;
 const DASH_FORCE    : fphys = 300.0;
 const JUMP_CD       : fphys = 0.5;
 pub const MAXSPEED  : fphys = 200.0;
+
+const DAMAGE_CD     : fphys = 0.2;
 
 const ENEMY_FORCE   : fphys = 1000.0;
 
@@ -91,7 +95,8 @@ impl Logical for PlayerLogic {
 
         //  Handle collisions from last tick
         for c in &self.collision_buffer {
-            if c.other_type.contains(BBO_ENEMY) {
+            if c.other_type.contains(BBO_ENEMY) && self.damage_cd <= 0.0 {
+                self.damage_cd = DAMAGE_CD;
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
@@ -102,6 +107,9 @@ impl Logical for PlayerLogic {
         //  Reset collisions
         self.collision_buffer = Vec::new();
 
+        if self.damage_cd > 0.0 {
+            self.damage_cd -= dt;
+        }
 
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
