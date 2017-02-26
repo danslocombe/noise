@@ -2,11 +2,12 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use game::{GameObj, fphys, InputHandler, MetaCommandBuffer, MetaCommand};
+use collision::{BoundingBox, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG};
 use draw::{Drawable, ViewTransform};
 use logic::{Logical};
 use opengl_graphics::GlGraphics;
-use bb::*;
-use physics::{Physical, BoundingBox};
+use world::World;
+use physics::{Physical};
 use tools::{arc_mut, normalise};
 
 pub struct GrappleHolster {
@@ -237,7 +238,7 @@ impl Grapple {
 const MAX_LENGTH_SQR : fphys = 200000.0;
 
 impl Physical for Grapple {
-    fn tick(&mut self, args : &UpdateArgs, bbs : &[BBDescriptor]){
+    fn tick(&mut self, args : &UpdateArgs, world : &World){
         match self.state {
             GrappleState::GrappleNone => {
             },
@@ -260,7 +261,7 @@ impl Physical for Grapple {
                 }
                 else {
 
-                    for bbprops in bbs {
+                    for bbprops in world.buffer() {
                         let (ref props, ref bb) = *bbprops;
                         if props.owner_type.contains(BBO_PLAYER)     ||
                             props.owner_type.contains(BBO_PLAYER_DMG) ||
@@ -353,6 +354,8 @@ impl Physical for Grapple {
 	fn get_width_height(&self) -> (fphys, fphys) {
         ((self.start_x - self.end_x).abs(), 
          (self.start_y - self.end_y).abs())
+    }
+    fn destroy(&mut self, world : &World) {
     }
 }
 

@@ -7,9 +7,10 @@ use self::rand::{Rng, thread_rng};
 
 use logic::{Logical};
 use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, MetaCommandBuffer, MetaCommand};
+use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, Collision, CollisionHandler};
 use draw::{GrphxRect};
-use physics::{Physical, PhysDyn, CollisionHandler, Collision};
-use bb::*;
+use physics::{Physical, PhysDyn};
+use world::World;
 use tools::arc_mut;
 
 use self::EnemyState::*;
@@ -137,21 +138,20 @@ impl CollisionHandler for EnemyLogic {
     }
 }
 
-pub fn create(id : u32, x : fphys, y : fphys, player : Arc<Mutex<Physical>>, 
-              bb_sender : Sender<SendType>) -> GameObj {
+pub fn create(id : u32, x : fphys, y : fphys, player : Arc<Mutex<Physical>>) -> GameObj {
 
     let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_ENEMY);
     let p = arc_mut(
-        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));
+        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
     let l = arc_mut(EnemyLogic {target : player, physics : p.clone(), 
                                 state : EnemyIdle(None), dead : false});
 
     {
         let mut phys = p.lock().unwrap();
-        phys.collision_handler = Some(l.clone());
+        phys.collision_handler = Some(l.clone() as Arc<Mutex<CollisionHandler>>);
     }
     GameObj {draws : g, physics : p, logic : l.clone()}
 }

@@ -10,8 +10,8 @@ use piston::window::WindowSettings;
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
 
-mod bb;
 mod block;
+mod collision;
 mod draw;
 mod enemy;
 mod game;
@@ -22,6 +22,7 @@ mod physics;
 mod player;
 mod shaders;
 mod tools;
+mod world;
 
 use game::game_loop;
 

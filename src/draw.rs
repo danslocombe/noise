@@ -2,7 +2,7 @@ extern crate graphics;
 
 use std::sync::{Arc, Mutex};
 
-use bb::BBHandler;
+use world::World;
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
@@ -93,8 +93,8 @@ impl ViewFollower {
             min_buffer    : 800.0,
         }
     }
-    pub fn update(&mut self, bb_handler : &BBHandler){
-        bb_handler.get(self.follow_id).map(|(_, bb)| {
+    pub fn update(&mut self, world : &World){
+        world.get(self.follow_id).map(|(_, bb)| {
             let obj_view_diff = bb.x - self.vt.x;
             let bb_xvel = bb.x - self.follow_prev_x;
             if bb.x > self.x_max {
@@ -139,14 +139,14 @@ impl NoisyShader {
             weight : 20.0,
         }
     }
-    pub fn update(&mut self, ctx : &GlGraphics, bb_handler : &BBHandler) {
+    pub fn update(&mut self, ctx : &GlGraphics, world : &World) {
 
         self.time = self.time + 0.001;
 
         let uniform_time = ctx.get_uniform::<SUFloat>("time").unwrap();
         uniform_time.set(ctx, self.time);
         
-        bb_handler.get(self.obj_id).map(|(_, bb)| {
+        world.get(self.obj_id).map(|(_, bb)| {
             let bb_xvel = bb.x - self.obj_prev_x;
             let bb_yvel = bb.y - self.obj_prev_y;
             self.vel_x = weight(self.vel_x, bb_xvel, self.weight);

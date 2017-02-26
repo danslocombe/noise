@@ -19,7 +19,7 @@ use logic::{Logical, DumbLogic};
 use draw::{Drawable, GrphxRect, draw_background, 
           ViewTransform, ViewFollower, NoisyShader};
 use physics::{Physical, PhysStatic};
-use bb::*;
+use world::World;
 use gen::Gen;
 use tools::{arc_mut};
 use player::create as player_create;
@@ -85,7 +85,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let mut gen = Gen::new(BLOCKSIZE, 500.0);
 
     //  Create new world
-    let mut bb_handler = BBHandler::new();
+    let mut world = World::new();
 
     //  Initialise set of objects
     let mut objs : Vec<GameObj> = Vec::new();
@@ -93,15 +93,12 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
 
-    //  Get a sender from world to send location updates to
-    let bb_sender = bb_handler.get_sender();
-
-    let player_id = bb_handler.generate_id();
+    let player_id = world.generate_id();
     let (player_obj, player_input_handler) = 
-        player_create(player_id, 300.0, -250.0, bb_sender.clone());
+        player_create(player_id, 300.0, -250.0);
     let player_phys = player_obj.physics.clone();
 
-    let grapple_id = bb_handler.generate_id();
+    let grapple_id = world.generate_id();
     let (grapple_obj, grapple_input_handler) 
         = grapple_create(grapple_id, player_obj.physics.clone());
 
@@ -130,16 +127,16 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                         //  Create platform
                         Some(len) => {
                             let p = create_platform
-                                (bb_handler.generate_id(), x, y, len,  bb_sender.clone());
+                                (world.generate_id(), x, y, len,  &world);
                             objs.push(p);
                             //  Generate enemies on platform
                             for i in 1..(len / BLOCKSIZE).floor() as usize {
                                 let ix = i as fphys * BLOCKSIZE + x;
                                 if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
-                                    let e_id = bb_handler.generate_id();
+                                    let e_id = world.generate_id();
                                     let e = enemy_create
-                                        (e_id, ix, y - BLOCKSIZE, player_phys.clone(), 
-                                         bb_sender.clone());
+                                        (e_id, ix, y - BLOCKSIZE, 
+                                         player_phys.clone());
                                     objs.push(e);
                                 }
                             }
@@ -147,13 +144,12 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                         //  Generate block and enemies on block
                         None => {
                             let b = create_block
-                                (bb_handler.generate_id(), x, y, bb_sender.clone());
+                                (world.generate_id(), x, y, &world);
                             objs.push(b);
                             if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
-                                let e_id = bb_handler.generate_id();
+                                let e_id = world.generate_id();
                                 let e = enemy_create
-                                    (e_id, x, y - BLOCKSIZE, player_phys.clone(), 
-                                     bb_sender.clone());
+                                    (e_id, x, y - BLOCKSIZE, player_phys.clone());
                                 objs.push(e);
                             }
                         }
@@ -162,7 +158,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 }
 
                 //  Update bounding box list
-                bb_handler.update();
+                world.update();
 
 
                 let mut ids_remove : Vec<u32> = Vec::new();
@@ -185,7 +181,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 }
 
                 //  Get objects offscreen to remove
-                let clip_objects = bb_handler.to_vec().iter()
+                let clip_objects = world.buffer().iter()
                       .filter(|bb_descr| {
                           let (_, ref bb) = **bb_descr;
                           bb.x+bb.w < view_follower.vt.x - DESTROY_BUFFER})
@@ -210,13 +206,18 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
                 //  Remove objects
                 for remove in remove_positions {
-                    remove.map(|pos| objs.remove(pos));
+                    //  Destroy event
+                    remove.map(|pos| {
+                        {
+                            let mut p = objs[pos].physics.lock().unwrap();
+                            p.destroy(&world);
+                        }
+                        objs.remove(pos);
+                    });
                 }
 
                 //  Add new objects
                 objs.extend(objects_add);
-
-                let bb_vec = bb_handler.to_vec();
 
                 for o in &objs {
                     {
@@ -227,16 +228,16 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                     {
                         //  Physics ticks
                         let mut p = o.physics.lock().unwrap();
-                        p.tick(&u_args, &bb_vec);
+                        p.tick(&u_args, &world);
                     }
                 }
 
                 //  Update shader
-                noisy_shader.update(&ctx, &bb_handler);
+                noisy_shader.update(&ctx, &world);
 
             },
             Input::Render(r_args) => {
-                view_follower.update(&bb_handler);
+                view_follower.update(&world);
 
                 draw_background(&r_args, &mut ctx);
 

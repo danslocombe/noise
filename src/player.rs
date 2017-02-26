@@ -5,9 +5,10 @@ use std::sync::mpsc::Sender;
 use logic::Logical;
 use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, 
            GRAVITY_UP, GRAVITY_DOWN};
+use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
-use physics::{Collision, Physical, PhysDyn, CollisionHandler};
-use bb::*;
+use physics::{Physical, PhysDyn};
+use world::World;
 use tools::{arc_mut, normalise};
 
 pub struct PlayerLogic {
@@ -215,13 +216,12 @@ pub const MAXSPEED : fphys    = 200.0;
 const SIZE         : fphys    = 24.0;
 const COLOR        : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-pub fn create(id : u32, x : fphys, y : fphys, bb_sender : Sender<SendType>) 
-    -> (GameObj, Arc<Mutex<InputHandler>>) {
+pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<InputHandler>>) {
     let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_PLAYER);
     let p = arc_mut(
-        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, bb_sender, g.clone()));
+        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 
