@@ -25,11 +25,12 @@ use tools::{arc_mut};
 use player::create as player_create;
 use grapple::create as grapple_create;
 use enemy::create as enemy_create;
+use block::{create_block, create_platform};
 
 pub const GRAVITY_UP  : fphys = 9.8;
 pub const GRAVITY_DOWN  : fphys = GRAVITY_UP * 1.35;
 
-const BLOCKSIZE : fphys = 32.0;
+pub const BLOCKSIZE : fphys = 32.0;
 const ENEMY_GEN_P : fphys = 0.015;
 
 #[allow(non_camel_case_types)]
@@ -39,26 +40,6 @@ pub struct GameObj {
     pub draws    : Arc<Mutex<Drawable>>,
     pub physics  : Arc<Mutex<Physical>>,
     pub logic    : Arc<Mutex<Logical>>
-}
-
-pub fn create_block(id : u32, x : fphys, y : fphys, 
-                    bb_sender : Sender<SendType>) -> GameObj {
-    let g = arc_mut(GrphxRect 
-        {x : x, y : y, w : BLOCKSIZE, h : 1500.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = BBProperties {id : id, owner_type : BBO_BLOCK};
-    let p = arc_mut(PhysStatic::new(props,x,y,BLOCKSIZE,BLOCKSIZE,bb_sender));
-    let l = arc_mut(DumbLogic {});
-    GameObj {draws : g, physics : p, logic : l}
-}
-
-pub fn create_platform(id : u32, x : fphys, y : fphys, 
-                       width : fphys, bb_sender : Sender<SendType>) -> GameObj {
-    let g = arc_mut(GrphxRect 
-        {x : x, y : y, w : width, h : 8.0, color: [0.15, 0.15, 0.15, 1.0]});
-    let props = BBProperties {id : id, owner_type : BBO_PLATFORM};
-    let p = arc_mut(PhysStatic::new(props,x,y,width,10.0,bb_sender));
-    let l = arc_mut(DumbLogic {});
-    GameObj {draws : g, physics : p, logic : l}
 }
 
 pub enum MetaCommand {
