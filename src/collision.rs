@@ -1,4 +1,3 @@
-use world::World;
 use game::fphys;
 
 pub type BBDescriptor = (BBProperties, BoundingBox);

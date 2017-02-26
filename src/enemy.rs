@@ -2,15 +2,14 @@ extern crate rand;
 
 use piston::input::*;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::{Sender};
 use self::rand::{Rng, thread_rng};
 
 use logic::{Logical};
 use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, MetaCommandBuffer, MetaCommand};
-use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, Collision, CollisionHandler};
+use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER_DMG, 
+                Collision, CollisionHandler};
 use draw::{GrphxRect};
 use physics::{Physical, PhysDyn};
-use world::World;
 use tools::arc_mut;
 
 use self::EnemyState::*;

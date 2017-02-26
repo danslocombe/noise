@@ -1,7 +1,5 @@
-use std::sync::mpsc::{Sender};
-
 use world::World;
-use collision::{BBProperties, BBO_BLOCK, BBO_PLATFORM, BoundingBox};
+use collision::{BBProperties, BBO_BLOCK, BBO_PLATFORM};
 use logic::{DumbLogic};
 use physics::{PhysStatic};
 use game::{fphys, GameObj, BLOCKSIZE};

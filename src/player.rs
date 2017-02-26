@@ -5,7 +5,8 @@ use std::sync::mpsc::Sender;
 use logic::Logical;
 use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, 
            GRAVITY_UP, GRAVITY_DOWN};
-use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
+use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, 
+                BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
 use physics::{Physical, PhysDyn};
 use world::World;
@@ -53,6 +54,8 @@ impl PlayerLogic {
 const START_HP      : fphys = 100.0;
 const ENEMY_DMG     : fphys = 15.0;
 
+const SIZE          : fphys = 24.0;
+
 const FRICTION      : fphys = 0.7;
 const FRICTION_AIR  : fphys = FRICTION * 0.5;
 const MOVEFORCE     : fphys = 10.0;
@@ -64,11 +67,14 @@ const DASH_DURATION : fphys = 0.1;
 const DASH_INVULN   : fphys = 0.3;
 const DASH_FORCE    : fphys = 300.0;
 const JUMP_CD       : fphys = 0.5;
+pub const MAXSPEED  : fphys = 200.0;
 
 const ENEMY_FORCE   : fphys = 1000.0;
 
 const COLOR_NORMAL  : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH    : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
+
+
 
 impl Logical for PlayerLogic {
     fn tick(&mut self, args : &UpdateArgs, metabuffer : &MetaCommandBuffer){
@@ -214,12 +220,8 @@ impl CollisionHandler for PlayerLogic {
     }
 }
 
-pub const MAXSPEED : fphys    = 200.0;
-const SIZE         : fphys    = 24.0;
-const COLOR        : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-
 pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
-    let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
+    let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR_NORMAL};
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_PLAYER);
     let p = arc_mut(
