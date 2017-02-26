@@ -18,7 +18,8 @@ pub struct PlayerLogic {
     dash_cd          : fphys,
     jump_cd          : fphys,
     collision_buffer : Vec<Collision>,
-    hp               : fphys,
+    pub hp           : fphys,
+    pub hp_max       : fphys,
 }
 
 bitflags! {
@@ -44,6 +45,7 @@ impl PlayerLogic {
             input : PI_NONE,
             collision_buffer : Vec::new(),
             hp : START_HP,
+            hp_max : START_HP,
         }
     }
 }
@@ -216,7 +218,7 @@ pub const MAXSPEED : fphys    = 200.0;
 const SIZE         : fphys    = 24.0;
 const COLOR        : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
-pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<InputHandler>>) {
+pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
     let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR};
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_PLAYER);

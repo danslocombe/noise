@@ -7,13 +7,17 @@ use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
 use tools::weight;
+use player::PlayerLogic;
 
 use game::fphys;
+
+
+type Color = [f32; 4];
 
 pub trait Drawable {
     fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform);
     fn set_position(&mut self, x : fphys, y : fphys);
-    fn set_color(&mut self, color : [f32; 4]);
+    fn set_color(&mut self, color : Color);
 }
 
 pub struct GrphxContainer {
@@ -30,7 +34,7 @@ impl Drawable for GrphxNoDraw {
     }
     fn set_position(&mut self, _ : fphys, _ : fphys) {
     }
-    fn set_color(&mut self, _ : [f32; 4]) {
+    fn set_color(&mut self, _ : Color) {
     }
 }
 
@@ -49,7 +53,7 @@ impl Drawable for GrphxContainer {
         self.x_offset = x;
         self.y_offset = y;
     }
-    fn set_color(&mut self, _ : [f32; 4]) {
+    fn set_color(&mut self, _ : Color) {
     }
 }
 
@@ -58,7 +62,7 @@ pub struct GrphxRect {
     pub y : fphys,
     pub w : fphys,
     pub h : fphys,
-    pub color : [f32; 4],
+    pub color : Color,
 }
 
 pub struct ViewTransform {
@@ -178,27 +182,70 @@ impl Drawable for GrphxRect {
         self.x = x;
         self.y = y;
     }
-    fn set_color(&mut self, color : [f32; 4]) {
+    fn set_color(&mut self, color : Color) {
         self.color = color;
+    }
+}
+
+pub struct Overlay {
+    player   : Arc<Mutex<PlayerLogic>>,
+    hpbar_h  : fphys,
+    hpbar_yo : fphys,
+    hpbar_c  : Color,
+}
+
+impl Overlay {
+    pub fn new(player : Arc<Mutex<PlayerLogic>>) -> Self {
+        const C: Color = [0.0, 1.0, 0.985, 1.0];
+        Overlay {
+            player : player,
+            hpbar_h : 9.0,
+            hpbar_yo : 2.0,
+            hpbar_c : C,
+        }
+    }
+}
+
+impl Drawable for Overlay {
+    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+        use graphics::*;
+        let mut hp = 0.0;
+        let mut hp_max = 0.0;
+        {
+            let p = self.player.lock().unwrap();
+            hp = p.hp;
+            hp_max = p.hp_max;
+        }
+        let viewr = args.viewport().rect;
+        let x = 0.0;
+        let y = viewr[3] as f64 - self.hpbar_h - self.hpbar_yo;
+        let h = self.hpbar_h;
+        let w = viewr[2] as f64 * (1.0 - (hp_max - hp) / hp_max);
+        let r = [x, y, w, h];
+        ctx.draw(args.viewport(), |c, gl| {
+            rectangle(self.hpbar_c, r, c.transform, gl);
+        });
+    }
+    fn set_position(&mut self, x : fphys, y : fphys){
+        // TODO
+    }
+    fn set_color(&mut self, color : Color) {
+        self.hpbar_c = color;
     }
 }
 
 pub fn draw_background(args : &RenderArgs, ctx : &mut GlGraphics){
     use graphics::*;
-    const CLEAR: [f32; 4] = [0.9, 1.0, 0.95, 1.0];
-    const BG: [f32; 4] = [0.95, 1.0, 0.985, 1.0];
+    const CLEAR: Color = [0.9, 1.0, 0.95, 1.0];
+    const BG: Color = [0.95, 1.0, 0.985, 1.0];
     ctx.draw(args.viewport(), |_, gl| {clear(CLEAR, gl);});
     ctx.draw(args.viewport(), |c, gl| {
-        match c.viewport {
-                Some (v) => {
-                    let r : [f64; 4] = [v.rect[0] as f64,
-                                        v.rect[1] as f64,
-                                        v.rect[2] as f64,
-                                        v.rect[3] as f64];
-
-                    rectangle(BG, r, c.transform.trans(-r[0], -r[1]), gl);
-                },
-                None => {},
-        };
+        c.viewport.as_ref().map(|v| {
+            let r : [f64; 4] = [v.rect[0] as f64,
+                                v.rect[1] as f64,
+                                v.rect[2] as f64,
+                                v.rect[3] as f64];
+            rectangle(BG, r, c.transform.trans(-r[0], -r[1]), gl);
+        });
     });
 }

@@ -17,7 +17,7 @@ use self::rayon::prelude::*;
 
 use logic::{Logical, DumbLogic};
 use draw::{Drawable, GrphxRect, draw_background, 
-          ViewTransform, ViewFollower, NoisyShader};
+          ViewTransform, ViewFollower, NoisyShader, Overlay};
 use physics::{Physical, PhysStatic};
 use world::World;
 use gen::Gen;
@@ -94,7 +94,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     let mut input_handlers = Vec::new();
 
     let player_id = world.generate_id();
-    let (player_obj, player_input_handler) = 
+    let (player_obj, player_logic) = 
         player_create(player_id, 300.0, -250.0);
     let player_phys = player_obj.physics.clone();
 
@@ -105,13 +105,14 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
     objs.push(grapple_obj);
     objs.push(player_obj);
 
-    input_handlers.push(player_input_handler);
+    input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
 
     //  Set up view following and shader uniform setter
     let vt = ViewTransform{x : 0.0, y : 0.0, scale : 1.0};
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
     let mut noisy_shader = NoisyShader::new(player_id);
+    let overlay = Overlay::new(player_logic.clone());
 
     let metabuffer = MetaCommandBuffer::new();
 
@@ -159,7 +160,6 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
 
                 //  Update bounding box list
                 world.update();
-
 
                 let mut ids_remove : Vec<u32> = Vec::new();
                 let mut objects_add : Vec<GameObj> = Vec::new();
@@ -247,6 +247,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                     let gphx = o.draws.lock().unwrap();
                     gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                 }
+                overlay.draw(&r_args, &mut ctx, &view_follower.vt);
             },
             Input::Press(i) => {
                 for input_handler in &input_handlers {
