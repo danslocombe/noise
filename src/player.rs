@@ -1,6 +1,5 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
 
 use logic::Logical;
 use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, 

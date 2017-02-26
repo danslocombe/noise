@@ -120,11 +120,13 @@ impl Physical for PhysStatic {
 	fn get_vel(&self) -> (fphys, fphys){
 		(0.0, 0.0)
 	}
-    fn set_position(&mut self, x : fphys, y : fphys) {
+    fn set_position(&mut self, _ : fphys, _ : fphys) {
         //  TODO
     }
-    fn set_velocity(&mut self, x : fphys, y : fphys) {
+    fn set_velocity(&mut self, _ : fphys, _ : fphys) {
+        //  Do nothing
     }
+
     fn get_id(&self) -> u32 {
         self.p.id
     }

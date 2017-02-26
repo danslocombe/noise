@@ -16,12 +16,11 @@ use std::sync::mpsc::{channel, Sender, Receiver};
 use self::rayon::prelude::*;
 
 use logic::{Logical, DumbLogic};
-use draw::{Drawable, GrphxRect, draw_background, 
+use draw::{Drawable, draw_background, 
           ViewTransform, ViewFollower, NoisyShader, Overlay};
-use physics::{Physical, PhysStatic};
+use physics::{Physical};
 use world::World;
 use gen::Gen;
-use tools::{arc_mut};
 use player::PlayerLogic;
 use player::create as player_create;
 use grapple::create as grapple_create;
@@ -65,7 +64,7 @@ impl MetaCommandBuffer {
     }
 
     pub fn issue(&self, command : MetaCommand) {
-        self.sender.send(command);
+        self.sender.send(command).unwrap();
     }
 
     fn read_buffer(&self) -> Vec<MetaCommand> {
@@ -173,8 +172,6 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                 for c in meta_commands {
                     match c {
                         MetaCommand::RestartGame => {
-                            let mut ids_remove : Vec<u32> = Vec::new();
-                            let mut objects_add : Vec<GameObj> = Vec::new();
                             objs = restart_game(&mut gen, &mut world, &player_obj, 
                                          player_logic.clone(), &grapple_obj, 
                                          &mut view_follower);

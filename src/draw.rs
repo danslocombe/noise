@@ -207,10 +207,10 @@ impl Overlay {
 }
 
 impl Drawable for Overlay {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, _ : &ViewTransform) {
         use graphics::*;
-        let mut hp = 0.0;
-        let mut hp_max = 0.0;
+        let hp;
+        let hp_max;
         {
             let p = self.player.lock().unwrap();
             hp = p.hp;
@@ -226,7 +226,7 @@ impl Drawable for Overlay {
             rectangle(self.hpbar_c, r, c.transform, gl);
         });
     }
-    fn set_position(&mut self, x : fphys, y : fphys){
+    fn set_position(&mut self, _ : fphys, _ : fphys){
         // TODO
     }
     fn set_color(&mut self, color : Color) {
