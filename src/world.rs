@@ -8,31 +8,31 @@ use collision::{BBProperties, BBDescriptor, BoundingBox};
 //  For each physics tick it generates a list of bounding boxes that can be used
 //  for collisions
 pub struct World {
-    world : HashMap<u32, BBDescriptor>,
-    receiver : Receiver<SendType>,
-    sender : Sender<SendType>,
+    world: HashMap<u32, BBDescriptor>,
+    receiver: Receiver<SendType>,
+    sender: Sender<SendType>,
     //  For static generation of ids
-    new_id : u32,
-    buffer : Vec<BBDescriptor>,
+    new_id: u32,
+    buffer: Vec<BBDescriptor>,
 }
 
 pub type SendType = (BBProperties, Option<BoundingBox>);
 
 impl World {
     pub fn new() -> Self {
-        let (tx, rx) : (Sender<SendType>, Receiver<SendType>) = channel();
+        let (tx, rx): (Sender<SendType>, Receiver<SendType>) = channel();
         let world = HashMap::new();
         World {
-            world : world,
-            receiver : rx,
-            sender : tx,
-            new_id : 0,
-            buffer : Vec::new(),
+            world: world,
+            receiver: rx,
+            sender: tx,
+            new_id: 0,
+            buffer: Vec::new(),
         }
     }
 
-    pub fn reset(&mut self, id : u32) {
-        let (tx, rx) : (Sender<SendType>, Receiver<SendType>) = channel();
+    pub fn reset(&mut self, id: u32) {
+        let (tx, rx): (Sender<SendType>, Receiver<SendType>) = channel();
         self.receiver = rx;
         self.sender = tx;
         self.world = HashMap::new();
@@ -41,10 +41,10 @@ impl World {
     }
     pub fn update(&mut self) {
         //  Leave loop on first instance of None
-        while let Some((p, maybe_bb)) = self.receiver.try_iter().next(){
-            match maybe_bb{
+        while let Some((p, maybe_bb)) = self.receiver.try_iter().next() {
+            match maybe_bb {
                 Some(bb) => {
-                    self.world.insert(p.id, (p,bb));
+                    self.world.insert(p.id, (p, bb));
                 }
                 None => {
                     self.world.remove(&p.id);
@@ -53,13 +53,13 @@ impl World {
         }
         //  Buffer into list
         self.buffer = Vec::new();
-        for (_, descr) in self.world.iter(){
+        for (_, descr) in self.world.iter() {
             self.buffer.push(descr.clone());
-        };
+        }
     }
 
-    pub fn get(&self, id : u32) -> Option<BBDescriptor> {
-        self.world.get(&id).map(|x| {(*x).clone()})
+    pub fn get(&self, id: u32) -> Option<BBDescriptor> {
+        self.world.get(&id).map(|x| (*x).clone())
     }
 
     pub fn generate_id(&mut self) -> u32 {
@@ -68,7 +68,7 @@ impl World {
         r
     }
 
-    pub fn send(&self, p : BBProperties, bb : Option<BoundingBox>) {
+    pub fn send(&self, p: BBProperties, bb: Option<BoundingBox>) {
         self.sender.send((p, bb)).unwrap();
     }
 

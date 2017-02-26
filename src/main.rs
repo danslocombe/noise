@@ -8,7 +8,7 @@ extern crate bitflags;
 
 use piston::window::WindowSettings;
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{ Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL };
+use opengl_graphics::{Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL};
 
 mod block;
 mod collision;
@@ -32,10 +32,7 @@ fn main() {
     println!("Loading opengl");
 
     // Create an Glutin window.
-    let window: Window = WindowSettings::new(
-            "noise",
-            [640, 480]
-        )
+    let window: Window = WindowSettings::new("noise", [640, 480])
         .opengl(opengl)
         .exit_on_esc(true)
         .build()
@@ -47,11 +44,11 @@ fn main() {
     let mut vss = Shaders::new();
     vss.set(GLSL::V1_50, shaders::VERT);
 
-	let c = Colored::from_vs_fs(opengl.to_glsl(), &vss, &fss).unwrap();
+    let c = Colored::from_vs_fs(opengl.to_glsl(), &vss, &fss).unwrap();
 
-	let t = Textured::new(opengl.to_glsl());
+    let t = Textured::new(opengl.to_glsl());
 
-	let context = GlGraphics::from_colored_textured(c, t);
+    let context = GlGraphics::from_colored_textured(c, t);
     println!("Compiled shaders");
 
     println!("Starting");

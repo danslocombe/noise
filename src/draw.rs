@@ -15,89 +15,85 @@ use game::fphys;
 type Color = [f32; 4];
 
 pub trait Drawable {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform);
-    fn set_position(&mut self, x : fphys, y : fphys);
-    fn set_color(&mut self, color : Color);
+    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform);
+    fn set_position(&mut self, x: fphys, y: fphys);
+    fn set_color(&mut self, color: Color);
 }
 
 pub struct GrphxContainer {
-    pub x_offset : fphys,
-    pub y_offset : fphys,
-    pub drawables : Vec<Arc<Mutex<Drawable>>>
+    pub x_offset: fphys,
+    pub y_offset: fphys,
+    pub drawables: Vec<Arc<Mutex<Drawable>>>,
 }
 
-pub struct GrphxNoDraw {
-}
+pub struct GrphxNoDraw {}
 
 impl Drawable for GrphxNoDraw {
-    fn draw(&self, _ : &RenderArgs, _ : &mut GlGraphics, _ : &ViewTransform) {
-    }
-    fn set_position(&mut self, _ : fphys, _ : fphys) {
-    }
-    fn set_color(&mut self, _ : Color) {
-    }
+    fn draw(&self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
+    fn set_position(&mut self, _: fphys, _: fphys) {}
+    fn set_color(&mut self, _: Color) {}
 }
 
 impl Drawable for GrphxContainer {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform) {
         for arc_mut_d in &self.drawables {
             let d = arc_mut_d.lock().unwrap();
             let vt_mod = ViewTransform {
-                x : vt.x - self.x_offset, 
-                y : vt.y - self.y_offset,
-                scale : vt.scale};
+                x: vt.x - self.x_offset,
+                y: vt.y - self.y_offset,
+                scale: vt.scale,
+            };
             d.draw(args, ctx, &vt_mod);
         }
     }
-    fn set_position(&mut self, x : fphys, y : fphys) {
+    fn set_position(&mut self, x: fphys, y: fphys) {
         self.x_offset = x;
         self.y_offset = y;
     }
-    fn set_color(&mut self, _ : Color) {
-    }
+    fn set_color(&mut self, _: Color) {}
 }
 
 pub struct GrphxRect {
-    pub x : fphys,
-    pub y : fphys,
-    pub w : fphys,
-    pub h : fphys,
-    pub color : Color,
+    pub x: fphys,
+    pub y: fphys,
+    pub w: fphys,
+    pub h: fphys,
+    pub color: Color,
 }
 
 pub struct ViewTransform {
-    pub x     : fphys,
-    pub y     : fphys,
-    pub scale : fphys,
+    pub x: fphys,
+    pub y: fphys,
+    pub scale: fphys,
 }
 
 pub struct ViewFollower {
-    pub vt            : ViewTransform,
-    pub follow_id     : u32,
-    pub w             : fphys,
-    pub offset_factor : fphys,
-    pub scale_mult    : fphys,
-    pub follow_prev_x : fphys,
-    pub follow_prev_y : fphys,
-    pub x_max         : fphys,
-    pub min_buffer    : fphys,
+    pub vt: ViewTransform,
+    pub follow_id: u32,
+    pub w: fphys,
+    pub offset_factor: fphys,
+    pub scale_mult: fphys,
+    pub follow_prev_x: fphys,
+    pub follow_prev_y: fphys,
+    pub x_max: fphys,
+    pub min_buffer: fphys,
 }
 
 impl ViewFollower {
-    pub fn new_defaults(vt : ViewTransform, id : u32) -> Self {
+    pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
         ViewFollower {
-            vt            : vt,
-            follow_id     : id,
-            w             : 20.0,
-            offset_factor : 30.0,
-            scale_mult    : 1.0 / 800.0,
-            follow_prev_x : 0.0,
-            follow_prev_y : 0.0,
-            x_max         : 0.0,
-            min_buffer    : 800.0,
+            vt: vt,
+            follow_id: id,
+            w: 20.0,
+            offset_factor: 30.0,
+            scale_mult: 1.0 / 800.0,
+            follow_prev_x: 0.0,
+            follow_prev_y: 0.0,
+            x_max: 0.0,
+            min_buffer: 800.0,
         }
     }
-    pub fn update(&mut self, world : &World){
+    pub fn update(&mut self, world: &World) {
         world.get(self.follow_id).map(|(_, bb)| {
             let obj_view_diff = bb.x - self.vt.x;
             let bb_xvel = bb.x - self.follow_prev_x;
@@ -113,7 +109,9 @@ impl ViewFollower {
             if self.vt.x < self.x_max - self.min_buffer {
                 self.vt.x = self.x_max - self.min_buffer;
             }
-            self.vt.scale = weight(self.vt.scale, 1.0 - obj_view_diff.abs() * self.scale_mult, self.w); 
+            self.vt.scale = weight(self.vt.scale,
+                                   1.0 - obj_view_diff.abs() * self.scale_mult,
+                                   self.w);
 
             self.follow_prev_x = bb.x;
             self.follow_prev_y = bb.y;
@@ -122,34 +120,34 @@ impl ViewFollower {
 }
 
 pub struct NoisyShader {
-    obj_id : u32,
-    time : f32,
-    vel_x : fphys,
-    vel_y : fphys,
-    obj_prev_x : fphys,
-    obj_prev_y : fphys,
-    weight : fphys
+    obj_id: u32,
+    time: f32,
+    vel_x: fphys,
+    vel_y: fphys,
+    obj_prev_x: fphys,
+    obj_prev_y: fphys,
+    weight: fphys,
 }
 
 impl NoisyShader {
-    pub fn new(obj_id : u32) -> Self {
+    pub fn new(obj_id: u32) -> Self {
         NoisyShader {
-            obj_id : obj_id,
-            time : 0.0,
-            vel_x : 0.0,
-            vel_y : 0.0,
-            obj_prev_x : 0.0,
-            obj_prev_y : 0.0,
-            weight : 20.0,
+            obj_id: obj_id,
+            time: 0.0,
+            vel_x: 0.0,
+            vel_y: 0.0,
+            obj_prev_x: 0.0,
+            obj_prev_y: 0.0,
+            weight: 20.0,
         }
     }
-    pub fn update(&mut self, ctx : &GlGraphics, world : &World) {
+    pub fn update(&mut self, ctx: &GlGraphics, world: &World) {
 
         self.time = self.time + 0.001;
 
         let uniform_time = ctx.get_uniform::<SUFloat>("time").unwrap();
         uniform_time.set(ctx, self.time);
-        
+
         world.get(self.obj_id).map(|(_, bb)| {
             let bb_xvel = bb.x - self.obj_prev_x;
             let bb_yvel = bb.y - self.obj_prev_y;
@@ -166,7 +164,7 @@ impl NoisyShader {
 }
 
 impl Drawable for GrphxRect {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform){
+    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform) {
         use graphics::*;
 
         let r = [0.0, 0.0, self.w, self.h];
@@ -178,36 +176,36 @@ impl Drawable for GrphxRect {
             rectangle(self.color, r, transform, gl);
         });
     }
-    fn set_position(&mut self, x : fphys, y : fphys){
+    fn set_position(&mut self, x: fphys, y: fphys) {
         self.x = x;
         self.y = y;
     }
-    fn set_color(&mut self, color : Color) {
+    fn set_color(&mut self, color: Color) {
         self.color = color;
     }
 }
 
 pub struct Overlay {
-    player   : Arc<Mutex<PlayerLogic>>,
-    hpbar_h  : fphys,
-    hpbar_yo : fphys,
-    hpbar_c  : Color,
+    player: Arc<Mutex<PlayerLogic>>,
+    hpbar_h: fphys,
+    hpbar_yo: fphys,
+    hpbar_c: Color,
 }
 
 impl Overlay {
-    pub fn new(player : Arc<Mutex<PlayerLogic>>) -> Self {
+    pub fn new(player: Arc<Mutex<PlayerLogic>>) -> Self {
         const C: Color = [0.0, 1.0, 0.985, 1.0];
         Overlay {
-            player : player,
-            hpbar_h : 9.0,
-            hpbar_yo : 2.0,
-            hpbar_c : C,
+            player: player,
+            hpbar_h: 9.0,
+            hpbar_yo: 2.0,
+            hpbar_c: C,
         }
     }
 }
 
 impl Drawable for Overlay {
-    fn draw(&self, args : &RenderArgs, ctx : &mut GlGraphics, _ : &ViewTransform) {
+    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, _: &ViewTransform) {
         use graphics::*;
         let hp;
         let hp_max;
@@ -222,29 +220,26 @@ impl Drawable for Overlay {
         let h = self.hpbar_h;
         let w = viewr[2] as f64 * (1.0 - (hp_max - hp) / hp_max);
         let r = [x, y, w, h];
-        ctx.draw(args.viewport(), |c, gl| {
-            rectangle(self.hpbar_c, r, c.transform, gl);
-        });
+        ctx.draw(args.viewport(),
+                 |c, gl| { rectangle(self.hpbar_c, r, c.transform, gl); });
     }
-    fn set_position(&mut self, _ : fphys, _ : fphys){
+    fn set_position(&mut self, _: fphys, _: fphys) {
         // TODO
     }
-    fn set_color(&mut self, color : Color) {
+    fn set_color(&mut self, color: Color) {
         self.hpbar_c = color;
     }
 }
 
-pub fn draw_background(args : &RenderArgs, ctx : &mut GlGraphics){
+pub fn draw_background(args: &RenderArgs, ctx: &mut GlGraphics) {
     use graphics::*;
     const CLEAR: Color = [0.9, 1.0, 0.95, 1.0];
     const BG: Color = [0.95, 1.0, 0.985, 1.0];
-    ctx.draw(args.viewport(), |_, gl| {clear(CLEAR, gl);});
+    ctx.draw(args.viewport(), |_, gl| { clear(CLEAR, gl); });
     ctx.draw(args.viewport(), |c, gl| {
         c.viewport.as_ref().map(|v| {
-            let r : [f64; 4] = [v.rect[0] as f64,
-                                v.rect[1] as f64,
-                                v.rect[2] as f64,
-                                v.rect[3] as f64];
+            let r: [f64; 4] =
+                [v.rect[0] as f64, v.rect[1] as f64, v.rect[2] as f64, v.rect[3] as f64];
             rectangle(BG, r, c.transform.trans(-r[0], -r[1]), gl);
         });
     });

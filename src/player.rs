@@ -2,25 +2,24 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use logic::Logical;
-use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, 
-           GRAVITY_UP, GRAVITY_DOWN};
-use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, 
-                BBO_ENEMY, BBO_PLAYER,  BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
+use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
+use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY,
+                BBO_PLAYER, BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
 use physics::{Physical, PhysDyn};
 use world::World;
 use tools::{arc_mut, normalise};
 
 pub struct PlayerLogic {
-    pub draw         : Arc<Mutex<Drawable>>,
-    pub physics      : Arc<Mutex<PhysDyn>>,
-    input            : PlayerInput,
-    dash_cd          : fphys,
-    jump_cd          : fphys,
-    damage_cd        : fphys,
-    collision_buffer : Vec<Collision>,
-    pub hp           : fphys,
-    pub hp_max       : fphys,
+    pub draw: Arc<Mutex<Drawable>>,
+    pub physics: Arc<Mutex<PhysDyn>>,
+    input: PlayerInput,
+    dash_cd: fphys,
+    jump_cd: fphys,
+    damage_cd: fphys,
+    collision_buffer: Vec<Collision>,
+    pub hp: fphys,
+    pub hp_max: fphys,
 }
 
 bitflags! {
@@ -35,53 +34,52 @@ bitflags! {
 }
 
 impl PlayerLogic {
-    pub fn new(draw : Arc<Mutex<Drawable>>, 
-               physics : Arc<Mutex<PhysDyn>>) -> PlayerLogic{
+    pub fn new(draw: Arc<Mutex<Drawable>>, physics: Arc<Mutex<PhysDyn>>) -> PlayerLogic {
 
-        PlayerLogic{
-            draw             : draw,
-            physics          : physics,
-            dash_cd          : 0.0,
-            jump_cd          : 0.0,
-            damage_cd        : 0.0,
-            input            : PI_NONE,
-            collision_buffer : Vec::new(),
-            hp               : START_HP,
-            hp_max           : START_HP,
+        PlayerLogic {
+            draw: draw,
+            physics: physics,
+            dash_cd: 0.0,
+            jump_cd: 0.0,
+            damage_cd: 0.0,
+            input: PI_NONE,
+            collision_buffer: Vec::new(),
+            hp: START_HP,
+            hp_max: START_HP,
         }
     }
 }
 
-const START_HP      : fphys = 100.0;
-const ENEMY_DMG     : fphys = 25.0;
+const START_HP: fphys = 100.0;
+const ENEMY_DMG: fphys = 25.0;
 
-const SIZE          : fphys = 24.0;
+const SIZE: fphys = 24.0;
 
-const FRICTION      : fphys = 0.7;
-const FRICTION_AIR  : fphys = FRICTION * 0.5;
-const MOVEFORCE     : fphys = 10.0;
-const MOVEFORCE_AIR : fphys = MOVEFORCE * 0.4;
-const JUMP_FORCE    : fphys = 650.0;
-const MAX_RUNSPEED  : fphys = 75.0;
-const DASH_CD       : fphys = 0.75;
-const DASH_DURATION : fphys = 0.1;
-const DASH_INVULN   : fphys = 0.3;
-const DASH_FORCE    : fphys = 300.0;
-const JUMP_CD       : fphys = 0.5;
-pub const MAXSPEED  : fphys = 200.0;
+const FRICTION: fphys = 0.7;
+const FRICTION_AIR: fphys = FRICTION * 0.5;
+const MOVEFORCE: fphys = 10.0;
+const MOVEFORCE_AIR: fphys = MOVEFORCE * 0.4;
+const JUMP_FORCE: fphys = 650.0;
+const MAX_RUNSPEED: fphys = 75.0;
+const DASH_CD: fphys = 0.75;
+const DASH_DURATION: fphys = 0.1;
+const DASH_INVULN: fphys = 0.3;
+const DASH_FORCE: fphys = 300.0;
+const JUMP_CD: fphys = 0.5;
+pub const MAXSPEED: fphys = 200.0;
 
-const DAMAGE_CD     : fphys = 0.2;
+const DAMAGE_CD: fphys = 0.2;
 
-const ENEMY_FORCE   : fphys = 1000.0;
+const ENEMY_FORCE: fphys = 1000.0;
 
-const COLOR_NORMAL  : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const COLOR_DASH    : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
+const COLOR_NORMAL: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const COLOR_DASH: [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
-const MAX_HEIGHT    : fphys = 2500.0;
+const MAX_HEIGHT: fphys = 2500.0;
 
 
 impl Logical for PlayerLogic {
-    fn tick(&mut self, args : &UpdateArgs, metabuffer : &MetaCommandBuffer){
+    fn tick(&mut self, args: &UpdateArgs, metabuffer: &MetaCommandBuffer) {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
@@ -121,14 +119,27 @@ impl Logical for PlayerLogic {
         }
         if self.dash_cd < DASH_CD - DASH_DURATION {
             //  Performing regular physics
-            let xdir = 0.0 + (if self.input.contains(PI_RIGHT) {1.0} else {0.0})
-                           - (if self.input.contains(PI_LEFT)  {1.0} else {0.0});
+            let xdir = 0.0 +
+                       (if self.input.contains(PI_RIGHT) {
+                1.0
+            } else {
+                0.0
+            }) -
+                       (if self.input.contains(PI_LEFT) {
+                1.0
+            } else {
+                0.0
+            });
 
             if self.dash_cd <= 0.0 && self.input.contains(PI_DASH) {
                 self.dash_cd = DASH_CD;
-                let ydir = 0.0 + 
-                    (if self.input.contains(PI_DOWN) {1.0} else {0.0})
-                  - (if self.input.contains(PI_UP)   {1.0} else {0.0});
+                let ydir = 0.0 +
+                           (if self.input.contains(PI_DOWN) {
+                    1.0
+                } else {
+                    0.0
+                }) -
+                           (if self.input.contains(PI_UP) { 1.0 } else { 0.0 });
                 phys.p.owner_type = BBO_PLAYER_DMG;
                 phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
                 {
@@ -138,11 +149,18 @@ impl Logical for PlayerLogic {
             }
 
             if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
-                let force = if phys.on_ground {MOVEFORCE} else {MOVEFORCE_AIR};
+                let force = if phys.on_ground {
+                    MOVEFORCE
+                } else {
+                    MOVEFORCE_AIR
+                };
                 phys.apply_force(force * xdir, 0.0);
-            }
-            else{
-                let friction_percent = if phys.on_ground {FRICTION} else {FRICTION_AIR};
+            } else {
+                let friction_percent = if phys.on_ground {
+                    FRICTION
+                } else {
+                    FRICTION_AIR
+                };
                 let friction = xvel * -1.0 * friction_percent;
                 phys.apply_force(friction, 0.0);
             }
@@ -156,13 +174,11 @@ impl Logical for PlayerLogic {
                     phys.apply_force(0.0, -JUMP_FORCE);
                     self.jump_cd = JUMP_CD;
                 }
-            }
-            else{
+            } else {
                 //  Gravity
                 if yvel < 0.0 {
                     phys.apply_force(0.0, GRAVITY_UP);
-                }
-                else {
+                } else {
                     phys.apply_force(0.0, GRAVITY_DOWN);
                 }
             }
@@ -174,7 +190,7 @@ impl Logical for PlayerLogic {
 }
 
 impl InputHandler for PlayerLogic {
-    fn press (&mut self, button : Button){
+    fn press(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
                 self.input |= PI_UP;
@@ -194,7 +210,7 @@ impl InputHandler for PlayerLogic {
             _ => {}
         }
     }
-    fn release (&mut self, button: Button) {
+    fn release(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
                 self.input &= !PI_UP;
@@ -217,7 +233,7 @@ impl InputHandler for PlayerLogic {
 }
 
 impl CollisionHandler for PlayerLogic {
-    fn handle (&mut self, col : Collision) {
+    fn handle(&mut self, col: Collision) {
         self.collision_buffer.push(col);
     }
     fn get_collide_types(&self) -> BBOwnerType {
@@ -226,19 +242,23 @@ impl CollisionHandler for PlayerLogic {
 
         if self.dash_cd < DASH_CD - DASH_INVULN {
             blocks | BBO_ENEMY
-        }
-        else {
+        } else {
             blocks
         }
     }
 }
 
-pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
-    let rect = GrphxRect {x : 0.0, y : 0.0, w : SIZE, h : SIZE, color : COLOR_NORMAL};
+pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
+    let rect = GrphxRect {
+        x: 0.0,
+        y: 0.0,
+        w: SIZE,
+        h: SIZE,
+        color: COLOR_NORMAL,
+    };
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_PLAYER);
-    let p = arc_mut(
-        PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+    let p = arc_mut(PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 
@@ -247,6 +267,10 @@ pub fn create(id : u32, x : fphys, y : fphys) -> (GameObj, Arc<Mutex<PlayerLogic
         phys.collision_handler = Some(l.clone());
     }
 
-    (GameObj {draws : g, physics : p, logic : l.clone()}, l)
+    (GameObj {
+         draws: g,
+         physics: p,
+         logic: l.clone(),
+     },
+     l)
 }
-

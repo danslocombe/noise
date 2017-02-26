@@ -5,53 +5,53 @@ use std::f64;
 
 use game::fphys;
 
-const BLOCKWIDTH : fphys = 32.0;
-const STRUCTURE_SPACING_MIN : fphys = BLOCKWIDTH * 4.0;
-const STRUCTURE_SPACING_MAX : fphys = BLOCKWIDTH * 24.0;
-const STRUCTURE_LENGTH_MIN : fphys = BLOCKWIDTH * 12.0;
-const STRUCTURE_LENGTH_MAX : fphys = BLOCKWIDTH * 160.0;
-const STRUCTURE_PLATFORM_HEIGHT : fphys = BLOCKWIDTH * 12.0;
-const MAX_HEIGHT : u32 = 6;
+const BLOCKWIDTH: fphys = 32.0;
+const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
+const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 24.0;
+const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 12.0;
+const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 160.0;
+const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 12.0;
+const MAX_HEIGHT: u32 = 6;
 
 //  Single perlin octave
 struct PerlinOctave {
     //  Previous value
-    pvalue : i32,
+    pvalue: i32,
     //  Next value
-    value : i32,
+    value: i32,
     //  Remaining iterations before next value
-    last_read : i32
+    last_read: i32,
 }
 
 pub struct Gen {
-    blocksize      : fphys,
-    generated_to   : fphys,
-    gen_floor      : fphys,
-    last_block_y   : fphys,
-    next_structure : fphys,
-    octaves        : Vec<PerlinOctave>,
+    blocksize: fphys,
+    generated_to: fphys,
+    gen_floor: fphys,
+    last_block_y: fphys,
+    next_structure: fphys,
+    octaves: Vec<PerlinOctave>,
 }
 
-const STEPSIZE : fphys = 4.0;
+const STEPSIZE: fphys = 4.0;
 impl Gen {
-    pub fn new(blocksize : fphys, gen_floor : fphys) -> Gen {
+    pub fn new(blocksize: fphys, gen_floor: fphys) -> Gen {
         let mut rng = thread_rng();
         let mut os = Vec::new();
         for _ in 0..OCTAVES {
             let o = PerlinOctave {
-                value : if rng.gen::<i32>() % 2 == 1 {1} else {-1},
-                pvalue : 0,
-                last_read : 0
+                value: if rng.gen::<i32>() % 2 == 1 { 1 } else { -1 },
+                pvalue: 0,
+                last_read: 0,
             };
             os.push(o);
         }
         Gen {
-            blocksize : blocksize,
-            generated_to : 0.0,
-            gen_floor : gen_floor,
-            last_block_y : 0.0,
-            next_structure : 256.0,
-            octaves : os,
+            blocksize: blocksize,
+            generated_to: 0.0,
+            gen_floor: gen_floor,
+            last_block_y: 0.0,
+            next_structure: 256.0,
+            octaves: os,
         }
     }
 
@@ -61,23 +61,26 @@ impl Gen {
 
     }
 
-    pub fn gen_to(&mut self, x : fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
+    pub fn gen_to(&mut self, x: fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
         let mut r = Vec::new();
         while self.generated_to < x {
             if self.next_structure <= 0.0 {
-                let length = STRUCTURE_LENGTH_MIN + rand_gauss() *
-                             (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
+                let length = STRUCTURE_LENGTH_MIN +
+                             rand_gauss() * (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
 
-                self.next_structure = STRUCTURE_SPACING_MIN + rand_gauss() *
-                    (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN) + length;
+                self.next_structure = STRUCTURE_SPACING_MIN +
+                                      rand_gauss() *
+                                      (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN) +
+                                      length;
 
-                r.extend(create_structure(self.generated_to, self.last_block_y 
-                                         - STRUCTURE_PLATFORM_HEIGHT, length, 1));
+                r.extend(create_structure(self.generated_to,
+                                          self.last_block_y - STRUCTURE_PLATFORM_HEIGHT,
+                                          length,
+                                          1));
             }
             self.generated_to += self.blocksize;
             self.next_structure -= self.blocksize;
-            let y = self.gen_floor + STEPSIZE * 
-                (next_perlin(&mut self.octaves) / STEPSIZE).floor();
+            let y = self.gen_floor + STEPSIZE * (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             self.last_block_y = y;
             r.push((self.generated_to, y, None));
         }
@@ -85,7 +88,7 @@ impl Gen {
     }
 }
 
-fn cosine_interpolate(a : i32, b : i32, x : f64) -> f64 {
+fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
     let f = (1.0 - f64::cos(f64::consts::PI * x)) * 0.5;
     let af = a as f64;
     let bf = b as f64;
@@ -94,8 +97,11 @@ fn cosine_interpolate(a : i32, b : i32, x : f64) -> f64 {
 }
 
 
-fn create_structure(x : fphys, y : fphys, length : fphys, height : u32) 
-        -> Vec<(fphys, fphys, Option<fphys>)> {
+fn create_structure(x: fphys,
+                    y: fphys,
+                    length: fphys,
+                    height: u32)
+                    -> Vec<(fphys, fphys, Option<fphys>)> {
     let end = x + length;
     let mut created_next_floor = false;
     let mut ret = Vec::new();
@@ -103,29 +109,30 @@ fn create_structure(x : fphys, y : fphys, length : fphys, height : u32)
         return ret;
     }
 
-    const UPPER_FLOOR_P : fphys = 0.38;
+    const UPPER_FLOOR_P: fphys = 0.38;
 
     ret.push((x, y, Some(length)));
     for i in 1..(length / BLOCKWIDTH).floor() as usize {
         let ix = i as fphys * BLOCKWIDTH + x;
 
-        if !created_next_floor && end - ix > length / 2.0 && 
-            (rand_gauss() < UPPER_FLOOR_P) {
-            ret.extend(create_structure(ix, y - BLOCKWIDTH - STRUCTURE_PLATFORM_HEIGHT,
-                                         2.0 * (end - ix) - length, height + 1));
+        if !created_next_floor && end - ix > length / 2.0 && (rand_gauss() < UPPER_FLOOR_P) {
+            ret.extend(create_structure(ix,
+                                        y - BLOCKWIDTH - STRUCTURE_PLATFORM_HEIGHT,
+                                        2.0 * (end - ix) - length,
+                                        height + 1));
             created_next_floor = true;
         }
     }
     ret
 }
 
-const PERLIN_SPACING : i32 = 16;
-const PERLIN_PERSIST_RECIPROCAL : f64 = 0.25;
-const OCTAVES : i32 = 5; 
+const PERLIN_SPACING: i32 = 16;
+const PERLIN_PERSIST_RECIPROCAL: f64 = 0.25;
+const OCTAVES: i32 = 5;
 
 //  Get the next value from the sequence of perlin octaves
 //
-fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
+fn next_perlin(octaves: &mut [PerlinOctave]) -> f64 {
     let mut rng = thread_rng();
 
     //  Sum to return
@@ -134,7 +141,7 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
     //  Amplitude to give current octave
     let mut amplitude = 2.0;
 
-    let mut i : i32 = 0;
+    let mut i: i32 = 0;
     for o in octaves {
 
         let value : f64 = 
@@ -157,7 +164,7 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
 
         sum += amplitude * value;
 
-        //  Increase importance of each octave as the spacing increases 
+        //  Increase importance of each octave as the spacing increases
         amplitude /= PERLIN_PERSIST_RECIPROCAL;
         i += 1;
     }
@@ -168,9 +175,8 @@ fn next_perlin(octaves : &mut [PerlinOctave]) -> f64{
 //  Generate a random number in normal distribution
 //  Approximate central limit theorem
 fn rand_gauss() -> f64 {
-    const GAUSS_ITS : i32 = 8;
+    const GAUSS_ITS: i32 = 8;
 
     let mut rng = thread_rng();
-    (0..GAUSS_ITS).fold(0.0, |x, _| {x + rng.gen_range(0.0, 1.0)})
-        / (GAUSS_ITS as f64)
+    (0..GAUSS_ITS).fold(0.0, |x, _| x + rng.gen_range(0.0, 1.0)) / (GAUSS_ITS as f64)
 }
