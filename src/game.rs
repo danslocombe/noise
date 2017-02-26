@@ -170,6 +170,7 @@ pub fn game_loop(mut window : Window, mut ctx : GlGraphics) {
                     match c {
                         MetaCommand::RestartGame => {
                             //  TODO
+                            return;
                         },
                         MetaCommand::RemoveObject(id) => {
                             ids_remove.push(id);

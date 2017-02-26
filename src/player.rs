@@ -74,6 +74,7 @@ const ENEMY_FORCE   : fphys = 1000.0;
 const COLOR_NORMAL  : [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH    : [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
+const MAX_HEIGHT    : fphys = 2500.0;
 
 
 impl Logical for PlayerLogic {
@@ -81,6 +82,11 @@ impl Logical for PlayerLogic {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
+        let (_, y) = phys.get_position();
+        if self.hp < 0.0 || y > MAX_HEIGHT {
+            metabuffer.issue(MetaCommand::RestartGame);
+            return;
+        }
         let (xvel, yvel) = phys.get_vel();
 
         //  Handle collisions from last tick
