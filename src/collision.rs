@@ -3,9 +3,10 @@ use game::fphys;
 pub type BBDescriptor = (BBProperties, BoundingBox);
 
 pub struct Collision {
-    pub other_type: BBOwnerType,
     pub bb: BoundingBox,
     pub other_bb: BoundingBox,
+    pub other_type: BBOwnerType,
+    pub other_id: u32,
 }
 
 pub trait CollisionHandler {
@@ -70,7 +71,8 @@ impl BoundingBox {
  */
 macro_rules! call_once_on_col {
     //  Make more general with owner_types
-    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr, $bb : ident, $f : stmt) => {
+    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr,
+     $bb : ident, $f : stmt) => {
         for descr in $bbs {
             let (ref p, ref $bb) = *descr;
             if p.id == $p.id {
@@ -80,7 +82,7 @@ macro_rules! call_once_on_col {
                 continue;
             }
             //  Collide with a platform only if above and pass_plats set
-            if p.owner_type == BBO_PLATFORM && 
+            if p.owner_type == BBO_PLATFORM &&
                 (($test.y + $test.h >= $bb.y + $bb.h) || $pass_plats) {
                 continue;
             }
@@ -116,6 +118,7 @@ pub fn does_collide(p: &BBProperties,
                 other_type: other_p.owner_type,
                 bb: bb.clone(),
                 other_bb: other_bb.clone(),
+                other_id: other_p.id,
             });
             break;
         }

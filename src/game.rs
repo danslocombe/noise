@@ -42,6 +42,13 @@ pub struct GameObj {
     pub logic: Arc<Mutex<Logical>>,
 }
 
+/*
+pub enum ObjMessage {
+    Collision(Collision),
+    ApplyForce(fphys, fphys),
+}
+*/
+
 pub enum MetaCommand {
     RestartGame,
     RemoveObject(u32),

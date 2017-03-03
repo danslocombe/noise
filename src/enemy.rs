@@ -6,11 +6,11 @@ use self::rand::{Rng, thread_rng};
 
 use logic::Logical;
 use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, MetaCommandBuffer, MetaCommand};
-use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER_DMG, Collision,
-                CollisionHandler};
+use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG,
+                Collision, CollisionHandler};
 use draw::GrphxRect;
 use physics::{Physical, PhysDyn};
-use tools::arc_mut;
+use tools::{arc_mut, normalise};
 
 use self::EnemyState::*;
 
@@ -28,7 +28,7 @@ struct EnemyLogic {
     physics: Arc<Mutex<PhysDyn>>,
     target: Arc<Mutex<Physical>>,
     state: EnemyState,
-    dead: bool,
+    collision_buffer: Vec<Collision>,
 }
 
 const FRICTION: fphys = 0.7;
@@ -40,13 +40,33 @@ const MAX_RUNSPEED: fphys = 85.0;
 
 //  TODO code reuse from player
 
+const BOUNCE_FORCE: fphys = 30.0;
 impl Logical for EnemyLogic {
     fn tick(&mut self, args: &UpdateArgs, metabuffer: &MetaCommandBuffer) {
-        if self.dead {
-            let phys = self.physics.lock().unwrap();
-            metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
-            return;
+
+        let mut phys = self.physics.lock().unwrap();
+        for c in &self.collision_buffer {
+
+            if c.other_type.contains(BBO_PLAYER) {
+                println!("COLLISION");
+                let diff_x = c.other_bb.x - c.bb.x;
+                let diff_y = c.other_bb.y - c.bb.y;
+                let (nx, ny) = normalise((diff_x, diff_y));
+                phys.apply_force(-nx * BOUNCE_FORCE, -ny * BOUNCE_FORCE);
+            }
+            if c.other_type.contains(BBO_ENEMY) {
+                let diff_x = c.other_bb.x - c.bb.x;
+                let diff_y = c.other_bb.y - c.bb.y;
+                let (nx, ny) = normalise((diff_x, diff_y));
+                phys.apply_force(-nx * BOUNCE_FORCE, -ny * BOUNCE_FORCE);
+            }
+
+            if c.other_type.contains(BBO_PLAYER_DMG) {
+                metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
+                return;
+            }
         }
+
         let dt = args.dt as fphys;
 
         let tx;
@@ -56,7 +76,6 @@ impl Logical for EnemyLogic {
             tx = x;
             ty = y;
         }
-        let mut phys = self.physics.lock().unwrap();
         let (xvel, yvel) = phys.get_vel();
         let (x, y) = phys.get_position();
 
@@ -96,8 +115,8 @@ impl Logical for EnemyLogic {
             EnemyAlert => (0.0, false, false),
             EnemyActive => {
                 let xvel = (tx - x).signum();
-                let jump = (ty - y) < 0.0;
-                let fall = (ty - y) > 0.0;
+                let jump = (ty - y) < -30.0;
+                let fall = (ty - y) > 30.0;
                 (xvel, jump, fall)
             }
         };
@@ -135,7 +154,7 @@ impl Logical for EnemyLogic {
 
 impl CollisionHandler for EnemyLogic {
     fn handle(&mut self, col: Collision) {
-        self.dead |= col.other_type.contains(BBO_PLAYER_DMG);
+        self.collision_buffer.push(col);
     }
     fn get_collide_types(&self) -> BBOwnerType {
         BBO_ALL
@@ -159,7 +178,7 @@ pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> Game
         target: player,
         physics: p.clone(),
         state: EnemyIdle(None),
-        dead: false,
+        collision_buffer: Vec::new(),
     });
 
     {

@@ -52,9 +52,9 @@ void main() {
      SPEED_MIN) speed = SPEED_MIN;
     float xmod = floor((1 + out_pos.x) / pow(speed, 2) * \
      GRAIN_MOVE);
-    vec2 roundPos = 
+    vec2 roundPos =
         vec2(floor((out_pos.y - out_pos.x * dir) * \
-     GRAIN_SCALE * sqrt(speed)), 
+     GRAIN_SCALE * sqrt(speed)),
              xmod + time);
 
     o_Color = vec4(0.0, 0.0, 0.0, \
