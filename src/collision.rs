@@ -21,13 +21,6 @@ impl Collision {
     }
 }
 
-pub trait CollisionHandler {
-    fn handle(&mut self, col: Collision);
-    fn get_collide_types(&self) -> BBOwnerType;
-}
-
-
-
 #[derive(Clone)]
 pub struct BBProperties {
     pub id: u32,

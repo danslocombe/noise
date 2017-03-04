@@ -56,6 +56,10 @@ impl PhysStatic {
 pub struct PhysDyn {
     pub p: BBProperties,
     pub mass: fphys,
+    pub pass_platforms: bool,
+    pub on_ground: bool,
+    pub bb: BoundingBox,
+    pub collide_with: BBOwnerType,
     xvel: fphys,
     yvel: fphys,
     xaccel: fphys,
@@ -63,11 +67,7 @@ pub struct PhysDyn {
     xforce: fphys,
     yforce: fphys,
     maxspeed: fphys,
-    pub pass_platforms: bool,
-    pub on_ground: bool,
-    pub bb: BoundingBox,
     draw: Arc<Mutex<Drawable>>,
-    pub collision_handler: Option<Arc<Mutex<CollisionHandler>>>,
 }
 
 impl PhysDyn {
@@ -100,7 +100,7 @@ impl PhysDyn {
             pass_platforms: false,
             bb: bb,
             maxspeed: maxspeed,
-            collision_handler: None,
+            collide_with: BBO_ALL,
             draw: dr,
         }
     }
@@ -169,16 +169,11 @@ impl Physical for PhysDyn {
             h: self.bb.h,
         };
 
-        let to_collide = match self.collision_handler.as_ref() {
-            Some(ch) => ch.lock().unwrap().get_collide_types(),
-            None => BBO_ALL,
-        };
-
         //  Collision Resolution
         if let Some(collision) = does_collide(&self.p,
                                               &bb_test,
                                               bbs,
-                                              to_collide,
+                                              self.collide_with,
                                               self.pass_platforms) {
 
             metabuffer.issue(MetaCommand::MessageObject(self.p.id,
@@ -192,7 +187,7 @@ impl Physical for PhysDyn {
                                              bbs,
                                              self.bb.w,
                                              self.bb.h,
-                                             to_collide,
+                                             self.collide_with,
                                              self.on_ground,
                                              self.pass_platforms,
                                              (self.bb.x, self.bb.y),
@@ -215,7 +210,7 @@ impl Physical for PhysDyn {
                                                h: self.bb.h,
                                            },
                                            bbs,
-                                           to_collide,
+                                           self.collide_with,
                                            self.pass_platforms);
 
         //  Reset forces

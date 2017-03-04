@@ -4,8 +4,8 @@ use std::sync::{Arc, Mutex};
 use logic::Logical;
 use game::{fphys, GameObj, CommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN,
            ObjMessage};
-use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY,
-                BBO_PLAYER, BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
+use collision::{Collision, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,
+                BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
 use physics::{Physical, PhysDyn};
 use world::World;
@@ -200,6 +200,14 @@ impl Logical for PlayerLogic {
 
 
         phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN);
+        phys.collide_with = {
+            let blocks = BBO_PLATFORM | BBO_BLOCK;
+            if self.dash_cd < DASH_CD - DASH_INVULN {
+                blocks | BBO_ENEMY
+            } else {
+                blocks
+            }
+        };
     }
 }
 
@@ -246,22 +254,6 @@ impl InputHandler for PlayerLogic {
     }
 }
 
-impl CollisionHandler for PlayerLogic {
-    fn handle(&mut self, col: Collision) {
-        self.collision_buffer.push(col);
-    }
-    fn get_collide_types(&self) -> BBOwnerType {
-
-        let blocks = BBO_PLATFORM | BBO_BLOCK;
-
-        if self.dash_cd < DASH_CD - DASH_INVULN {
-            blocks | BBO_ENEMY
-        } else {
-            blocks
-        }
-    }
-}
-
 pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
     let rect = GrphxRect {
         x: 0.0,
@@ -275,11 +267,6 @@ pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>)
     let p = arc_mut(PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
-
-    {
-        let mut phys = p.lock().unwrap();
-        phys.collision_handler = Some(l.clone());
-    }
 
     (GameObj::new(id, g, p, l.clone()), l)
 }

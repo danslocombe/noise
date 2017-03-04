@@ -6,8 +6,7 @@ use self::rand::{Rng, thread_rng};
 
 use logic::Logical;
 use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, CommandBuffer, MetaCommand, ObjMessage};
-use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG,
-                Collision, CollisionHandler};
+use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, Collision};
 use draw::GrphxRect;
 use physics::{Physical, PhysDyn};
 use tools::{arc_mut, normalise};
@@ -169,15 +168,6 @@ impl Logical for EnemyLogic {
     }
 }
 
-impl CollisionHandler for EnemyLogic {
-    fn handle(&mut self, col: Collision) {
-        self.collision_buffer.push(col);
-    }
-    fn get_collide_types(&self) -> BBOwnerType {
-        BBO_ALL
-    }
-}
-
 pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> GameObj {
 
     let rect = GrphxRect {
@@ -197,11 +187,6 @@ pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> Game
         state: EnemyIdle(None),
         collision_buffer: Vec::new(),
     });
-
-    {
-        let mut phys = p.lock().unwrap();
-        phys.collision_handler = Some(l.clone() as Arc<Mutex<CollisionHandler>>);
-    }
 
     GameObj::new(id, g, p, l)
 }
