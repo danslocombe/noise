@@ -1,7 +1,7 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 
-use game::{GameObj, fphys, InputHandler, CommandBuffer, MetaCommand};
+use game::{GameObj, fphys, InputHandler, CommandBuffer, MetaCommand, ObjMessage};
 use collision::{BoundingBox, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,
                 BBO_PLAYER_DMG};
 use draw::{Drawable, ViewTransform};
@@ -70,7 +70,10 @@ bitflags! {
 }
 
 impl Logical for GrappleHolster {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            message_buffer: &CommandBuffer<ObjMessage>) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
@@ -241,7 +244,7 @@ impl Grapple {
 const MAX_LENGTH_SQR: fphys = 200000.0;
 
 impl Physical for Grapple {
-    fn tick(&mut self, args: &UpdateArgs, world: &World) {
+    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>, world: &World) {
         match self.state {
             GrappleState::GrappleNone => {}
             GrappleState::GrappleOut => {

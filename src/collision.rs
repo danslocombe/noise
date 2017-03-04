@@ -10,6 +10,17 @@ pub struct Collision {
     pub other_id: u32,
 }
 
+impl Collision {
+    pub fn flipNew(&self, id: u32, our_type: BBOwnerType) -> Self {
+        Collision {
+            bb: self.other_bb.clone(),
+            other_bb: self.bb.clone(),
+            other_type: our_type,
+            other_id: id,
+        }
+    }
+}
+
 pub trait CollisionHandler {
     fn handle(&mut self, col: Collision);
     fn get_collide_types(&self) -> BBOwnerType;

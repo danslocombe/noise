@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use self::rand::{Rng, thread_rng};
 
 use logic::Logical;
-use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, CommandBuffer, MetaCommand};
+use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, CommandBuffer, MetaCommand, ObjMessage};
 use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG,
                 Collision, CollisionHandler};
 use draw::GrphxRect;
@@ -42,9 +42,24 @@ const MAX_RUNSPEED: fphys = 85.0;
 
 const BOUNCE_FORCE: fphys = 200.0;
 impl Logical for EnemyLogic {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            message_buffer: &CommandBuffer<ObjMessage>) {
 
         let mut phys = self.physics.lock().unwrap();
+
+        //  Handle messages
+        for m in message_buffer.read_buffer() {
+            match m {
+                ObjMessage::MCollision(c) => {
+                    self.collision_buffer.push(c);
+                }
+                _ => {}
+            }
+        }
+
+        //  Handle collisions
         for c in &self.collision_buffer {
 
             if c.other_type.contains(BBO_PLAYER) {

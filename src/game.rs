@@ -93,7 +93,7 @@ impl<a> CommandBuffer<a> {
         self.sender.send(command).unwrap();
     }
 
-    fn read_buffer(&self) -> Vec<a> {
+    pub fn read_buffer(&self) -> Vec<a> {
         self.receiver.try_iter().collect::<Vec<a>>()
     }
 }
@@ -213,7 +213,10 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                         MetaCommand::CreateObject(obj) => {
                             objects_add.push(obj);
                         }
-                        MetaCommand::MessageObject(id, message) => {}
+                        MetaCommand::MessageObject(id, message) => {
+                            objs.binary_search_by(|o| o.id.cmp(&id))
+                                .map(|pos| { objs[pos].message_buffer.issue(message); });
+                        }
                         _ => {}
                     }
                 }
@@ -250,12 +253,12 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                     {
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
-                        l.tick(&u_args, &metabuffer);
+                        l.tick(&u_args, &metabuffer, &o.message_buffer);
                     }
                     {
                         //  Physics ticks
                         let mut p = o.physics.lock().unwrap();
-                        p.tick(&u_args, &world);
+                        p.tick(&u_args, &metabuffer, &world);
                     }
                 }
 

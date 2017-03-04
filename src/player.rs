@@ -2,7 +2,8 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use logic::Logical;
-use game::{fphys, GameObj, CommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
+use game::{fphys, GameObj, CommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN,
+           ObjMessage};
 use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY,
                 BBO_PLAYER, BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
@@ -79,7 +80,10 @@ const MAX_HEIGHT: fphys = 2500.0;
 
 
 impl Logical for PlayerLogic {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            message_buffer: &CommandBuffer<ObjMessage>) {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
@@ -89,6 +93,16 @@ impl Logical for PlayerLogic {
             return;
         }
         let (xvel, yvel) = phys.get_vel();
+
+        //  Handle messages
+        for m in message_buffer.read_buffer() {
+            match m {
+                ObjMessage::MCollision(c) => {
+                    self.collision_buffer.push(c);
+                }
+                _ => {}
+            }
+        }
 
         //  Handle collisions from last tick
         for c in &self.collision_buffer {
