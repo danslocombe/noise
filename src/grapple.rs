@@ -1,7 +1,7 @@
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 
-use game::{GameObj, fphys, InputHandler, MetaCommandBuffer, MetaCommand};
+use game::{GameObj, fphys, InputHandler, CommandBuffer, MetaCommand};
 use collision::{BoundingBox, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,
                 BBO_PLAYER_DMG};
 use draw::{Drawable, ViewTransform};
@@ -70,7 +70,7 @@ bitflags! {
 }
 
 impl Logical for GrappleHolster {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &MetaCommandBuffer) {
+    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
@@ -513,9 +513,11 @@ pub fn create(id: u32, player: Arc<Mutex<Physical>>) -> (GameObj, Arc<Mutex<Inpu
     let (holster, grapple) = GrappleHolster::create(id, player, g.clone());
     let holster_ref = arc_mut(holster);
     (GameObj {
+         id: id,
          logic: holster_ref.clone(),
          draws: g,
          physics: grapple,
+         message_buffer: CommandBuffer::new(),
      },
      holster_ref.clone())
 }

@@ -20,11 +20,7 @@ pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
     };
     let p = arc_mut(PhysStatic::new(props, x, y, BLOCKSIZE, BLOCKSIZE, world));
     let l = arc_mut(DumbLogic {});
-    GameObj {
-        draws: g,
-        physics: p,
-        logic: l,
-    }
+    GameObj::new(id, g, p, l)
 }
 
 pub fn create_platform(id: u32, x: fphys, y: fphys, width: fphys, world: &World) -> GameObj {
@@ -41,9 +37,5 @@ pub fn create_platform(id: u32, x: fphys, y: fphys, width: fphys, world: &World)
     };
     let p = arc_mut(PhysStatic::new(props, x, y, width, 10.0, world));
     let l = arc_mut(DumbLogic {});
-    GameObj {
-        draws: g,
-        physics: p,
-        logic: l,
-    }
+    GameObj::new(id, g, p, l)
 }

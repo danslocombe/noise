@@ -2,7 +2,7 @@ use piston::input::*;
 use std::sync::{Arc, Mutex};
 
 use logic::Logical;
-use game::{fphys, GameObj, MetaCommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
+use game::{fphys, GameObj, CommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN};
 use collision::{Collision, CollisionHandler, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY,
                 BBO_PLAYER, BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
 use draw::{Drawable, GrphxRect};
@@ -79,7 +79,7 @@ const MAX_HEIGHT: fphys = 2500.0;
 
 
 impl Logical for PlayerLogic {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &MetaCommandBuffer) {
+    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
@@ -267,10 +267,5 @@ pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>)
         phys.collision_handler = Some(l.clone());
     }
 
-    (GameObj {
-         draws: g,
-         physics: p,
-         logic: l.clone(),
-     },
-     l)
+    (GameObj::new(id, g, p, l.clone()), l)
 }

@@ -14,8 +14,10 @@ use self::rand::{Rng, thread_rng};
 use std::sync::mpsc::{channel, Sender, Receiver};
 
 use self::rayon::prelude::*;
+use std::cmp::Ordering;
 
 use logic::{Logical, DumbLogic};
+use collision::Collision;
 use draw::{Drawable, draw_background, ViewTransform, ViewFollower, NoisyShader, Overlay};
 use physics::Physical;
 use world::World;
@@ -35,46 +37,64 @@ const ENEMY_GEN_P: fphys = 0.015;
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
-#[derive(Clone)]
 pub struct GameObj {
+    pub id: u32,
     pub draws: Arc<Mutex<Drawable>>,
     pub physics: Arc<Mutex<Physical>>,
     pub logic: Arc<Mutex<Logical>>,
+    pub message_buffer: CommandBuffer<ObjMessage>,
 }
 
-/*
-pub enum ObjMessage {
-    Collision(Collision),
-    ApplyForce(fphys, fphys),
+
+impl GameObj {
+    pub fn new(id: u32,
+               draws: Arc<Mutex<Drawable>>,
+               physics: Arc<Mutex<Physical>>,
+               logic: Arc<Mutex<Logical>>)
+               -> Self {
+        GameObj {
+            id: id,
+            draws: draws,
+            physics: physics,
+            logic: logic,
+            message_buffer: CommandBuffer::new(),
+        }
+    }
 }
-*/
+
+#[derive(Clone)]
+pub enum ObjMessage {
+    MCollision(Collision),
+    MApplyForce(fphys, fphys),
+}
 
 pub enum MetaCommand {
     RestartGame,
     RemoveObject(u32),
     CreateObject(GameObj),
+    MessageObject(u32, ObjMessage),
 }
 
-pub struct MetaCommandBuffer {
-    receiver: Receiver<MetaCommand>,
-    sender: Sender<MetaCommand>,
+pub struct CommandBuffer<a> {
+    receiver: Receiver<a>,
+    sender: Sender<a>,
 }
 
-impl MetaCommandBuffer {
-    fn new() -> MetaCommandBuffer {
-        let (tx, rx): (Sender<MetaCommand>, Receiver<MetaCommand>) = channel();
-        MetaCommandBuffer {
+impl<a> CommandBuffer<a> {
+    pub fn new() -> Self {
+        let (tx, rx): (Sender<a>, Receiver<a>) = channel();
+        CommandBuffer {
             receiver: rx,
             sender: tx,
         }
     }
 
-    pub fn issue(&self, command: MetaCommand) {
+    pub fn issue(&self, command: a) {
         self.sender.send(command).unwrap();
     }
 
-    fn read_buffer(&self) -> Vec<MetaCommand> {
-        self.receiver.try_iter().collect::<Vec<MetaCommand>>()
+    fn read_buffer(&self) -> Vec<a> {
+        self.receiver.try_iter().collect::<Vec<a>>()
     }
 }
 
@@ -97,6 +117,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
     let mut world = World::new();
 
     //  Initialise set of objects
+    //  We keep this sorted with respect to gameobject id
     let mut objs: Vec<GameObj> = Vec::new();
 
     //  Initialise set of input handlers
@@ -110,8 +131,8 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
     let (grapple_obj, grapple_input_handler) = grapple_create(grapple_id,
                                                               player_obj.physics.clone());
 
-    objs.push(grapple_obj.clone());
-    objs.push(player_obj.clone());
+    objs.push(grapple_obj);
+    objs.push(player_obj);
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
@@ -126,7 +147,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
     let mut noisy_shader = NoisyShader::new(player_id);
     let overlay = Overlay::new(player_logic.clone());
 
-    let metabuffer = MetaCommandBuffer::new();
+    let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
     let mut events = Events::new(EventSettings::new());
     'events: while let Some(e) = events.next(&mut window) {
@@ -176,6 +197,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                 for c in meta_commands {
                     match c {
                         MetaCommand::RestartGame => {
+                            /*
                             objs = restart_game(&mut gen,
                                                 &mut world,
                                                 &player_obj,
@@ -183,6 +205,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                                                 &grapple_obj,
                                                 &mut view_follower);
                             continue 'events;
+                            */
                         }
                         MetaCommand::RemoveObject(id) => {
                             ids_remove.push(id);
@@ -190,6 +213,8 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                         MetaCommand::CreateObject(obj) => {
                             objects_add.push(obj);
                         }
+                        MetaCommand::MessageObject(id, message) => {}
+                        _ => {}
                     }
                 }
 
@@ -209,34 +234,17 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
 
                 ids_remove.extend(clip_objects);
 
-                //  Get positions in gameobject vec from ids
-                let remove_positions = ids_remove.iter()
-                    .map(|id| {
-                        objs.iter().position(|obj| {
-                            let obj_id: u32;
-                            {
-                                let p = obj.physics.lock().unwrap();
-                                obj_id = p.get_id();
-                            }
-                            obj_id == *id
-                        })
-                    })
-                    .collect::<Vec<Option<usize>>>();
-
                 //  Remove objects
-                for remove in remove_positions {
-                    //  Destroy event
-                    remove.map(|pos| {
-                        {
-                            let mut p = objs[pos].physics.lock().unwrap();
-                            p.destroy(&world);
-                        }
-                        objs.remove(pos);
-                    });
+                for id in ids_remove {
+                    objs.binary_search_by(|o| o.id.cmp(&id))
+                        .map(|pos| objs.remove(pos));
                 }
 
                 //  Add new objects
-                objs.extend(objects_add);
+                if objects_add.len() > 0 {
+                    objs.extend(objects_add);
+                    objs.sort_by(|a, b| a.id.cmp(&b.id));
+                }
 
                 for o in &objs {
                     {
@@ -285,6 +293,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
     }
 }
 
+/*
 pub fn restart_game(gen: &mut Gen,
                     world: &mut World,
                     player: &GameObj,
@@ -310,9 +319,9 @@ pub fn restart_game(gen: &mut Gen,
     view_follower.follow_prev_y = view_follower.vt.y;
 
     let mut objs = Vec::new();
-    objs.push(grapple.clone());
-    objs.push(player.clone());
+    objs.push(grapple);
+    objs.push(player);
 
     objs
-
 }
+*/

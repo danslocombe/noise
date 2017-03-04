@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use self::rand::{Rng, thread_rng};
 
 use logic::Logical;
-use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, MetaCommandBuffer, MetaCommand};
+use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, CommandBuffer, MetaCommand};
 use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG,
                 Collision, CollisionHandler};
 use draw::GrphxRect;
@@ -40,15 +40,14 @@ const MAX_RUNSPEED: fphys = 85.0;
 
 //  TODO code reuse from player
 
-const BOUNCE_FORCE: fphys = 30.0;
+const BOUNCE_FORCE: fphys = 200.0;
 impl Logical for EnemyLogic {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &MetaCommandBuffer) {
+    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>) {
 
         let mut phys = self.physics.lock().unwrap();
         for c in &self.collision_buffer {
 
             if c.other_type.contains(BBO_PLAYER) {
-                println!("COLLISION");
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
@@ -66,6 +65,9 @@ impl Logical for EnemyLogic {
                 return;
             }
         }
+
+        //  Clear buffer
+        self.collision_buffer = Vec::new();
 
         let dt = args.dt as fphys;
 
@@ -185,9 +187,6 @@ pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> Game
         let mut phys = p.lock().unwrap();
         phys.collision_handler = Some(l.clone() as Arc<Mutex<CollisionHandler>>);
     }
-    GameObj {
-        draws: g,
-        physics: p,
-        logic: l.clone(),
-    }
+
+    GameObj::new(id, g, p, l)
 }

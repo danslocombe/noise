@@ -2,6 +2,7 @@ use game::fphys;
 
 pub type BBDescriptor = (BBProperties, BoundingBox);
 
+#[derive(Clone)]
 pub struct Collision {
     pub bb: BoundingBox,
     pub other_bb: BoundingBox,
