@@ -5,28 +5,29 @@ extern crate opengl_graphics;
 extern crate rand;
 extern crate rayon;
 
-use piston::event_loop::*;
-use piston::input::*;
-use glutin_window::GlutinWindow as Window;
-use opengl_graphics::GlGraphics;
-use std::sync::{Arc, Mutex};
 use self::rand::{Rng, thread_rng};
-use std::sync::mpsc::{channel, Sender, Receiver};
 
 use self::rayon::prelude::*;
-use std::cmp::Ordering;
-
-use logic::{Logical, DumbLogic};
+use block::{create_block, create_platform};
 use collision::Collision;
-use draw::{Drawable, draw_background, ViewTransform, ViewFollower, NoisyShader, Overlay};
-use physics::Physical;
-use world::World;
+use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
+           draw_background};
+use enemy::create as enemy_create;
 use gen::Gen;
+use glutin_window::GlutinWindow as Window;
+use grapple::create as grapple_create;
+
+use logic::{DumbLogic, Logical};
+use opengl_graphics::GlGraphics;
+use physics::Physical;
+use piston::event_loop::*;
+use piston::input::*;
 use player::PlayerLogic;
 use player::create as player_create;
-use grapple::create as grapple_create;
-use enemy::create as enemy_create;
-use block::{create_block, create_platform};
+use std::cmp::Ordering;
+use std::sync::{Arc, Mutex};
+use std::sync::mpsc::{Receiver, Sender, channel};
+use world::World;
 
 pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
@@ -128,8 +129,8 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
     let player_phys = player_obj.physics.clone();
 
     let grapple_id = world.generate_id();
-    let (grapple_obj, grapple_input_handler) = grapple_create(grapple_id,
-                                                              player_obj.physics.clone());
+    let (grapple_obj, grapple_input_handler) =
+        grapple_create(grapple_id, player_obj.physics.clone());
 
     objs.push(grapple_obj);
     objs.push(player_obj);
@@ -155,30 +156,41 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
         match e {
             Input::Update(u_args) => {
                 //  Generate world
-                for (x, y, platform_length) in gen.gen_to(view_follower.vt.x + 1000.0) {
+                for (x, y, platform_length) in
+                    gen.gen_to(view_follower.vt.x + 1000.0) {
                     match platform_length {
                         //  Create platform
                         Some(len) => {
-                            let p = create_platform(world.generate_id(), x, y, len, &world);
+                            let p = create_platform(world.generate_id(),
+                                                    x,
+                                                    y,
+                                                    len,
+                                                    &world);
                             objs.push(p);
                             //  Generate enemies on platform
                             for i in 1..(len / BLOCKSIZE).floor() as usize {
                                 let ix = i as fphys * BLOCKSIZE + x;
                                 if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                     let e_id = world.generate_id();
-                                    let e =
-                                        enemy_create(e_id, ix, y - BLOCKSIZE, player_phys.clone());
+                                    let e = enemy_create(e_id,
+                                                         ix,
+                                                         y - BLOCKSIZE,
+                                                         player_phys.clone());
                                     objs.push(e);
                                 }
                             }
                         }
                         //  Generate block and enemies on block
                         None => {
-                            let b = create_block(world.generate_id(), x, y, &world);
+                            let b =
+                                create_block(world.generate_id(), x, y, &world);
                             objs.push(b);
                             if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                 let e_id = world.generate_id();
-                                let e = enemy_create(e_id, x, y - BLOCKSIZE, player_phys.clone());
+                                let e = enemy_create(e_id,
+                                                     x,
+                                                     y - BLOCKSIZE,
+                                                     player_phys.clone());
                                 objs.push(e);
                             }
                         }
@@ -215,7 +227,9 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                         }
                         MetaCommand::MessageObject(id, message) => {
                             objs.binary_search_by(|o| o.id.cmp(&id))
-                                .map(|pos| { objs[pos].message_buffer.issue(message); });
+                                .map(|pos| {
+                                    objs[pos].message_buffer.issue(message);
+                                });
                         }
                         _ => {}
                     }
@@ -226,7 +240,8 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                     .iter()
                     .filter(|bb_descr| {
                         let (ref p, ref bb) = **bb_descr;
-                        bb.x + bb.w < view_follower.vt.x - DESTROY_BUFFER && p.id != player_id &&
+                        bb.x + bb.w < view_follower.vt.x - DESTROY_BUFFER &&
+                        p.id != player_id &&
                         p.id != grapple_id
                     })
                     .map(|bb_descr| {

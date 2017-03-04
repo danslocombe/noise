@@ -274,7 +274,11 @@ fn resolve_col_it_recurse(its: i32,
                 h: bb_test.h,
             };
             if on_ground && ystart == yend &&
-               !does_collide_bool(p, &bb_test_step, bbs, collide_types, pass_platforms) {
+               !does_collide_bool(p,
+                                  &bb_test_step,
+                                  bbs,
+                                  collide_types,
+                                  pass_platforms) {
                 resolve_col_it_recurse(its - 1,
                                        its_total,
                                        p,
@@ -288,7 +292,8 @@ fn resolve_col_it_recurse(its: i32,
                                        (xend, yend - STEPHEIGHT))
 
             } else {
-                let prop_prev = ((current_it - 1) as fphys) / (its_total as fphys);
+                let prop_prev = ((current_it - 1) as fphys) /
+                                (its_total as fphys);
                 let prev_x: fphys = xstart + (xend - xstart) * prop_prev;
                 let prev_y: fphys = ystart + (yend - ystart) * prop_prev;
                 PosDelta {

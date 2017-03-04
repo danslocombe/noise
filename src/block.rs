@@ -1,10 +1,11 @@
-use world::World;
-use collision::{BBProperties, BBO_BLOCK, BBO_PLATFORM};
+
+use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
+use draw::GrphxRect;
+use game::{BLOCKSIZE, GameObj, fphys};
 use logic::DumbLogic;
 use physics::PhysStatic;
-use game::{fphys, GameObj, BLOCKSIZE};
-use draw::GrphxRect;
 use tools::arc_mut;
+use world::World;
 
 pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
     let g = arc_mut(GrphxRect {
@@ -23,7 +24,12 @@ pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
     GameObj::new(id, g, p, l)
 }
 
-pub fn create_platform(id: u32, x: fphys, y: fphys, width: fphys, world: &World) -> GameObj {
+pub fn create_platform(id: u32,
+                       x: fphys,
+                       y: fphys,
+                       width: fphys,
+                       world: &World)
+                       -> GameObj {
     let g = arc_mut(GrphxRect {
         x: x,
         y: y,

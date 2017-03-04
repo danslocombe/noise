@@ -1,7 +1,8 @@
-use std::sync::mpsc::{channel, Sender, Receiver};
-use std::collections::HashMap;
 
-use collision::{BBProperties, BBDescriptor, BoundingBox};
+
+use collision::{BBDescriptor, BBProperties, BoundingBox};
+use std::collections::HashMap;
+use std::sync::mpsc::{Receiver, Sender, channel};
 
 //  Listens for updates on its receiver then updates its representation of the world
 //

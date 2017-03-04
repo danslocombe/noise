@@ -1,17 +1,19 @@
 extern crate rand;
 
-use piston::input::*;
-use std::sync::{Arc, Mutex};
-use self::rand::{Rng, thread_rng};
-
-use logic::Logical;
-use game::{fphys, GameObj, GRAVITY_UP, GRAVITY_DOWN, CommandBuffer, MetaCommand, ObjMessage};
-use collision::{BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, Collision};
-use draw::GrphxRect;
-use physics::{Physical, PhysDyn};
-use tools::{arc_mut, normalise};
 
 use self::EnemyState::*;
+use self::rand::{Rng, thread_rng};
+use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
+                BBProperties, Collision};
+use draw::GrphxRect;
+use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, MetaCommand,
+           ObjMessage, fphys};
+
+use logic::Logical;
+use physics::{PhysDyn, Physical};
+use piston::input::*;
+use std::sync::{Arc, Mutex};
+use tools::{arc_mut, normalise};
 
 pub const MAXSPEED: fphys = 200.0;
 const SIZE: fphys = 24.0;
@@ -109,13 +111,15 @@ impl Logical for EnemyLogic {
                 } else {
                     match movedir {
                         Some(xdir) => {
-                            if rng.gen_range(0.0, 100.0 * dt) < IDLE_STOP_CHANCE {
+                            if rng.gen_range(0.0, 100.0 * dt) <
+                               IDLE_STOP_CHANCE {
                                 self.state = EnemyIdle(None);
                             }
                             (xdir, false, false)
                         }
                         None => {
-                            if rng.gen_range(0.0, 100.0 * dt) < IDLE_MOVE_CHANCE {
+                            if rng.gen_range(0.0, 100.0 * dt) <
+                               IDLE_MOVE_CHANCE {
                                 let xdir = if rng.gen_range(0.0, 1.0) > 0.5 {
                                     1.0
                                 } else {
@@ -168,7 +172,11 @@ impl Logical for EnemyLogic {
     }
 }
 
-pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> GameObj {
+pub fn create(id: u32,
+              x: fphys,
+              y: fphys,
+              player: Arc<Mutex<Physical>>)
+              -> GameObj {
 
     let rect = GrphxRect {
         x: 0.0,
@@ -179,7 +187,14 @@ pub fn create(id: u32, x: fphys, y: fphys, player: Arc<Mutex<Physical>>) -> Game
     };
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_ENEMY);
-    let p = arc_mut(PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+    let p = arc_mut(PhysDyn::new(props,
+                                 x,
+                                 y,
+                                 1.0,
+                                 MAXSPEED,
+                                 SIZE,
+                                 SIZE,
+                                 g.clone()));
 
     let l = arc_mut(EnemyLogic {
         target: player,

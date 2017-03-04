@@ -6,9 +6,9 @@ extern crate opengl_graphics;
 extern crate bitflags;
 
 
-use piston::window::WindowSettings;
 use glutin_window::GlutinWindow as Window;
-use opengl_graphics::{Colored, Textured, GlGraphics, Shaders, OpenGL, GLSL};
+use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
+use piston::window::WindowSettings;
 
 mod block;
 mod collision;

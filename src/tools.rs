@@ -1,6 +1,7 @@
-use std::sync::{Arc, Mutex};
+
 
 use game::fphys;
+use std::sync::{Arc, Mutex};
 
 pub fn weight(current: fphys, new: fphys, weighting: fphys) -> fphys {
     (current * (weighting - 1.0) + new) / weighting

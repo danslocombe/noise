@@ -1,21 +1,24 @@
 extern crate graphics;
 
-use std::sync::{Arc, Mutex};
 
-use world::World;
+use game::fphys;
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
-use tools::weight;
 use player::PlayerLogic;
+use std::sync::{Arc, Mutex};
+use tools::weight;
 
-use game::fphys;
+use world::World;
 
 
 type Color = [f32; 4];
 
 pub trait Drawable {
-    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform);
+    fn draw(&self,
+            args: &RenderArgs,
+            ctx: &mut GlGraphics,
+            vt: &ViewTransform);
     fn set_position(&mut self, x: fphys, y: fphys);
     fn set_color(&mut self, color: Color);
 }
@@ -35,7 +38,10 @@ impl Drawable for GrphxNoDraw {
 }
 
 impl Drawable for GrphxContainer {
-    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform) {
+    fn draw(&self,
+            args: &RenderArgs,
+            ctx: &mut GlGraphics,
+            vt: &ViewTransform) {
         for arc_mut_d in &self.drawables {
             let d = arc_mut_d.lock().unwrap();
             let vt_mod = ViewTransform {
@@ -164,14 +170,20 @@ impl NoisyShader {
 }
 
 impl Drawable for GrphxRect {
-    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform) {
+    fn draw(&self,
+            args: &RenderArgs,
+            ctx: &mut GlGraphics,
+            vt: &ViewTransform) {
         use graphics::*;
 
         let r = [0.0, 0.0, self.w, self.h];
         let (x, y) = (self.x as f64, self.y as f64);
 
         ctx.draw(args.viewport(), |c, gl| {
-            let transform = c.transform.scale(vt.scale, vt.scale).trans(x, y).trans(-vt.x, -vt.y);
+            let transform = c.transform
+                .scale(vt.scale, vt.scale)
+                .trans(x, y)
+                .trans(-vt.x, -vt.y);
 
             rectangle(self.color, r, transform, gl);
         });
@@ -205,7 +217,10 @@ impl Overlay {
 }
 
 impl Drawable for Overlay {
-    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, _: &ViewTransform) {
+    fn draw(&self,
+            args: &RenderArgs,
+            ctx: &mut GlGraphics,
+            _: &ViewTransform) {
         use graphics::*;
         let hp;
         let hp_max;
@@ -238,8 +253,10 @@ pub fn draw_background(args: &RenderArgs, ctx: &mut GlGraphics) {
     ctx.draw(args.viewport(), |_, gl| { clear(CLEAR, gl); });
     ctx.draw(args.viewport(), |c, gl| {
         c.viewport.as_ref().map(|v| {
-            let r: [f64; 4] =
-                [v.rect[0] as f64, v.rect[1] as f64, v.rect[2] as f64, v.rect[3] as f64];
+            let r: [f64; 4] = [v.rect[0] as f64,
+                               v.rect[1] as f64,
+                               v.rect[2] as f64,
+                               v.rect[3] as f64];
             rectangle(BG, r, c.transform.trans(-r[0], -r[1]), gl);
         });
     });

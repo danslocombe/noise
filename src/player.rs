@@ -1,15 +1,16 @@
-use piston::input::*;
-use std::sync::{Arc, Mutex};
+
+use collision::{BBO_ALL, BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER,
+                BBO_PLAYER_DMG, BBOwnerType, BBProperties, Collision};
+use draw::{Drawable, GrphxRect};
+use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
+           MetaCommand, ObjMessage, fphys};
 
 use logic::Logical;
-use game::{fphys, GameObj, CommandBuffer, MetaCommand, InputHandler, GRAVITY_UP, GRAVITY_DOWN,
-           ObjMessage};
-use collision::{Collision, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,
-                BBO_PLAYER_DMG, BBO_PLATFORM, BBO_BLOCK};
-use draw::{Drawable, GrphxRect};
-use physics::{Physical, PhysDyn};
-use world::World;
+use physics::{PhysDyn, Physical};
+use piston::input::*;
+use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
+use world::World;
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<Drawable>>,
@@ -35,7 +36,9 @@ bitflags! {
 }
 
 impl PlayerLogic {
-    pub fn new(draw: Arc<Mutex<Drawable>>, physics: Arc<Mutex<PhysDyn>>) -> PlayerLogic {
+    pub fn new(draw: Arc<Mutex<Drawable>>,
+               physics: Arc<Mutex<PhysDyn>>)
+               -> PlayerLogic {
 
         PlayerLogic {
             draw: draw,
@@ -254,7 +257,10 @@ impl InputHandler for PlayerLogic {
     }
 }
 
-pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>) {
+pub fn create(id: u32,
+              x: fphys,
+              y: fphys)
+              -> (GameObj, Arc<Mutex<PlayerLogic>>) {
     let rect = GrphxRect {
         x: 0.0,
         y: 0.0,
@@ -264,7 +270,14 @@ pub fn create(id: u32, x: fphys, y: fphys) -> (GameObj, Arc<Mutex<PlayerLogic>>)
     };
     let g = arc_mut(rect);
     let props = BBProperties::new(id, BBO_PLAYER);
-    let p = arc_mut(PhysDyn::new(props, x, y, 1.0, MAXSPEED, SIZE, SIZE, g.clone()));
+    let p = arc_mut(PhysDyn::new(props,
+                                 x,
+                                 y,
+                                 1.0,
+                                 MAXSPEED,
+                                 SIZE,
+                                 SIZE,
+                                 g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
 

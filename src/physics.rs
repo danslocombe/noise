@@ -3,17 +3,20 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 
+
+use collision::*;
+use draw::Drawable;
+use game::{CommandBuffer, MetaCommand, ObjMessage, fphys};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Sender;
-
-use collision::*;
-use game::{fphys, CommandBuffer, MetaCommand, ObjMessage};
 use world::World;
-use draw::Drawable;
 
 pub trait Physical {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>, world: &World);
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            world: &World);
     fn apply_force(&mut self, xforce: fphys, yforce: fphys);
     fn get_position(&self) -> (fphys, fphys);
     fn get_width_height(&self) -> (fphys, fphys);
@@ -33,7 +36,13 @@ pub struct PhysStatic {
 }
 
 impl PhysStatic {
-    pub fn new(p: BBProperties, x: fphys, y: fphys, w: fphys, h: fphys, world: &World) -> Self {
+    pub fn new(p: BBProperties,
+               x: fphys,
+               y: fphys,
+               w: fphys,
+               h: fphys,
+               world: &World)
+               -> Self {
         let bb = BoundingBox {
             x: x,
             y: y,
@@ -107,7 +116,10 @@ impl PhysDyn {
 }
 
 impl Physical for PhysStatic {
-    fn tick(&mut self, _: &UpdateArgs, _: &CommandBuffer<MetaCommand>, _: &World) {
+    fn tick(&mut self,
+            _: &UpdateArgs,
+            _: &CommandBuffer<MetaCommand>,
+            _: &World) {
         //  Do nothing
     }
     fn apply_force(&mut self, _: fphys, _: fphys) {
@@ -140,7 +152,10 @@ impl Physical for PhysStatic {
 const TIMESCALE: fphys = 10.0;
 
 impl Physical for PhysDyn {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>, world: &World) {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            world: &World) {
         let dt = TIMESCALE * args.dt as fphys;
 
         let bbs = world.buffer();
@@ -179,7 +194,8 @@ impl Physical for PhysDyn {
             metabuffer.issue(MetaCommand::MessageObject(self.p.id,
                                                         ObjMessage::MCollision(collision.clone())));
 
-            let collision_flip = collision.flipNew(self.p.id, self.p.owner_type);
+            let collision_flip =
+                collision.flipNew(self.p.id, self.p.owner_type);
             metabuffer.issue(MetaCommand::MessageObject(collision.other_id,
                                                         ObjMessage::MCollision(collision_flip)));
 

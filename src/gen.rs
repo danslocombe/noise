@@ -1,9 +1,9 @@
 extern crate rand;
 
 use self::rand::{Rng, thread_rng};
-use std::f64;
 
 use game::fphys;
+use std::f64;
 
 const BLOCKWIDTH: fphys = 32.0;
 const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
@@ -66,21 +66,26 @@ impl Gen {
         while self.generated_to < x {
             if self.next_structure <= 0.0 {
                 let length = STRUCTURE_LENGTH_MIN +
-                             rand_gauss() * (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
+                             rand_gauss() *
+                             (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
 
                 self.next_structure = STRUCTURE_SPACING_MIN +
                                       rand_gauss() *
-                                      (STRUCTURE_SPACING_MAX - STRUCTURE_SPACING_MIN) +
+                                      (STRUCTURE_SPACING_MAX -
+                                       STRUCTURE_SPACING_MIN) +
                                       length;
 
                 r.extend(create_structure(self.generated_to,
-                                          self.last_block_y - STRUCTURE_PLATFORM_HEIGHT,
+                                          self.last_block_y -
+                                          STRUCTURE_PLATFORM_HEIGHT,
                                           length,
                                           1));
             }
             self.generated_to += self.blocksize;
             self.next_structure -= self.blocksize;
-            let y = self.gen_floor + STEPSIZE * (next_perlin(&mut self.octaves) / STEPSIZE).floor();
+            let y = self.gen_floor +
+                    STEPSIZE *
+                    (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             self.last_block_y = y;
             r.push((self.generated_to, y, None));
         }
@@ -115,9 +120,11 @@ fn create_structure(x: fphys,
     for i in 1..(length / BLOCKWIDTH).floor() as usize {
         let ix = i as fphys * BLOCKWIDTH + x;
 
-        if !created_next_floor && end - ix > length / 2.0 && (rand_gauss() < UPPER_FLOOR_P) {
+        if !created_next_floor && end - ix > length / 2.0 &&
+           (rand_gauss() < UPPER_FLOOR_P) {
             ret.extend(create_structure(ix,
-                                        y - BLOCKWIDTH - STRUCTURE_PLATFORM_HEIGHT,
+                                        y - BLOCKWIDTH -
+                                        STRUCTURE_PLATFORM_HEIGHT,
                                         2.0 * (end - ix) - length,
                                         height + 1));
             created_next_floor = true;
@@ -178,5 +185,6 @@ fn rand_gauss() -> f64 {
     const GAUSS_ITS: i32 = 8;
 
     let mut rng = thread_rng();
-    (0..GAUSS_ITS).fold(0.0, |x, _| x + rng.gen_range(0.0, 1.0)) / (GAUSS_ITS as f64)
+    (0..GAUSS_ITS).fold(0.0, |x, _| x + rng.gen_range(0.0, 1.0)) /
+    (GAUSS_ITS as f64)
 }

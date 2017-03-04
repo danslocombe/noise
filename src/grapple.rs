@@ -1,15 +1,16 @@
-use piston::input::*;
-use std::sync::{Arc, Mutex};
 
-use game::{GameObj, fphys, InputHandler, CommandBuffer, MetaCommand, ObjMessage};
-use collision::{BoundingBox, BBProperties, BBOwnerType, BBO_ALL, BBO_ENEMY, BBO_PLAYER,
-                BBO_PLAYER_DMG};
+use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
+                BBProperties, BoundingBox};
 use draw::{Drawable, ViewTransform};
+
+use game::{CommandBuffer, GameObj, InputHandler, MetaCommand, ObjMessage, fphys};
 use logic::Logical;
 use opengl_graphics::GlGraphics;
-use world::World;
 use physics::Physical;
+use piston::input::*;
+use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
+use world::World;
 
 pub struct GrappleHolster {
     pub grapple: Arc<Mutex<Grapple>>,
@@ -244,7 +245,10 @@ impl Grapple {
 const MAX_LENGTH_SQR: fphys = 200000.0;
 
 impl Physical for Grapple {
-    fn tick(&mut self, args: &UpdateArgs, metabuffer: &CommandBuffer<MetaCommand>, world: &World) {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            world: &World) {
         match self.state {
             GrappleState::GrappleNone => {}
             GrappleState::GrappleOut => {
@@ -272,11 +276,16 @@ impl Physical for Grapple {
                            props.owner_type.contains(BBO_ENEMY) {
                             continue;
                         }
-                        line_collide(end_x0, end_y0, self.end_x, self.end_y, bb)
+                        line_collide(end_x0,
+                                     end_y0,
+                                     self.end_x,
+                                     self.end_y,
+                                     bb)
                             .map(|(col_x, col_y)| {
                                 self.end_x = col_x;
                                 self.end_y = col_y;
-                                self.state = GrappleState::GrappleLocked(len_2.sqrt());
+                                self.state =
+                                    GrappleState::GrappleLocked(len_2.sqrt());
                             });
                     }
 
@@ -289,8 +298,9 @@ impl Physical for Grapple {
                 {
                     let mut p = self.player.lock().unwrap();
                     let (x, y) = p.get_position();
-                    let diff = ((x - self.end_x).powi(2) + (y - self.end_y).powi(2)).sqrt() -
-                               grapple_len;
+                    let diff = ((x - self.end_x).powi(2) +
+                                (y - self.end_y).powi(2))
+                        .sqrt() - grapple_len;
                     const GRAPPLE_ELAST: fphys = 0.25;
                     const GRAPPLE_DAMP: fphys = 0.001;
 
@@ -305,13 +315,15 @@ impl Physical for Grapple {
                         p.apply_force(g_force_x, g_force_y);
 
                         let (p_vel_x, p_vel_y) = p.get_vel();
-                        let dot = p_vel_x * (self.end_x - x) + p_vel_y * (self.end_y - y);
+                        let dot = p_vel_x * (self.end_x - x) +
+                                  p_vel_y * (self.end_y - y);
 
                         p.apply_force(-dot * GRAPPLE_DAMP * angle.cos(),
                                       -dot * GRAPPLE_DAMP * angle.sin());
 
                         if self.retracting {
-                            p.apply_force(RETRACT_FORCE * angle.cos(), RETRACT_FORCE * angle.sin());
+                            p.apply_force(RETRACT_FORCE * angle.cos(),
+                                          RETRACT_FORCE * angle.sin());
                         }
                     }
 
@@ -393,7 +405,13 @@ bitflags! {
     }
 }
 
-fn cs_code(x: fphys, y: fphys, x_min: fphys, x_max: fphys, y_min: fphys, y_max: fphys) -> CSFlags {
+fn cs_code(x: fphys,
+           y: fphys,
+           x_min: fphys,
+           x_max: fphys,
+           y_min: fphys,
+           y_max: fphys)
+           -> CSFlags {
     let mut ret_code = CS_IN;
     if x < x_min {
         ret_code |= CS_LEFT;
@@ -416,8 +434,10 @@ fn line_collide(mut start_x: fphys,
                 bb: &BoundingBox)
                 -> Option<(fphys, fphys)> {
 
-    let mut start_code = cs_code(start_x, start_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
-    let mut end_code = cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+    let mut start_code =
+        cs_code(start_x, start_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+    let mut end_code =
+        cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
 
     let mut x = start_x;
     let mut y = start_y;
@@ -443,28 +463,40 @@ fn line_collide(mut start_x: fphys,
             //  x = x0 + (1/slope) (y - y0)
 
             if outside.contains(CS_UP) {
-                x = start_x + (end_x - start_x) * (bb.y + bb.h - start_y) / (end_y - start_y);
+                x = start_x +
+                    (end_x - start_x) * (bb.y + bb.h - start_y) /
+                    (end_y - start_y);
                 y = bb.y + bb.h;
             } else if outside.contains(CS_DOWN) {
-                x = start_x + (end_x - start_x) * (bb.y - start_y) / (end_y - start_y);
+                x = start_x +
+                    (end_x - start_x) * (bb.y - start_y) / (end_y - start_y);
                 y = bb.y;
             } else if outside.contains(CS_RIGHT) {
                 x = bb.x + bb.w;
-                y = start_y + (end_y - start_y) * (bb.x + bb.w - start_x) / (end_x - start_x);
+                y = start_y +
+                    (end_y - start_y) * (bb.x + bb.w - start_x) /
+                    (end_x - start_x);
             } else if outside.contains(CS_LEFT) {
                 x = bb.x;
-                y = start_y + (end_y - start_y) * (bb.x - start_x) / (end_x - start_x);
+                y = start_y +
+                    (end_y - start_y) * (bb.x - start_x) / (end_x - start_x);
             }
 
             //  Move outside point to clip and prepare for next pass
             if outside == start_code {
                 start_x = x;
                 start_y = y;
-                start_code = cs_code(start_x, start_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+                start_code = cs_code(start_x,
+                                     start_y,
+                                     bb.x,
+                                     bb.x + bb.w,
+                                     bb.y,
+                                     bb.y + bb.h);
             } else {
                 end_x = x;
                 end_y = y;
-                end_code = cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+                end_code =
+                    cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
             }
         }
     }
@@ -492,13 +524,17 @@ impl GrappleDraw {
 }
 
 impl Drawable for GrappleDraw {
-    fn draw(&self, args: &RenderArgs, ctx: &mut GlGraphics, vt: &ViewTransform) {
+    fn draw(&self,
+            args: &RenderArgs,
+            ctx: &mut GlGraphics,
+            vt: &ViewTransform) {
         use graphics::*;
         if self.drawing {
             let l = [self.start_x, self.start_y, self.end_x, self.end_y];
             let color = [0.0, 0.0, 0.0, 1.0];
             ctx.draw(args.viewport(), |c, gl| {
-                let transform = c.transform.scale(vt.scale, vt.scale).trans(-vt.x, -vt.y);
+                let transform =
+                    c.transform.scale(vt.scale, vt.scale).trans(-vt.x, -vt.y);
                 line(color, 2.0, l, transform, gl);
             });
         }
@@ -511,7 +547,9 @@ impl Drawable for GrappleDraw {
     fn set_color(&mut self, _: [f32; 4]) {}
 }
 
-pub fn create(id: u32, player: Arc<Mutex<Physical>>) -> (GameObj, Arc<Mutex<InputHandler>>) {
+pub fn create(id: u32,
+              player: Arc<Mutex<Physical>>)
+              -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g: Arc<Mutex<GrappleDraw>> = arc_mut(GrappleDraw::new());
     let (holster, grapple) = GrappleHolster::create(id, player, g.clone());
     let holster_ref = arc_mut(holster);
