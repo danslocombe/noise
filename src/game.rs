@@ -13,6 +13,7 @@ use collision::Collision;
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
+use gen::{GhostBlock, GhostBlockType};
 use gen::Gen;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
@@ -161,19 +162,21 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
         match e {
             Input::Update(u_args) => {
                 //  Generate world
-                for (x, y, platform_length) in
-                    gen.gen_to(view_follower.vt.x + 1000.0) {
-                    match platform_length {
-                        //  Create platform
-                        Some(len) => {
+                for ghost_block in gen.gen_to(view_follower.vt.x + 1000.0) {
+                    let x = ghost_block.x;
+                    let y = ghost_block.y;
+                    let length = ghost_block.length;
+
+                    match ghost_block.block_type {
+                        GhostBlockType::GB_Platform => {
                             let p = create_platform(world.generate_id(),
                                                     x,
                                                     y,
-                                                    len,
+                                                    length,
                                                     &world);
                             objs.push(p);
                             //  Generate enemies on platform
-                            for i in 1..(len / BLOCKSIZE).floor() as usize {
+                            for i in 1..(length / BLOCKSIZE).floor() as usize {
                                 let ix = i as fphys * BLOCKSIZE + x;
                                 if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                     let e_id = world.generate_id();
@@ -185,12 +188,15 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                                 }
                             }
                             //  Generate tiles
-                            tiles.extend(tile_manager.create_from_platform(x, y, len));
+                            tiles.extend(tile_manager.create_from_platform(x, y, length));
                         }
                         //  Generate block and enemies on block
-                        None => {
-                            let b =
-                                create_block(world.generate_id(), x, y, &world);
+                        GhostBlockType::GB_Block => {
+                            let b = create_block(world.generate_id(),
+                                                 x,
+                                                 y,
+                                                 length,
+                                                 &world);
                             objs.push(b);
                             if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
                                 let e_id = world.generate_id();

@@ -6,11 +6,16 @@ use physics::PhysStatic;
 use tools::arc_mut;
 use world::World;
 
-pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
+pub fn create_block(id: u32,
+                    x: fphys,
+                    y: fphys,
+                    length: fphys,
+                    world: &World)
+                    -> GameObj {
     let g = arc_mut(GrphxRect {
         x: x,
         y: y,
-        w: BLOCKSIZE,
+        w: length,
         h: 1500.0,
         color: [1.0, 0.15, 0.15, 1.0],
     });
@@ -18,7 +23,7 @@ pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
         id: id,
         owner_type: BBO_BLOCK,
     };
-    let p = arc_mut(PhysStatic::new(props, x, y, BLOCKSIZE, BLOCKSIZE, world));
+    let p = arc_mut(PhysStatic::new(props, x, y, length, BLOCKSIZE, world));
     let l = arc_mut(DumbLogic {});
     GameObj::new(id, g, p, l)
 }

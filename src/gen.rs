@@ -33,6 +33,18 @@ pub struct Gen {
     octaves: Vec<PerlinOctave>,
 }
 
+pub enum GhostBlockType {
+    GB_Block,
+    GB_Platform,
+}
+
+pub struct GhostBlock {
+    pub x: fphys,
+    pub y: fphys,
+    pub length: fphys,
+    pub block_type: GhostBlockType,
+}
+
 const STEPSIZE: fphys = 4.0;
 impl Gen {
     pub fn new(blocksize: fphys, gen_floor: fphys) -> Gen {
@@ -62,7 +74,7 @@ impl Gen {
 
     }
 
-    pub fn gen_to(&mut self, x: fphys) -> Vec<(fphys, fphys, Option<fphys>)> {
+    pub fn gen_to(&mut self, x: fphys) -> Vec<GhostBlock> {
         let mut r = Vec::new();
         while self.generated_to < x {
             if self.next_structure <= 0.0 {
@@ -87,7 +99,12 @@ impl Gen {
                     STEPSIZE *
                     (next_perlin(&mut self.octaves) / STEPSIZE).floor();
             self.last_block_y = y;
-            r.push((self.generated_to, y, None));
+            r.push(GhostBlock {
+                x: self.generated_to,
+                y: y,
+                length: BLOCKWIDTH,
+                block_type: GhostBlockType::GB_Block,
+            });
         }
         r
     }
@@ -105,12 +122,17 @@ fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
 fn create_uniform_structure(x: fphys,
                             y: fphys,
                             length: fphys)
-                            -> Vec<(fphys, fphys, Option<fphys>)> {
+                            -> Vec<GhostBlock> {
     let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
     println!("{}", height);
     let mut ret = Vec::new();
     for i in 0..height {
-        ret.push((x, y - TILE_H * (i as fphys), Some(length)));
+        ret.push(GhostBlock {
+            x: x,
+            y: y - TILE_H * (i as fphys),
+            length: length,
+            block_type: GhostBlockType::GB_Platform,
+        });
     }
     ret
 }
