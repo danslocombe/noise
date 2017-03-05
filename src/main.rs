@@ -2,6 +2,7 @@ extern crate piston;
 extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
+extern crate piston_window;
 #[macro_use]
 extern crate bitflags;
 
@@ -21,6 +22,7 @@ mod logic;
 mod physics;
 mod player;
 mod shaders;
+mod tile;
 mod tools;
 mod world;
 
@@ -39,14 +41,19 @@ fn main() {
         .unwrap();
 
     println!("Loading shaders");
-    let mut fss = Shaders::new();
-    fss.set(GLSL::V1_50, shaders::FRAG);
-    let mut vss = Shaders::new();
-    vss.set(GLSL::V1_50, shaders::VERT);
+    let mut color_fss = Shaders::new();
+    color_fss.set(GLSL::V1_50, shaders::COLOR_FRAG);
+    let mut color_vss = Shaders::new();
+    color_vss.set(GLSL::V1_50, shaders::COLOR_VERT);
 
-    let c = Colored::from_vs_fs(opengl.to_glsl(), &vss, &fss).unwrap();
+    let mut tex_fss = Shaders::new();
+    tex_fss.set(GLSL::V1_50, shaders::TEX_FRAG);
+    let mut tex_vss = Shaders::new();
+    tex_vss.set(GLSL::V1_50, shaders::TEX_VERT);
 
-    let t = Textured::new(opengl.to_glsl());
+    let c = Colored::from_vs_fs(opengl.to_glsl(), &color_vss, &color_fss)
+        .unwrap();
+    let t = Textured::from_vs_fs(opengl.to_glsl(), &tex_vss, &tex_fss).unwrap();
 
     let context = GlGraphics::from_colored_textured(c, t);
     println!("Compiled shaders");

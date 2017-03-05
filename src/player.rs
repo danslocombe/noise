@@ -1,4 +1,3 @@
-
 use collision::{BBO_ALL, BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER,
                 BBO_PLAYER_DMG, BBOwnerType, BBProperties, Collision};
 use draw::{Drawable, GrphxRect};

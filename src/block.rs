@@ -1,4 +1,3 @@
-
 use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
 use draw::GrphxRect;
 use game::{BLOCKSIZE, GameObj, fphys};
@@ -13,7 +12,7 @@ pub fn create_block(id: u32, x: fphys, y: fphys, world: &World) -> GameObj {
         y: y,
         w: BLOCKSIZE,
         h: 1500.0,
-        color: [0.15, 0.15, 0.15, 1.0],
+        color: [1.0, 0.15, 0.15, 1.0],
     });
     let props = BBProperties {
         id: id,

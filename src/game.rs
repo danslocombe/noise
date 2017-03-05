@@ -27,6 +27,7 @@ use player::create as player_create;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use tile::{Tile, TileManager};
 use world::World;
 
 pub const GRAVITY_UP: fphys = 9.8;
@@ -109,6 +110,10 @@ const DESTROY_BUFFER: fphys = 1000.0;
 
 pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
 
+    let tile_manager = TileManager::load().unwrap();
+    let mut tiles: Vec<Tile> = Vec::new();
+    //tiles.push(Tile{texture : &tile_manager.pagodaBackLeft[0], x : 300.0, y : -250.0});
+
     let mut rng = thread_rng();
 
     //  Initialise world generator
@@ -179,6 +184,8 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                                     objs.push(e);
                                 }
                             }
+                            //  Generate tiles
+                            tiles.extend(tile_manager.create_from_platform(x, y, len));
                         }
                         //  Generate block and enemies on block
                         None => {
@@ -285,6 +292,10 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                 view_follower.update(&world);
 
                 draw_background(&r_args, &mut ctx);
+
+                for tile in &tiles {
+                    tile.draw(&r_args, &mut ctx, &view_follower.vt);
+                }
 
                 for o in &objs {
                     //  Draw all objects

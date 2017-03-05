@@ -1,4 +1,3 @@
-
 use game::{CommandBuffer, GameObj, MetaCommand, ObjMessage};
 use piston::input::UpdateArgs;
 pub trait Logical {

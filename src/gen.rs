@@ -4,6 +4,7 @@ use self::rand::{Rng, thread_rng};
 
 use game::fphys;
 use std::f64;
+use tile::TILE_H;
 
 const BLOCKWIDTH: fphys = 32.0;
 const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
@@ -11,7 +12,7 @@ const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 24.0;
 const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 12.0;
 const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 160.0;
 const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 12.0;
-const MAX_HEIGHT: u32 = 6;
+const MAX_HEIGHT: u32 = 12;
 
 //  Single perlin octave
 struct PerlinOctave {
@@ -75,11 +76,10 @@ impl Gen {
                                        STRUCTURE_SPACING_MIN) +
                                       length;
 
-                r.extend(create_structure(self.generated_to,
+                r.extend(create_uniform_structure(self.generated_to,
                                           self.last_block_y -
                                           STRUCTURE_PLATFORM_HEIGHT,
-                                          length,
-                                          1));
+                                          length));
             }
             self.generated_to += self.blocksize;
             self.next_structure -= self.blocksize;
@@ -101,6 +101,19 @@ fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
     af * f + bf * (1.0 - f)
 }
 
+
+fn create_uniform_structure(x: fphys,
+                            y: fphys,
+                            length: fphys)
+                            -> Vec<(fphys, fphys, Option<fphys>)> {
+    let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
+    println!("{}", height);
+    let mut ret = Vec::new();
+    for i in 0..height {
+        ret.push((x, y - TILE_H * (i as fphys), Some(length)));
+    }
+    ret
+}
 
 fn create_structure(x: fphys,
                     y: fphys,

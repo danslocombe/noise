@@ -1,4 +1,4 @@
-pub const VERT: &'static str = "
+pub const COLOR_VERT: &'static str = "
 #version 150 core
 in vec4 color;
 in vec2 pos;
@@ -14,7 +14,7 @@ void main() {
     gl_Position = vec4(pos, 0.0, 1.0);
 }";
 
-pub const FRAG: &'static str =
+pub const COLOR_FRAG: &'static str =
     "
 #version 150 core
 in vec4 v_Color;
@@ -23,8 +23,7 @@ in vec2 out_pos;
 uniform float time;
 uniform vec2 vel;
 
-\
-     out vec4 o_Color;
+out vec4 o_Color;
 
 float rand(vec2 co){
     return fract(sin(dot(co.xy \
@@ -41,7 +40,7 @@ float lig(vec4 c){
 #define SPEED_MIN 1
 
 #define \
-     NOISE_OTHER (0.0 / 100.0)
+     NOISE_OTHER (1.0 / 100.0)
 
 void main() {
 
@@ -60,7 +59,7 @@ void main() {
     o_Color = vec4(0.0, 0.0, 0.0, \
      1.0);
 
-    if (v_Color.r < rand(roundPos)) {
+    if (v_Color.r > rand(roundPos)) {
         o_Color.r = 1.0;
     }
     else {
@@ -68,20 +67,82 @@ void main() {
      o_Color.r = v_Color.r * NOISE_OTHER;
     }
 
-    if (v_Color.g < rand(roundPos)) {
+    if (v_Color.g > rand(roundPos)) {
         \
      o_Color.g = 1.0;
     }
     else {
-        o_Color.b = v_Color.b * NOISE_OTHER;
+        o_Color.g = v_Color.g * NOISE_OTHER;
     }
 
     if \
-     (v_Color.b < rand(roundPos)) {
+     (v_Color.b > rand(roundPos)) {
         o_Color.b = 1.0;
     }
     else {
-        o_Color.g = \
-     v_Color.g * NOISE_OTHER;
+        o_Color.b = \
+     v_Color.b * NOISE_OTHER;
     }
+}";
+
+pub const TEX_VERT: &'static str = "
+#version 150 core
+in vec2 pos;
+in vec2 uv;
+
+uniform sampler2D s_texture;
+uniform vec4 color;
+
+uniform float time;
+uniform vec2 vel;
+
+out vec2 v_UV;
+
+void main() {
+    v_UV = uv;
+    gl_Position = vec4(pos, 0.0, 1.0);
+}";
+
+pub const TEX_FRAG: &'static str =
+    "
+#version 150 core
+in vec2 v_UV;
+
+uniform sampler2D s_texture;
+uniform vec4 color;
+
+uniform float time;
+uniform vec2 vel;
+
+out vec4 o_Color;
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy \
+     ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+const float NOISE_SCALE = 32.0;
+
+void main() {
+    o_Color = texture(s_texture, v_UV) * color;
+
+    /*
+    vec4 c = texture(s_texture, v_UV) * color;
+    o_Color = vec4(0.0, 0.0, 0.0, 1.0);
+    vec2 seed = vec2(floor(v_UV.x * NOISE_SCALE) / NOISE_SCALE,
+                     floor(v_UV.y * NOISE_SCALE) / NOISE_SCALE);
+    vec2 r1 = vec2(seed.x + time, seed.y);
+    vec2 r2 = vec2(seed.x - time, seed.y);
+    vec2 r3 = vec2(seed.x, seed.y + time);
+
+    if (c.r > rand(r1) * 0.95) {
+        o_Color.r = 1.0;
+    }
+    if (c.g > rand(r2) * 0.95) {
+        o_Color.g = 1.0;
+    }
+    if (c.b > rand(r3) * 0.95) {
+        o_Color.b = 1.0;
+    }
+    */
 }";

@@ -12,7 +12,7 @@ use tools::weight;
 use world::World;
 
 
-type Color = [f32; 4];
+pub type Color = [f32; 4];
 
 pub trait Drawable {
     fn draw(&self,
@@ -92,7 +92,7 @@ impl ViewFollower {
             follow_id: id,
             w: 20.0,
             offset_factor: 30.0,
-            scale_mult: 1.0 / 800.0,
+            scale_mult: 1.0 / 700.0,
             follow_prev_x: 0.0,
             follow_prev_y: 0.0,
             x_max: 0.0,

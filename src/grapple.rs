@@ -1,4 +1,3 @@
-
 use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
                 BBProperties, BoundingBox};
 use draw::{Drawable, ViewTransform};
