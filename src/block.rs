@@ -2,7 +2,7 @@ extern crate rand;
 use self::rand::{Rng, thread_rng};
 
 use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
-use draw::GrphxRect;
+use draw::{GrphxNoDraw, GrphxRect};
 use enemy::create as enemy_create;
 use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, fphys};
 use gen::{GhostBlock, GhostBlockType};
@@ -40,13 +40,7 @@ pub fn create_platform(id: u32,
                        width: fphys,
                        world: &World)
                        -> GameObj {
-    let g = arc_mut(GrphxRect {
-        x: x,
-        y: y,
-        w: width,
-        h: 8.0,
-        color: [0.15, 0.15, 0.15, 1.0],
-    });
+    let g = arc_mut(GrphxNoDraw {});
     let props = BBProperties {
         id: id,
         owner_type: BBO_PLATFORM,

@@ -11,7 +11,7 @@ const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
 const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 24.0;
 const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 12.0;
 const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 160.0;
-const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 12.0;
+const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 14.0;
 const MAX_HEIGHT: u32 = 12;
 
 //  Single perlin octave
@@ -52,6 +52,7 @@ pub enum TileEdge {
 }
 pub enum GhostTileType {
     GT_PagodaBack(TileEdge),
+    GT_PagodaRoof(TileEdge),
 }
 
 pub struct GhostTile {
@@ -160,14 +161,29 @@ fn pagoda_platform_tiles(x: fphys, y: fphys, length: fphys) -> Vec<GhostTile> {
     ts.push(GhostTile::new(x,
                            y,
                            GhostTileType::GT_PagodaBack(TileEdge::TELeft)));
+    ts.push(GhostTile::new(x - TILE_W,
+                           y - TILE_H,
+                           GhostTileType::GT_PagodaRoof(TileEdge::TELeft)));
+    ts.push(GhostTile::new(x,
+                           y - TILE_H,
+                           GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
     let mut ix = x + TILE_W;
     while ix < x + length - TILE_W {
         ts.push(GhostTile::new(ix, y, GhostTileType::GT_PagodaBack(TileEdge::TECenter)));
+        ts.push(GhostTile::new(ix,
+                               y - TILE_H,
+                               GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
         ix += TILE_W;
     }
     ts.push(GhostTile::new(ix,
                            y,
                            GhostTileType::GT_PagodaBack(TileEdge::TERight)));
+    ts.push(GhostTile::new(ix,
+                           y - TILE_H,
+                           GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
+    ts.push(GhostTile::new(ix + TILE_W,
+                           y - TILE_H,
+                           GhostTileType::GT_PagodaRoof(TileEdge::TERight)));
     ts
 }
 
@@ -189,7 +205,7 @@ fn create_uniform_structure(x: fphys,
     let mut platforms = Vec::new();
     let mut tiles = Vec::new();
     for i in 0..height {
-        let iy = y - TILE_H * (i as fphys);
+        let iy = y - STRUCTURE_PLATFORM_HEIGHT * (i as fphys);
         tiles.extend(pagoda_platform_tiles(x, iy, length));
         platforms.push(GhostBlock {
             x: x,

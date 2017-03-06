@@ -17,7 +17,7 @@ use tools::{arc_mut, normalise};
 
 pub const MAXSPEED: fphys = 200.0;
 const SIZE: fphys = 24.0;
-const COLOR: [f32; 4] = [1.0, 0.0, 0.0, 1.0];
+const COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 enum EnemyState {
     EnemyIdle(Option<fphys>),

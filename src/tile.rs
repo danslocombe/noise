@@ -15,6 +15,9 @@ pub struct TileManager {
     pub pagodaBackRight: Texture,
     pub pagodaBack01: Texture,
     pub pagodaBack02: Texture,
+    pub pagodaRoofLeft: Texture,
+    pub pagodaRoofRight: Texture,
+    pub pagodaRoof01: Texture,
 }
 
 impl TileManager {
@@ -30,12 +33,21 @@ impl TileManager {
                                                        &ts)?;
         let pagodaBack02 = Texture::from_path_settings("textures/tile02.png",
                                                        &ts)?;
+        let pagodaRoofLeft =
+            Texture::from_path_settings("textures/roofL01.png", &ts)?;
+        let pagodaRoofRight =
+            Texture::from_path_settings("textures/roofR01.png", &ts)?;
+        let pagodaRoof01 = Texture::from_path_settings("textures/roof01.png",
+                                                       &ts)?;
         println!("Done!");
         Ok(TileManager {
             pagodaBackLeft: pagodaBackLeft,
             pagodaBackRight: pagodaBackRight,
             pagodaBack01: pagodaBack01,
             pagodaBack02: pagodaBack02,
+            pagodaRoofLeft: pagodaRoofLeft,
+            pagodaRoofRight: pagodaRoofRight,
+            pagodaRoof01: pagodaRoof01,
         })
     }
     pub fn create_from_platform<'a>(&'a self,
@@ -67,6 +79,13 @@ impl TileManager {
                             TileEdge::TERight => &self.pagodaBackRight,
                         }
                     }
+                    GhostTileType::GT_PagodaRoof(ref edge) => {
+                        match *edge {
+                            TileEdge::TELeft => &self.pagodaRoofLeft,
+                            TileEdge::TECenter => &self.pagodaRoof01,
+                            TileEdge::TERight => &self.pagodaRoofRight,
+                        }
+                    }
                 };
                 Tile::new(ghost.x, ghost.y, texture)
             })
@@ -91,7 +110,7 @@ impl<'a> Tile<'a> {
     }
 }
 
-pub const TILE_BASESCALE: fphys = 16.0;
+pub const TILE_BASESCALE: fphys = 8.0;
 pub const TILE_TEXW: fphys = 32.0;
 pub const TILE_TEXH: fphys = 28.0;
 pub const TILE_W: fphys = TILE_TEXW * TILE_BASESCALE;
