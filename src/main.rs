@@ -9,8 +9,8 @@ extern crate bitflags;
 
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
-use piston::window::WindowSettings;
 use opengl_graphics::shader_uniforms::*;
+use piston::window::WindowSettings;
 
 mod block;
 mod collision;
@@ -27,8 +27,8 @@ mod tile;
 mod tools;
 mod world;
 
-use game::game_loop;
 use draw::NoisyShader;
+use game::game_loop;
 
 pub const SCREEN_WIDTH: u32 = 640;
 pub const SCREEN_HEIGHT: u32 = 480;
@@ -72,7 +72,11 @@ fn main() {
     context.use_program(t_program);
     let uniform_time_tex = context.get_uniform::<SUFloat>("time_tex").unwrap();
 
-    let shader = NoisyShader::new(uniform_time, uniform_time_tex, uniform_vel, c_program, t_program);
+    let shader = NoisyShader::new(uniform_time,
+                                  uniform_time_tex,
+                                  uniform_vel,
+                                  c_program,
+                                  t_program);
 
     println!("Compiled shaders");
 

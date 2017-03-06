@@ -56,7 +56,7 @@ impl PlayerLogic {
 const START_HP: fphys = 100.0;
 const ENEMY_DMG: fphys = 25.0;
 
-const SIZE: fphys = 24.0;
+const SIZE: fphys = 28.0;
 
 const FRICTION: fphys = 0.7;
 const FRICTION_AIR: fphys = FRICTION * 0.5;

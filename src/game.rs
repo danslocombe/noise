@@ -108,7 +108,9 @@ pub trait InputHandler {
 const DESTROY_BUFFER: fphys = 1000.0;
 
 
-pub fn game_loop(mut window: Window, mut ctx: GlGraphics, mut shader : NoisyShader) {
+pub fn game_loop(mut window: Window,
+                 mut ctx: GlGraphics,
+                 mut shader: NoisyShader) {
 
     let tile_manager = TileManager::load().unwrap();
     let mut tiles: Vec<Tile> = Vec::new();

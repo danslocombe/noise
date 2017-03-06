@@ -1,7 +1,7 @@
 extern crate graphics;
 extern crate gl;
 
-use self::gl::types::{GLuint};
+use self::gl::types::GLuint;
 
 
 use game::fphys;
@@ -179,16 +179,20 @@ pub struct NoisyShader {
     obj_prev_x: fphys,
     obj_prev_y: fphys,
     weight: fphys,
-    uniform_time : ShaderUniform<SUFloat>,
-    uniform_time_tex : ShaderUniform<SUFloat>,
-    uniform_vel : ShaderUniform<SUVec2>,
-    colored_program : GLuint,
-    textured_program : GLuint,
-
+    uniform_time: ShaderUniform<SUFloat>,
+    uniform_time_tex: ShaderUniform<SUFloat>,
+    uniform_vel: ShaderUniform<SUVec2>,
+    colored_program: GLuint,
+    textured_program: GLuint,
 }
 
 impl NoisyShader {
-    pub fn new(u_time : ShaderUniform<SUFloat>, u_time_tex : ShaderUniform<SUFloat>, u_vel : ShaderUniform<SUVec2>, c_program : GLuint, t_program : GLuint) -> Self {
+    pub fn new(u_time: ShaderUniform<SUFloat>,
+               u_time_tex: ShaderUniform<SUFloat>,
+               u_vel: ShaderUniform<SUVec2>,
+               c_program: GLuint,
+               t_program: GLuint)
+               -> Self {
         NoisyShader {
             obj_id: None,
             time: 0.0,
@@ -197,32 +201,32 @@ impl NoisyShader {
             obj_prev_x: 0.0,
             obj_prev_y: 0.0,
             weight: 20.0,
-            uniform_time : u_time,
-            uniform_time_tex : u_time_tex,
-            uniform_vel : u_vel,
-            colored_program : c_program,
-            textured_program : t_program,
-
+            uniform_time: u_time,
+            uniform_time_tex: u_time_tex,
+            uniform_vel: u_vel,
+            colored_program: c_program,
+            textured_program: t_program,
         }
     }
 
-    pub fn set_following(&mut self, obj_id : u32) {
+    pub fn set_following(&mut self, obj_id: u32) {
         self.obj_id = Some(obj_id);
     }
-    pub fn set_colored(&self, ctx : &mut GlGraphics) {
+    pub fn set_colored(&self, ctx: &mut GlGraphics) {
         ctx.use_program(self.colored_program);
         self.uniform_time.set(ctx, self.time);
         self.uniform_vel.set(ctx, &[self.vel_x as f32, self.vel_y as f32]);
     }
-    pub fn set_textured(&self, ctx : &mut GlGraphics) {
+    pub fn set_textured(&self, ctx: &mut GlGraphics) {
         ctx.use_program(self.textured_program);
-        self.uniform_time_tex.set(ctx, self.time);
+        self.uniform_time_tex
+            .set(ctx, 1000.0 * self.time + self.obj_prev_x as f32);
     }
     pub fn update(&mut self, world: &World) {
 
         self.time = self.time + 0.001;
 
-        self.obj_id.map(|id| { 
+        self.obj_id.map(|id| {
             world.get(id).map(|(_, bb)| {
                 let bb_xvel = bb.x - self.obj_prev_x;
                 let bb_yvel = bb.y - self.obj_prev_y;

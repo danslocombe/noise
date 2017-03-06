@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
 
 pub const MAXSPEED: fphys = 200.0;
-const SIZE: fphys = 24.0;
+const SIZE: fphys = 48.0;
 const COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 enum EnemyState {
