@@ -30,7 +30,7 @@ pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
 pub const BLOCKSIZE: fphys = 32.0;
-pub const ENEMY_GEN_P: fphys = 0.0; //15;
+pub const ENEMY_GEN_P: fphys = 0.01;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -221,7 +221,15 @@ pub fn game_loop(mut window: Window,
                 //  Remove objects
                 for id in ids_remove {
                     let _ = objs.binary_search_by(|o| o.id.cmp(&id))
-                        .map(|pos| objs.remove(pos));
+                        .map(|pos| {
+                            {
+                                let mut phys =
+                                    objs[pos].physics.lock().unwrap();
+                                phys.destroy(&world);
+                            }
+                            objs.remove(pos);
+
+                        });
                 }
 
                 //  Clip tiles

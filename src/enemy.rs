@@ -36,7 +36,7 @@ const FRICTION_AIR: fphys = FRICTION * 0.5;
 const MOVEFORCE: fphys = 12.0;
 const MOVEFORCE_AIR: fphys = MOVEFORCE * 0.4;
 const JUMP_FORCE: fphys = 550.0;
-const MAX_RUNSPEED: fphys = 85.0;
+const MAX_RUNSPEED: fphys = 200.0;
 
 //  TODO code reuse from player
 
@@ -76,6 +76,7 @@ impl Logical for EnemyLogic {
             }
 
             if c.other_type.contains(BBO_PLAYER_DMG) {
+                println!("bad");
                 metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
                 return;
             }
