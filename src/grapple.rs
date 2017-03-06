@@ -52,7 +52,7 @@ impl GrappleHolster {
     }
 }
 
-const GRAPPLE_SPEED: fphys = 2000.0;
+const GRAPPLE_SPEED: fphys = 1500.0;
 const RETRACT_SPEED: fphys = 400.0;
 const RETRACT_FORCE: fphys = 15.0;
 const RETRACT_EPSILON: fphys = 15.0;
@@ -241,7 +241,7 @@ impl Grapple {
     }
 }
 
-const MAX_LENGTH_SQR: fphys = 200000.0;
+const MAX_LENGTH_SQR: fphys = 240000.0;
 
 impl Physical for Grapple {
     fn tick(&mut self,

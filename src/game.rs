@@ -27,6 +27,7 @@ use player::create as player_create;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use std::time::{Duration, SystemTime};
 use tile::{TILE_W, Tile, TileManager};
 use world::World;
 
@@ -154,6 +155,8 @@ pub fn game_loop(mut window: Window,
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
+    let mut prev_time = SystemTime::now();
+
     let mut events = Events::new(EventSettings::new());
     'events: while let Some(e) = events.next(&mut window) {
         //  Get update from window and match against appropriate type
@@ -256,6 +259,11 @@ pub fn game_loop(mut window: Window,
 
             }
             Input::Render(r_args) => {
+                let dt = prev_time.elapsed().unwrap();
+                prev_time = SystemTime::now();
+                print!("fps {}\r",
+                       1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64);
+
                 view_follower.update(&world);
 
                 draw_background(&r_args, &mut ctx);

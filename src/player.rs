@@ -59,8 +59,8 @@ const ENEMY_DMG: fphys = 25.0;
 const SIZE: fphys = 28.0;
 
 const FRICTION: fphys = 0.7;
-const FRICTION_AIR: fphys = FRICTION * 0.5;
-const MOVEFORCE: fphys = 10.0;
+const FRICTION_AIR: fphys = FRICTION * 0.35;
+const MOVEFORCE: fphys = 15.0;
 const MOVEFORCE_AIR: fphys = MOVEFORCE * 0.4;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED: fphys = 75.0;
@@ -69,7 +69,7 @@ const DASH_DURATION: fphys = 0.1;
 const DASH_INVULN: fphys = 0.3;
 const DASH_FORCE: fphys = 300.0;
 const JUMP_CD: fphys = 0.5;
-pub const MAXSPEED: fphys = 200.0;
+pub const MAXSPEED: fphys = 300.0;
 
 const DAMAGE_CD: fphys = 0.2;
 
@@ -168,7 +168,8 @@ impl Logical for PlayerLogic {
                 let force = if phys.on_ground {
                     MOVEFORCE
                 } else {
-                    MOVEFORCE_AIR
+                    //MOVEFORCE_AIR
+                    MOVEFORCE
                 };
                 phys.apply_force(force * xdir, 0.0);
             } else {
