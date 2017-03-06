@@ -53,7 +53,7 @@ impl PlayerLogic {
 }
 
 const START_HP: fphys = 100.0;
-const ENEMY_DMG: fphys = 25.0;
+const ENEMY_DMG: fphys = 22.0;
 
 const SIZE: fphys = 28.0;
 
@@ -70,9 +70,10 @@ const DASH_FORCE: fphys = 300.0;
 const JUMP_CD: fphys = 0.5;
 pub const MAXSPEED: fphys = 300.0;
 
-const DAMAGE_CD: fphys = 0.2;
+const DAMAGE_CD: fphys = 0.4;
 
-const ENEMY_FORCE: fphys = 1000.0;
+const ENEMY_BUMP_FORCE: fphys = 400.0;
+const ENEMY_SHOVE_FORCE: fphys = 800.0;
 
 const COLOR_NORMAL: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH: [f32; 4] = [0.3, 0.9, 0.9, 1.0];
@@ -107,13 +108,22 @@ impl Logical for PlayerLogic {
 
         //  Handle collisions from last tick
         for c in &self.collision_buffer {
-            if c.other_type.contains(BBO_ENEMY) && self.damage_cd <= 0.0 {
-                self.damage_cd = DAMAGE_CD;
+            if c.other_type.contains(BBO_ENEMY) {
+
+                let force: fphys;
+                if self.damage_cd <= 0.0 &&
+                   self.dash_cd < DASH_CD - DASH_INVULN {
+                    //  Take damage
+                    self.damage_cd = DAMAGE_CD;
+                    self.hp -= ENEMY_DMG;
+                    force = ENEMY_SHOVE_FORCE
+                } else {
+                    force = ENEMY_BUMP_FORCE
+                }
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * ENEMY_FORCE, -ny * ENEMY_FORCE);
-                self.hp -= ENEMY_DMG;
+                phys.apply_force(-nx * force, -ny * force);
             }
         }
         //  Reset collisions
@@ -207,7 +217,7 @@ impl Logical for PlayerLogic {
             if self.dash_cd < DASH_CD - DASH_INVULN {
                 blocks | BBO_ENEMY
             } else {
-                blocks
+                blocks | BBO_ENEMY
             }
         };
     }

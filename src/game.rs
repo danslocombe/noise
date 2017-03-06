@@ -125,7 +125,7 @@ pub fn game_loop(mut window: Window,
     let mut input_handlers = Vec::new();
 
     let player_id = world.generate_id();
-    let (player_obj, player_logic) = player_create(player_id, 300.0, -250.0);
+    let (player_obj, player_logic) = player_create(player_id, 800.0, -250.0);
     let player_phys = player_obj.physics.clone();
 
     let grapple_id = world.generate_id();

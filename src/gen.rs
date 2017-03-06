@@ -89,7 +89,7 @@ impl Gen {
             generated_to: 0.0,
             gen_floor: gen_floor,
             last_block_y: 0.0,
-            next_structure: 256.0,
+            next_structure: 1024.0,
             octaves: os,
         }
     }

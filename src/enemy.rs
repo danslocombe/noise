@@ -76,7 +76,6 @@ impl Logical for EnemyLogic {
             }
 
             if c.other_type.contains(BBO_PLAYER_DMG) {
-                println!("bad");
                 metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
                 return;
             }
