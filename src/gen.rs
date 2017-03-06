@@ -104,9 +104,11 @@ impl Gen {
         let mut r = Vec::new();
         while self.generated_to < x {
             if self.next_structure <= 0.0 {
-                let length = STRUCTURE_LENGTH_MIN +
-                             rand_gauss() *
-                             (STRUCTURE_LENGTH_MAX - STRUCTURE_LENGTH_MIN);
+                let length_initial = STRUCTURE_LENGTH_MIN +
+                                     rand_gauss() *
+                                     (STRUCTURE_LENGTH_MAX -
+                                      STRUCTURE_LENGTH_MIN);
+                let length = (length_initial / TILE_W).round() * TILE_W;
 
                 self.next_structure = STRUCTURE_SPACING_MIN +
                                       rand_gauss() *

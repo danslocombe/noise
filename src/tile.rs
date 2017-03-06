@@ -74,6 +74,7 @@ impl TileManager {
     }
 }
 
+#[derive(Clone)]
 pub struct Tile<'a> {
     pub texture: &'a Texture,
     pub x: fphys,

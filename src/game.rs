@@ -8,12 +8,11 @@ extern crate rayon;
 use self::rand::{Rng, thread_rng};
 
 use self::rayon::prelude::*;
-use block::{create_block, create_platform};
+use block::{blocks_from_ghosts, create_block, create_platform};
 use collision::Collision;
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
-use gen::{GhostBlock, GhostBlockType};
 use gen::Gen;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
@@ -28,14 +27,14 @@ use player::create as player_create;
 use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use tile::{Tile, TileManager};
+use tile::{TILE_W, Tile, TileManager};
 use world::World;
 
 pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
 pub const BLOCKSIZE: fphys = 32.0;
-const ENEMY_GEN_P: fphys = 0.015;
+pub const ENEMY_GEN_P: fphys = 0.015;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -113,9 +112,6 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
 
     let tile_manager = TileManager::load().unwrap();
     let mut tiles: Vec<Tile> = Vec::new();
-    //tiles.push(Tile{texture : &tile_manager.pagodaBackLeft[0], x : 300.0, y : -250.0});
-
-    let mut rng = thread_rng();
 
     //  Initialise world generator
     let mut gen = Gen::new(BLOCKSIZE, 500.0);
@@ -165,54 +161,9 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                 let (ghost_tiles, ghost_blocks) =
                     gen.gen_to(view_follower.vt.x + 1000.0);
                 tiles.extend(tile_manager.from_ghosts(ghost_tiles));
-                for ghost_block in ghost_blocks {
-                    let x = ghost_block.x;
-                    let y = ghost_block.y;
-                    let length = ghost_block.length;
-
-                    match ghost_block.block_type {
-                        GhostBlockType::GB_Platform => {
-                            let p = create_platform(world.generate_id(),
-                                                    x,
-                                                    y,
-                                                    length,
-                                                    &world);
-                            objs.push(p);
-                            //  Generate enemies on platform
-                            for i in 1..(length / BLOCKSIZE).floor() as usize {
-                                let ix = i as fphys * BLOCKSIZE + x;
-                                if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
-                                    let e_id = world.generate_id();
-                                    let e = enemy_create(e_id,
-                                                         ix,
-                                                         y - BLOCKSIZE,
-                                                         player_phys.clone());
-                                    objs.push(e);
-                                }
-                            }
-                            //  Generate tiles
-                        }
-                        //  Generate block and enemies on block
-                        GhostBlockType::GB_Block => {
-                            let b = create_block(world.generate_id(),
-                                                 x,
-                                                 y,
-                                                 length,
-                                                 &world);
-                            objs.push(b);
-                            if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {
-                                let e_id = world.generate_id();
-                                let e = enemy_create(e_id,
-                                                     x,
-                                                     y - BLOCKSIZE,
-                                                     player_phys.clone());
-                                objs.push(e);
-                            }
-                        }
-                    }
-
-                }
-
+                objs.extend(blocks_from_ghosts(ghost_blocks,
+                                               player_phys.clone(),
+                                               &mut world));
                 //  Update bounding box list
                 world.update();
 
@@ -251,12 +202,12 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                 }
 
                 //  Get objects offscreen to remove
+                let clip_x = view_follower.vt.x - DESTROY_BUFFER;
                 let clip_objects = world.buffer()
                     .iter()
                     .filter(|bb_descr| {
                         let (ref p, ref bb) = **bb_descr;
-                        bb.x + bb.w < view_follower.vt.x - DESTROY_BUFFER &&
-                        p.id != player_id &&
+                        bb.x + bb.w < clip_x && p.id != player_id &&
                         p.id != grapple_id
                     })
                     .map(|bb_descr| {
@@ -272,6 +223,12 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                     objs.binary_search_by(|o| o.id.cmp(&id))
                         .map(|pos| objs.remove(pos));
                 }
+
+                //  Clip tiles
+                tiles = tiles.iter()
+                    .cloned()
+                    .filter(|tile| tile.x + TILE_W > clip_x)
+                    .collect::<Vec<Tile>>();
 
                 //  Add new objects
                 if objects_add.len() > 0 {
