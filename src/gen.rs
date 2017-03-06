@@ -201,7 +201,6 @@ fn create_uniform_structure(x: fphys,
                             length: fphys)
                             -> (Vec<GhostTile>, Vec<GhostBlock>) {
     let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
-    println!("{}", height);
     let mut platforms = Vec::new();
     let mut tiles = Vec::new();
     for i in 0..height {

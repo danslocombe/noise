@@ -262,11 +262,14 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                     tile.draw(&r_args, &mut ctx, &view_follower.vt);
                 }
 
+                let view_rect = &view_follower.vt.to_rectangle();
                 for o in &objs {
                     //  Draw all objects
                     //  Currently no concept of depth
                     let gphx = o.draws.lock().unwrap();
-                    gphx.draw(&r_args, &mut ctx, &view_follower.vt);
+                    if gphx.should_draw(&view_rect) {
+                        gphx.draw(&r_args, &mut ctx, &view_follower.vt);
+                    }
                 }
                 overlay.draw(&r_args, &mut ctx, &view_follower.vt);
             }

@@ -1,6 +1,7 @@
-use draw::{Drawable, ViewTransform};
 
-use draw::Color;
+
+use draw::{Color, Rectangle};
+use draw::{Drawable, ViewTransform};
 use game::fphys;
 use gen::{GhostTile, GhostTileType, TileEdge};
 use graphics::Transformed;
@@ -133,4 +134,9 @@ impl<'a> Drawable for Tile<'a> {
     }
     fn set_position(&mut self, x: fphys, y: fphys) {}
     fn set_color(&mut self, color: Color) {}
+    fn should_draw(&self, r: &Rectangle) -> bool {
+        (self.x + TILE_W > r.x && self.x < r.x + r.w) ||
+        (self.y + TILE_H > r.h && self.y < r.y + r.h)
+
+    }
 }

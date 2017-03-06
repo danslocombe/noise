@@ -28,13 +28,17 @@ mod world;
 
 use game::game_loop;
 
+pub const SCREEN_WIDTH: u32 = 640;
+pub const SCREEN_HEIGHT: u32 = 480;
+
 fn main() {
 
     let opengl = OpenGL::V3_2;
     println!("Loading opengl");
 
     // Create an Glutin window.
-    let window: Window = WindowSettings::new("noise", [640, 480])
+    let window: Window = WindowSettings::new("noise",
+                                             [SCREEN_WIDTH, SCREEN_HEIGHT])
         .opengl(opengl)
         .exit_on_esc(true)
         .build()

@@ -1,6 +1,6 @@
 use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
                 BBProperties, BoundingBox};
-use draw::{Drawable, ViewTransform};
+use draw::{Drawable, Rectangle, ViewTransform};
 
 use game::{CommandBuffer, GameObj, InputHandler, MetaCommand, ObjMessage, fphys};
 use logic::Logical;
@@ -544,6 +544,11 @@ impl Drawable for GrappleDraw {
     }
 
     fn set_color(&mut self, _: [f32; 4]) {}
+
+
+    fn should_draw(&self, r: &Rectangle) -> bool {
+        true
+    }
 }
 
 pub fn create(id: u32,

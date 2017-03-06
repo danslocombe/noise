@@ -14,6 +14,24 @@ use world::World;
 
 pub type Color = [f32; 4];
 
+pub struct Rectangle {
+    pub x: fphys,
+    pub y: fphys,
+    pub w: fphys,
+    pub h: fphys,
+}
+
+impl Rectangle {
+    pub fn new(x: fphys, y: fphys, w: fphys, h: fphys) -> Self {
+        Rectangle {
+            x: x,
+            y: y,
+            w: w,
+            h: h,
+        }
+    }
+}
+
 pub trait Drawable {
     fn draw(&self,
             args: &RenderArgs,
@@ -21,6 +39,7 @@ pub trait Drawable {
             vt: &ViewTransform);
     fn set_position(&mut self, x: fphys, y: fphys);
     fn set_color(&mut self, color: Color);
+    fn should_draw(&self, &Rectangle) -> bool;
 }
 
 pub struct GrphxContainer {
@@ -35,6 +54,9 @@ impl Drawable for GrphxNoDraw {
     fn draw(&self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
     fn set_position(&mut self, _: fphys, _: fphys) {}
     fn set_color(&mut self, _: Color) {}
+    fn should_draw(&self, _: &Rectangle) -> bool {
+        false
+    }
 }
 
 impl Drawable for GrphxContainer {
@@ -56,7 +78,19 @@ impl Drawable for GrphxContainer {
         self.x_offset = x;
         self.y_offset = y;
     }
-    fn set_color(&mut self, _: Color) {}
+    fn set_color(&mut self, _: Color) {
+        unimplemented!();
+    }
+    fn should_draw(&self, r: &Rectangle) -> bool {
+        //  Use fold?
+        for arc_mut_d in &self.drawables {
+            let d = arc_mut_d.lock().unwrap();
+            if d.should_draw(r) {
+                return true;
+            }
+        }
+        false
+    }
 }
 
 pub struct GrphxRect {
@@ -71,6 +105,15 @@ pub struct ViewTransform {
     pub x: fphys,
     pub y: fphys,
     pub scale: fphys,
+}
+
+impl ViewTransform {
+    pub fn to_rectangle(&self) -> Rectangle {
+        Rectangle::new(self.x,
+                       self.y,
+                       self.x + super::SCREEN_WIDTH as fphys,
+                       self.y + super::SCREEN_HEIGHT as fphys)
+    }
 }
 
 pub struct ViewFollower {
@@ -195,6 +238,11 @@ impl Drawable for GrphxRect {
     fn set_color(&mut self, color: Color) {
         self.color = color;
     }
+    fn should_draw(&self, r: &Rectangle) -> bool {
+        (self.x + self.w > r.x && self.x < r.x + r.w) ||
+        (self.y + self.h > r.h && self.y < r.y + r.h)
+
+    }
 }
 
 pub struct Overlay {
@@ -243,6 +291,10 @@ impl Drawable for Overlay {
     }
     fn set_color(&mut self, color: Color) {
         self.hpbar_c = color;
+    }
+
+    fn should_draw(&self, r: &Rectangle) -> bool {
+        true
     }
 }
 
