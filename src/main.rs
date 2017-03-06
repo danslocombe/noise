@@ -6,6 +6,9 @@ extern crate piston_window;
 #[macro_use]
 extern crate bitflags;
 
+extern crate cpuprofiler;
+
+use self::cpuprofiler::PROFILER;
 
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
@@ -59,5 +62,7 @@ fn main() {
     println!("Compiled shaders");
 
     println!("Starting");
+    PROFILER.lock().unwrap().start("./update.profile").unwrap();
     game_loop(window, context);
+    PROFILER.lock().unwrap().stop().unwrap();
 }

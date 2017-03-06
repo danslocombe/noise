@@ -16,3 +16,4 @@ piston2d-opengl_graphics = { git = "https://github.com/danslocombe/opengl_graphi
 bitflags = "0.7.0"
 rayon = "0.6.0"
 insertion-sort = "0.1.0"
+cpuprofiler = "0.0.3"
