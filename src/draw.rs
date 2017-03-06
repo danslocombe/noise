@@ -277,17 +277,22 @@ pub struct Overlay {
     player: Arc<Mutex<PlayerLogic>>,
     hpbar_h: fphys,
     hpbar_yo: fphys,
+    border: fphys,
     hpbar_c: Color,
+    hpbar_border_c: Color,
 }
 
 impl Overlay {
     pub fn new(player: Arc<Mutex<PlayerLogic>>) -> Self {
-        const C: Color = [0.0, 1.0, 0.985, 1.0];
+        const COLOR: Color = [1.0, 1.0, 1.0, 1.0];
+        const COLOR_BORDER: Color = [0.0, 0.0, 0.0, 1.0];
         Overlay {
             player: player,
             hpbar_h: 9.0,
             hpbar_yo: 2.0,
-            hpbar_c: C,
+            border: 2.0,
+            hpbar_c: COLOR,
+            hpbar_border_c: COLOR_BORDER,
         }
     }
 }
@@ -311,6 +316,13 @@ impl Drawable for Overlay {
         let h = self.hpbar_h;
         let w = viewr[2] as f64 * (1.0 - (hp_max - hp) / hp_max);
         let r = [x, y, w, h];
+        let r_border = [x - self.border,
+                        y - self.border,
+                        w + 2.0 * self.border,
+                        h + 2.0 * self.border];
+        ctx.draw(args.viewport(), |c, gl| {
+            rectangle(self.hpbar_border_c, r_border, c.transform, gl);
+        });
         ctx.draw(args.viewport(),
                  |c, gl| { rectangle(self.hpbar_c, r, c.transform, gl); });
     }

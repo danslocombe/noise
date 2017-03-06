@@ -187,6 +187,7 @@ impl Logical for PlayerLogic {
             if phys.on_ground {
                 if self.jump_cd <= 0.0 && self.input.contains(PI_UP) {
                     phys.apply_force(0.0, -JUMP_FORCE);
+                    phys.set_velocity(xvel, 0.0);
                     self.jump_cd = JUMP_CD;
                 }
             } else {
