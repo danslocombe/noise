@@ -62,7 +62,7 @@ pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
         let length = ghost_block.length;
 
         match ghost_block.block_type {
-            GhostBlockType::GB_Platform => {
+            GhostBlockType::GBPlatform => {
                 let p =
                     create_platform(world.generate_id(), x, y, length, &world);
                 objs.push(p);
@@ -80,7 +80,7 @@ pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
                 }
             }
             //  Generate block and enemies on block
-            GhostBlockType::GB_Block => {
+            GhostBlockType::GBBlock => {
                 let b = create_block(world.generate_id(), x, y, length, &world);
                 objs.push(b);
                 if rng.gen_range(0.0, 1.0) < ENEMY_GEN_P {

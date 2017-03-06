@@ -11,7 +11,7 @@ pub struct Collision {
 }
 
 impl Collision {
-    pub fn flipNew(&self, id: u32, our_type: BBOwnerType) -> Self {
+    pub fn flip_new(&self, id: u32, our_type: BBOwnerType) -> Self {
         Collision {
             bb: self.other_bb.clone(),
             other_bb: self.bb.clone(),

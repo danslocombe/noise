@@ -34,8 +34,8 @@ pub struct Gen {
 }
 
 pub enum GhostBlockType {
-    GB_Block,
-    GB_Platform,
+    GBBlock,
+    GBPlatform,
 }
 
 pub struct GhostBlock {
@@ -51,8 +51,8 @@ pub enum TileEdge {
     TERight,
 }
 pub enum GhostTileType {
-    GT_PagodaBack(TileEdge),
-    GT_PagodaRoof(TileEdge),
+    GTPagodaBack(TileEdge),
+    GTPagodaRoof(TileEdge),
 }
 
 pub struct GhostTile {
@@ -124,7 +124,7 @@ impl Gen {
                     x: self.generated_to,
                     y: self.last_block_y,
                     length: length,
-                    block_type: GhostBlockType::GB_Block,
+                    block_type: GhostBlockType::GBBlock,
                 });
 
                 //  Bulk of structure
@@ -147,7 +147,7 @@ impl Gen {
                     x: self.generated_to,
                     y: y,
                     length: BLOCKWIDTH,
-                    block_type: GhostBlockType::GB_Block,
+                    block_type: GhostBlockType::GBBlock,
                 });
             }
         }
@@ -159,30 +159,30 @@ fn pagoda_platform_tiles(x: fphys, y: fphys, length: fphys) -> Vec<GhostTile> {
     let mut ts = Vec::new();
     ts.push(GhostTile::new(x,
                            y,
-                           GhostTileType::GT_PagodaBack(TileEdge::TELeft)));
+                           GhostTileType::GTPagodaBack(TileEdge::TELeft)));
     ts.push(GhostTile::new(x - TILE_W,
                            y - TILE_H,
-                           GhostTileType::GT_PagodaRoof(TileEdge::TELeft)));
+                           GhostTileType::GTPagodaRoof(TileEdge::TELeft)));
     ts.push(GhostTile::new(x,
                            y - TILE_H,
-                           GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
+                           GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
     let mut ix = x + TILE_W;
     while ix < x + length - TILE_W {
-        ts.push(GhostTile::new(ix, y, GhostTileType::GT_PagodaBack(TileEdge::TECenter)));
+        ts.push(GhostTile::new(ix, y, GhostTileType::GTPagodaBack(TileEdge::TECenter)));
         ts.push(GhostTile::new(ix,
                                y - TILE_H,
-                               GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
+                               GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
         ix += TILE_W;
     }
     ts.push(GhostTile::new(ix,
                            y,
-                           GhostTileType::GT_PagodaBack(TileEdge::TERight)));
+                           GhostTileType::GTPagodaBack(TileEdge::TERight)));
     ts.push(GhostTile::new(ix,
                            y - TILE_H,
-                           GhostTileType::GT_PagodaRoof(TileEdge::TECenter)));
+                           GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
     ts.push(GhostTile::new(ix + TILE_W,
                            y - TILE_H,
-                           GhostTileType::GT_PagodaRoof(TileEdge::TERight)));
+                           GhostTileType::GTPagodaRoof(TileEdge::TERight)));
     ts
 }
 
@@ -209,7 +209,7 @@ fn create_uniform_structure(x: fphys,
             x: x,
             y: iy,
             length: length,
-            block_type: GhostBlockType::GB_Platform,
+            block_type: GhostBlockType::GBPlatform,
         });
     }
     (tiles, platforms)

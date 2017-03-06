@@ -3,8 +3,7 @@ extern crate rand;
 
 use self::EnemyState::*;
 use self::rand::{Rng, thread_rng};
-use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
-                BBProperties, Collision};
+use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBProperties, Collision};
 use draw::GrphxRect;
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, MetaCommand,
            ObjMessage, fphys};

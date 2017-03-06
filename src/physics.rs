@@ -9,7 +9,6 @@ use draw::Drawable;
 use game::{CommandBuffer, MetaCommand, ObjMessage, fphys};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
-use std::sync::mpsc::Sender;
 use world::World;
 
 pub trait Physical {
@@ -195,7 +194,7 @@ impl Physical for PhysDyn {
                                                         ObjMessage::MCollision(collision.clone())));
 
             let collision_flip =
-                collision.flipNew(self.p.id, self.p.owner_type);
+                collision.flip_new(self.p.id, self.p.owner_type);
             metabuffer.issue(MetaCommand::MessageObject(collision.other_id,
                                                         ObjMessage::MCollision(collision_flip)));
 

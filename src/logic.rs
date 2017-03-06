@@ -1,4 +1,4 @@
-use game::{CommandBuffer, GameObj, MetaCommand, ObjMessage};
+use game::{CommandBuffer, MetaCommand, ObjMessage};
 use piston::input::UpdateArgs;
 pub trait Logical {
     fn tick(&mut self,

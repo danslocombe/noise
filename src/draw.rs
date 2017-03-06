@@ -149,7 +149,6 @@ impl ViewFollower {
     }
     pub fn update(&mut self, world: &World) {
         world.get(self.follow_id).map(|(_, bb)| {
-            let obj_view_diff = bb.x - self.vt.x;
             let bb_xvel = bb.x - self.follow_prev_x;
             if bb.x > self.x_max {
                 self.x_max = bb.x;
@@ -322,7 +321,7 @@ impl Drawable for Overlay {
         self.hpbar_c = color;
     }
 
-    fn should_draw(&self, r: &Rectangle) -> bool {
+    fn should_draw(&self, _: &Rectangle) -> bool {
         true
     }
 }

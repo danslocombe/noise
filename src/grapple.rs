@@ -1,5 +1,4 @@
-use collision::{BBO_ALL, BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBOwnerType,
-                BBProperties, BoundingBox};
+use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BoundingBox};
 use draw::{Drawable, Rectangle, ViewTransform};
 
 use game::{CommandBuffer, GameObj, InputHandler, MetaCommand, ObjMessage, fphys};
@@ -72,8 +71,8 @@ bitflags! {
 impl Logical for GrappleHolster {
     fn tick(&mut self,
             args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>) {
+            _: &CommandBuffer<MetaCommand>,
+            _: &CommandBuffer<ObjMessage>) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
@@ -246,7 +245,7 @@ const MAX_LENGTH_SQR: fphys = 240000.0;
 impl Physical for Grapple {
     fn tick(&mut self,
             args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
+            _: &CommandBuffer<MetaCommand>,
             world: &World) {
         match self.state {
             GrappleState::GrappleNone => {}
@@ -363,8 +362,8 @@ impl Physical for Grapple {
     fn get_id(&self) -> u32 {
         self.id
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        //  TODO
+    fn set_position(&mut self, _: fphys, _: fphys) {
+        unimplemented!();
     }
     fn set_velocity(&mut self, x: fphys, y: fphys) {
         self.vel_x = x;
@@ -373,7 +372,7 @@ impl Physical for Grapple {
     fn get_width_height(&self) -> (fphys, fphys) {
         ((self.start_x - self.end_x).abs(), (self.start_y - self.end_y).abs())
     }
-    fn destroy(&mut self, world: &World) {}
+    fn destroy(&mut self, _: &World) {}
 }
 
 
@@ -546,7 +545,7 @@ impl Drawable for GrappleDraw {
     fn set_color(&mut self, _: [f32; 4]) {}
 
 
-    fn should_draw(&self, r: &Rectangle) -> bool {
+    fn should_draw(&self, _: &Rectangle) -> bool {
         true
     }
 }

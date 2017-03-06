@@ -1,5 +1,5 @@
-use collision::{BBO_ALL, BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER,
-                BBO_PLAYER_DMG, BBOwnerType, BBProperties, Collision};
+use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
+                BBProperties, Collision};
 use draw::{Drawable, GrphxRect};
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
            MetaCommand, ObjMessage, fphys};
@@ -9,7 +9,6 @@ use physics::{PhysDyn, Physical};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
-use world::World;
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<Drawable>>,
@@ -61,7 +60,7 @@ const SIZE: fphys = 28.0;
 const FRICTION: fphys = 0.7;
 const FRICTION_AIR: fphys = FRICTION * 0.35;
 const MOVEFORCE: fphys = 15.0;
-const MOVEFORCE_AIR: fphys = MOVEFORCE * 0.4;
+const MOVEFORCE_AIR: fphys = MOVEFORCE * 1.0;
 const JUMP_FORCE: fphys = 650.0;
 const MAX_RUNSPEED: fphys = 75.0;
 const DASH_CD: fphys = 0.75;
@@ -168,8 +167,7 @@ impl Logical for PlayerLogic {
                 let force = if phys.on_ground {
                     MOVEFORCE
                 } else {
-                    //MOVEFORCE_AIR
-                    MOVEFORCE
+                    MOVEFORCE_AIR
                 };
                 phys.apply_force(force * xdir, 0.0);
             } else {

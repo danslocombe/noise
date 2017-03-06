@@ -5,10 +5,7 @@ extern crate opengl_graphics;
 extern crate rand;
 extern crate rayon;
 
-use self::rand::{Rng, thread_rng};
-
-use self::rayon::prelude::*;
-use block::{blocks_from_ghosts, create_block, create_platform};
+use block::blocks_from_ghosts;
 use collision::Collision;
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
@@ -17,17 +14,15 @@ use gen::Gen;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
 
-use logic::{DumbLogic, Logical};
+use logic::Logical;
 use opengl_graphics::GlGraphics;
 use physics::Physical;
 use piston::event_loop::*;
 use piston::input::*;
-use player::PlayerLogic;
 use player::create as player_create;
-use std::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
-use std::time::{Duration, SystemTime};
+use std::time::SystemTime;
 use tile::{TILE_W, Tile, TileManager};
 use world::World;
 
@@ -78,26 +73,26 @@ pub enum MetaCommand {
     MessageObject(u32, ObjMessage),
 }
 
-pub struct CommandBuffer<a> {
-    receiver: Receiver<a>,
-    sender: Sender<a>,
+pub struct CommandBuffer<A> {
+    receiver: Receiver<A>,
+    sender: Sender<A>,
 }
 
-impl<a> CommandBuffer<a> {
+impl<A> CommandBuffer<A> {
     pub fn new() -> Self {
-        let (tx, rx): (Sender<a>, Receiver<a>) = channel();
+        let (tx, rx): (Sender<A>, Receiver<A>) = channel();
         CommandBuffer {
             receiver: rx,
             sender: tx,
         }
     }
 
-    pub fn issue(&self, command: a) {
+    pub fn issue(&self, command: A) {
         self.sender.send(command).unwrap();
     }
 
-    pub fn read_buffer(&self) -> Vec<a> {
-        self.receiver.try_iter().collect::<Vec<a>>()
+    pub fn read_buffer(&self) -> Vec<A> {
+        self.receiver.try_iter().collect::<Vec<A>>()
     }
 }
 
@@ -197,7 +192,7 @@ pub fn game_loop(mut window: Window,
                             objects_add.push(obj);
                         }
                         MetaCommand::MessageObject(id, message) => {
-                            objs.binary_search_by(|o| o.id.cmp(&id))
+                            let _ = objs.binary_search_by(|o| o.id.cmp(&id))
                                 .map(|pos| {
                                     objs[pos].message_buffer.issue(message);
                                 });
@@ -225,7 +220,7 @@ pub fn game_loop(mut window: Window,
 
                 //  Remove objects
                 for id in ids_remove {
-                    objs.binary_search_by(|o| o.id.cmp(&id))
+                    let _ = objs.binary_search_by(|o| o.id.cmp(&id))
                         .map(|pos| objs.remove(pos));
                 }
 

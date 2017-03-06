@@ -12,13 +12,13 @@ use piston::input::*;
 use piston_window::TextureSettings;
 
 pub struct TileManager {
-    pub pagodaBackLeft: Texture,
-    pub pagodaBackRight: Texture,
-    pub pagodaBack01: Texture,
-    pub pagodaBack02: Texture,
-    pub pagodaRoofLeft: Texture,
-    pub pagodaRoofRight: Texture,
-    pub pagodaRoof01: Texture,
+    pub pagoda_back_left: Texture,
+    pub pagoda_back_right: Texture,
+    pub pagoda_back01: Texture,
+    pub pagoda_back02: Texture,
+    pub pagoda_roof_left: Texture,
+    pub pagoda_roof_right: Texture,
+    pub pagoda_roof: Texture,
 }
 
 impl TileManager {
@@ -26,29 +26,29 @@ impl TileManager {
         print!("Loading textures..");
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
-        let pagodaBackLeft =
+        let pagoda_back_left =
             Texture::from_path_settings("sprites/tileL01.png", &ts)?;
-        let pagodaBackRight =
+        let pagoda_back_right =
             Texture::from_path_settings("sprites/tileR01.png", &ts)?;
-        let pagodaBack01 = Texture::from_path_settings("sprites/tile01.png",
-                                                       &ts)?;
-        let pagodaBack02 = Texture::from_path_settings("sprites/tile02.png",
-                                                       &ts)?;
-        let pagodaRoofLeft =
+        let pagoda_back01 = Texture::from_path_settings("sprites/tile01.png",
+                                                        &ts)?;
+        let pagoda_back02 = Texture::from_path_settings("sprites/tile02.png",
+                                                        &ts)?;
+        let pagoda_roof_left =
             Texture::from_path_settings("sprites/roofL01.png", &ts)?;
-        let pagodaRoofRight =
+        let pagoda_roof_right =
             Texture::from_path_settings("sprites/roofR01.png", &ts)?;
-        let pagodaRoof01 = Texture::from_path_settings("sprites/roof01.png",
-                                                       &ts)?;
+        let pagoda_roof = Texture::from_path_settings("sprites/roof01.png",
+                                                      &ts)?;
         println!("Done!");
         Ok(TileManager {
-            pagodaBackLeft: pagodaBackLeft,
-            pagodaBackRight: pagodaBackRight,
-            pagodaBack01: pagodaBack01,
-            pagodaBack02: pagodaBack02,
-            pagodaRoofLeft: pagodaRoofLeft,
-            pagodaRoofRight: pagodaRoofRight,
-            pagodaRoof01: pagodaRoof01,
+            pagoda_back_left: pagoda_back_left,
+            pagoda_back_right: pagoda_back_right,
+            pagoda_back01: pagoda_back01,
+            pagoda_back02: pagoda_back02,
+            pagoda_roof_left: pagoda_roof_left,
+            pagoda_roof_right: pagoda_roof_right,
+            pagoda_roof: pagoda_roof,
         })
     }
     pub fn create_from_platform<'a>(&'a self,
@@ -58,11 +58,11 @@ impl TileManager {
                                     -> Vec<Tile<'a>> {
         let mut ret = Vec::new();
         let tile_y = y;
-        let t1: &'a Texture = &self.pagodaBackLeft;
+        let t1: &'a Texture = &self.pagoda_back01;
         ret.push(Tile::new(x, tile_y, t1));
         let mut ix = x + TILE_W;
         while ix < x + length {
-            let t: &'a Texture = &self.pagodaBack01;
+            let t: &'a Texture = &self.pagoda_back01;
             ret.push(Tile::new(ix, tile_y, t));
             ix += TILE_W;
         }
@@ -73,18 +73,18 @@ impl TileManager {
         ghosts.iter()
             .map(|ghost| {
                 let texture: &'a Texture = match ghost.tile_type {
-                    GhostTileType::GT_PagodaBack(ref edge) => {
+                    GhostTileType::GTPagodaBack(ref edge) => {
                         match *edge {
-                            TileEdge::TELeft => &self.pagodaBackLeft,
-                            TileEdge::TECenter => &self.pagodaBack01,
-                            TileEdge::TERight => &self.pagodaBackRight,
+                            TileEdge::TELeft => &self.pagoda_back_left,
+                            TileEdge::TECenter => &self.pagoda_back01,
+                            TileEdge::TERight => &self.pagoda_back_right,
                         }
                     }
-                    GhostTileType::GT_PagodaRoof(ref edge) => {
+                    GhostTileType::GTPagodaRoof(ref edge) => {
                         match *edge {
-                            TileEdge::TELeft => &self.pagodaRoofLeft,
-                            TileEdge::TECenter => &self.pagodaRoof01,
-                            TileEdge::TERight => &self.pagodaRoofRight,
+                            TileEdge::TELeft => &self.pagoda_roof_left,
+                            TileEdge::TECenter => &self.pagoda_roof,
+                            TileEdge::TERight => &self.pagoda_roof_right,
                         }
                     }
                 };
@@ -132,7 +132,9 @@ impl<'a> Drawable for Tile<'a> {
             image(self.texture, transform, gl);
         });
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {}
+    fn set_position(&mut self, _: fphys, _: fphys) {
+        unimplemented!();
+    }
     fn set_color(&mut self, color: Color) {}
     fn should_draw(&self, r: &Rectangle) -> bool {
         (self.x + TILE_W > r.x && self.x < r.x + r.w) ||
