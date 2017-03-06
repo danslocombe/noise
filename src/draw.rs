@@ -123,6 +123,7 @@ pub struct ViewFollower {
     pub vt: ViewTransform,
     pub follow_id: u32,
     pub w: fphys,
+    pub w_scale: fphys,
     pub offset_factor: fphys,
     pub scale_mult: fphys,
     pub follow_prev_x: fphys,
@@ -137,8 +138,9 @@ impl ViewFollower {
             vt: vt,
             follow_id: id,
             w: 20.0,
-            offset_factor: 30.0,
-            scale_mult: 1.0 / 700.0,
+            w_scale: 200.0,
+            offset_factor: 10.0,
+            scale_mult: 0.035,
             follow_prev_x: 0.0,
             follow_prev_y: 0.0,
             x_max: 0.0,
@@ -162,8 +164,8 @@ impl ViewFollower {
                 self.vt.x = self.x_max - self.min_buffer;
             }
             self.vt.scale = weight(self.vt.scale,
-                                   1.0 - obj_view_diff.abs() * self.scale_mult,
-                                   self.w);
+                                   0.8 - bb_xvel.abs() * self.scale_mult,
+                                   self.w_scale);
 
             self.follow_prev_x = bb.x;
             self.follow_prev_y = bb.y;

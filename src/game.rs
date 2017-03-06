@@ -34,7 +34,7 @@ pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
 pub const BLOCKSIZE: fphys = 32.0;
-pub const ENEMY_GEN_P: fphys = 0.015;
+pub const ENEMY_GEN_P: fphys = 0.0; //15;
 
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
@@ -161,7 +161,7 @@ pub fn game_loop(mut window: Window,
             Input::Update(u_args) => {
                 //  Generate world
                 let (ghost_tiles, ghost_blocks) =
-                    gen.gen_to(view_follower.vt.x + 1000.0);
+                    gen.gen_to(view_follower.vt.x + 1800.0);
                 tiles.extend(tile_manager.from_ghosts(ghost_tiles));
                 objs.extend(blocks_from_ghosts(ghost_blocks,
                                                player_phys.clone(),

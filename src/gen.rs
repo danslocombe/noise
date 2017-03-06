@@ -7,10 +7,10 @@ use std::f64;
 use tile::{TILE_H, TILE_W, Tile, TileManager};
 
 const BLOCKWIDTH: fphys = 32.0;
-const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
-const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 24.0;
-const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 12.0;
-const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 160.0;
+const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 2.0;
+const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 80.0;
+const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 6.0;
+const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 80.0;
 const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 14.0;
 const MAX_HEIGHT: u32 = 12;
 
@@ -114,8 +114,7 @@ impl Gen {
                 self.next_structure = STRUCTURE_SPACING_MIN +
                                       rand_gauss() *
                                       (STRUCTURE_SPACING_MAX -
-                                       STRUCTURE_SPACING_MIN) +
-                                      length;
+                                       STRUCTURE_SPACING_MIN);
 
                 //  Floor of building
                 t.extend(pagoda_platform_tiles(self.generated_to,
