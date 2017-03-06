@@ -108,7 +108,7 @@ pub trait InputHandler {
 const DESTROY_BUFFER: fphys = 1000.0;
 
 
-pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
+pub fn game_loop(mut window: Window, mut ctx: GlGraphics, mut shader : NoisyShader) {
 
     let tile_manager = TileManager::load().unwrap();
     let mut tiles: Vec<Tile> = Vec::new();
@@ -147,7 +147,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
         scale: 1.0,
     };
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
-    let mut noisy_shader = NoisyShader::new(player_id);
+    shader.set_following(player_id);
     let overlay = Overlay::new(player_logic.clone());
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
@@ -250,7 +250,7 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                 }
 
                 //  Update shader
-                noisy_shader.update(&ctx, &world);
+                shader.update(&world);
 
             }
             Input::Render(r_args) => {
@@ -258,10 +258,12 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
 
                 draw_background(&r_args, &mut ctx);
 
+                shader.set_textured(&mut ctx);
                 for tile in &tiles {
                     tile.draw(&r_args, &mut ctx, &view_follower.vt);
                 }
 
+                shader.set_colored(&mut ctx);
                 let view_rect = &view_follower.vt.to_rectangle();
                 for o in &objs {
                     //  Draw all objects

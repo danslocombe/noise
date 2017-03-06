@@ -93,7 +93,6 @@ in vec2 uv;
 uniform sampler2D s_texture;
 uniform vec4 color;
 
-uniform float time;
 uniform vec2 vel;
 
 out vec2 v_UV;
@@ -111,7 +110,7 @@ in vec2 v_UV;
 uniform sampler2D s_texture;
 uniform vec4 color;
 
-uniform float time;
+uniform float time_tex;
 uniform vec2 vel;
 
 out vec4 o_Color;
@@ -124,10 +123,30 @@ float rand(vec2 co){
 const float NOISE_SCALE = 32.0;
 
 void main() {
-    o_Color = texture(s_texture, v_UV) * color;
 
-    /*
+    //o_Color = texture(s_texture, v_UV) * color;
+
     vec4 c = texture(s_texture, v_UV) * color;
+    if (c.a < 1.0) {
+        o_Color = c;
+    }
+    else {
+        o_Color = c;
+        //o_Color = vec4(rand(vec2(time_tex, time_tex + 1.0)), 1 , 1, 1);
+        if (o_Color.b > 0 && o_Color.b < 1) {
+            o_Color.r = 1;
+            o_Color.g = 1;
+            o_Color.b = 1;
+            vec2 seed = vec2(time_tex + floor(v_UV.x * NOISE_SCALE) / NOISE_SCALE,
+                             time_tex + floor(v_UV.y * NOISE_SCALE) / NOISE_SCALE);
+            if (rand(seed) > c.b) {
+                o_Color.b = 1;
+                o_Color.g = 0;
+                o_Color.r = 0;
+            }
+        }
+    }
+    /*
     o_Color = vec4(0.0, 0.0, 0.0, 1.0);
     vec2 seed = vec2(floor(v_UV.x * NOISE_SCALE) / NOISE_SCALE,
                      floor(v_UV.y * NOISE_SCALE) / NOISE_SCALE);
