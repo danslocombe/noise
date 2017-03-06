@@ -275,8 +275,8 @@ impl Physical for Grapple {
                            props.owner_type.contains(BBO_ENEMY) {
                             continue;
                         }
-                        line_collide(end_x0,
-                                     end_y0,
+                        line_collide(self.start_x,
+                                     self.start_y,
                                      self.end_x,
                                      self.end_y,
                                      bb)
