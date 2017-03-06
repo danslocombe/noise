@@ -4,7 +4,7 @@ use self::rand::{Rng, thread_rng};
 
 use game::fphys;
 use std::f64;
-use tile::TILE_H;
+use tile::{TILE_H, TILE_W, Tile, TileManager};
 
 const BLOCKWIDTH: fphys = 32.0;
 const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 4.0;
@@ -45,6 +45,31 @@ pub struct GhostBlock {
     pub block_type: GhostBlockType,
 }
 
+pub enum TileEdge {
+    TELeft,
+    TECenter,
+    TERight,
+}
+pub enum GhostTileType {
+    GT_PagodaBack(TileEdge),
+}
+
+pub struct GhostTile {
+    pub x: fphys,
+    pub y: fphys,
+    pub tile_type: GhostTileType,
+}
+
+impl GhostTile {
+    fn new(x: fphys, y: fphys, tile_type: GhostTileType) -> Self {
+        GhostTile {
+            x: x,
+            y: y,
+            tile_type: tile_type,
+        }
+    }
+}
+
 const STEPSIZE: fphys = 4.0;
 impl Gen {
     pub fn new(blocksize: fphys, gen_floor: fphys) -> Gen {
@@ -74,7 +99,8 @@ impl Gen {
 
     }
 
-    pub fn gen_to(&mut self, x: fphys) -> Vec<GhostBlock> {
+    pub fn gen_to(&mut self, x: fphys) -> (Vec<GhostTile>, Vec<GhostBlock>) {
+        let mut t = Vec::new();
         let mut r = Vec::new();
         while self.generated_to < x {
             if self.next_structure <= 0.0 {
@@ -88,26 +114,59 @@ impl Gen {
                                        STRUCTURE_SPACING_MIN) +
                                       length;
 
-                r.extend(create_uniform_structure(self.generated_to,
-                                          self.last_block_y -
-                                          STRUCTURE_PLATFORM_HEIGHT,
-                                          length));
+                //  Floor of building
+                t.extend(pagoda_platform_tiles(self.generated_to,
+                                               self.last_block_y,
+                                               length));
+                r.push(GhostBlock {
+                    x: self.generated_to,
+                    y: self.last_block_y,
+                    length: length,
+                    block_type: GhostBlockType::GB_Block,
+                });
+
+                //  Bulk of structure
+                let (tiles, platforms) =
+                    create_uniform_structure(self.generated_to,
+                                             self.last_block_y -
+                                             STRUCTURE_PLATFORM_HEIGHT,
+                                             length);
+                r.extend(platforms);
+                t.extend(tiles);
+                self.generated_to += length - self.blocksize;
+            } else {
+                self.generated_to += self.blocksize;
+                self.next_structure -= self.blocksize;
+                let y = self.gen_floor +
+                        STEPSIZE *
+                        (next_perlin(&mut self.octaves) / STEPSIZE).floor();
+                self.last_block_y = y;
+                r.push(GhostBlock {
+                    x: self.generated_to,
+                    y: y,
+                    length: BLOCKWIDTH,
+                    block_type: GhostBlockType::GB_Block,
+                });
             }
-            self.generated_to += self.blocksize;
-            self.next_structure -= self.blocksize;
-            let y = self.gen_floor +
-                    STEPSIZE *
-                    (next_perlin(&mut self.octaves) / STEPSIZE).floor();
-            self.last_block_y = y;
-            r.push(GhostBlock {
-                x: self.generated_to,
-                y: y,
-                length: BLOCKWIDTH,
-                block_type: GhostBlockType::GB_Block,
-            });
         }
-        r
+        (t, r)
     }
+}
+
+fn pagoda_platform_tiles(x: fphys, y: fphys, length: fphys) -> Vec<GhostTile> {
+    let mut ts = Vec::new();
+    ts.push(GhostTile::new(x,
+                           y,
+                           GhostTileType::GT_PagodaBack(TileEdge::TELeft)));
+    let mut ix = x + TILE_W;
+    while ix < x + length - TILE_W {
+        ts.push(GhostTile::new(ix, y, GhostTileType::GT_PagodaBack(TileEdge::TECenter)));
+        ix += TILE_W;
+    }
+    ts.push(GhostTile::new(ix,
+                           y,
+                           GhostTileType::GT_PagodaBack(TileEdge::TERight)));
+    ts
 }
 
 fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
@@ -122,19 +181,22 @@ fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
 fn create_uniform_structure(x: fphys,
                             y: fphys,
                             length: fphys)
-                            -> Vec<GhostBlock> {
+                            -> (Vec<GhostTile>, Vec<GhostBlock>) {
     let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
     println!("{}", height);
-    let mut ret = Vec::new();
+    let mut platforms = Vec::new();
+    let mut tiles = Vec::new();
     for i in 0..height {
-        ret.push(GhostBlock {
+        let iy = y - TILE_H * (i as fphys);
+        tiles.extend(pagoda_platform_tiles(x, iy, length));
+        platforms.push(GhostBlock {
             x: x,
-            y: y - TILE_H * (i as fphys),
+            y: iy,
             length: length,
             block_type: GhostBlockType::GB_Platform,
         });
     }
-    ret
+    (tiles, platforms)
 }
 
 fn create_structure(x: fphys,

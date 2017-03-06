@@ -2,6 +2,7 @@ use draw::{Drawable, ViewTransform};
 
 use draw::Color;
 use game::fphys;
+use gen::{GhostTile, GhostTileType, TileEdge};
 use graphics::Transformed;
 use graphics::image;
 use opengl_graphics::{Filter, GlGraphics};
@@ -53,6 +54,23 @@ impl TileManager {
             ix += TILE_W;
         }
         ret
+    }
+
+    pub fn from_ghosts<'a>(&'a self, ghosts: Vec<GhostTile>) -> Vec<Tile<'a>> {
+        ghosts.iter()
+            .map(|ghost| {
+                let texture: &'a Texture = match ghost.tile_type {
+                    GhostTileType::GT_PagodaBack(ref edge) => {
+                        match *edge {
+                            TileEdge::TELeft => &self.pagodaBackLeft,
+                            TileEdge::TECenter => &self.pagodaBack01,
+                            TileEdge::TERight => &self.pagodaBackRight,
+                        }
+                    }
+                };
+                Tile::new(ghost.x, ghost.y, texture)
+            })
+            .collect::<Vec<Tile<'a>>>()
     }
 }
 

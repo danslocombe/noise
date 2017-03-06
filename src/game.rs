@@ -162,7 +162,10 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
         match e {
             Input::Update(u_args) => {
                 //  Generate world
-                for ghost_block in gen.gen_to(view_follower.vt.x + 1000.0) {
+                let (ghost_tiles, ghost_blocks) =
+                    gen.gen_to(view_follower.vt.x + 1000.0);
+                tiles.extend(tile_manager.from_ghosts(ghost_tiles));
+                for ghost_block in ghost_blocks {
                     let x = ghost_block.x;
                     let y = ghost_block.y;
                     let length = ghost_block.length;
@@ -188,7 +191,6 @@ pub fn game_loop(mut window: Window, mut ctx: GlGraphics) {
                                 }
                             }
                             //  Generate tiles
-                            tiles.extend(tile_manager.create_from_platform(x, y, length));
                         }
                         //  Generate block and enemies on block
                         GhostBlockType::GB_Block => {
