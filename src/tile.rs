@@ -27,18 +27,18 @@ impl TileManager {
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
         let pagodaBackLeft =
-            Texture::from_path_settings("textures/tileL01.png", &ts)?;
+            Texture::from_path_settings("sprites/tileL01.png", &ts)?;
         let pagodaBackRight =
-            Texture::from_path_settings("textures/tileR01.png", &ts)?;
-        let pagodaBack01 = Texture::from_path_settings("textures/tile01.png",
+            Texture::from_path_settings("sprites/tileR01.png", &ts)?;
+        let pagodaBack01 = Texture::from_path_settings("sprites/tile01.png",
                                                        &ts)?;
-        let pagodaBack02 = Texture::from_path_settings("textures/tile02.png",
+        let pagodaBack02 = Texture::from_path_settings("sprites/tile02.png",
                                                        &ts)?;
         let pagodaRoofLeft =
-            Texture::from_path_settings("textures/roofL01.png", &ts)?;
+            Texture::from_path_settings("sprites/roofL01.png", &ts)?;
         let pagodaRoofRight =
-            Texture::from_path_settings("textures/roofR01.png", &ts)?;
-        let pagodaRoof01 = Texture::from_path_settings("textures/roof01.png",
+            Texture::from_path_settings("sprites/roofR01.png", &ts)?;
+        let pagodaRoof01 = Texture::from_path_settings("sprites/roof01.png",
                                                        &ts)?;
         println!("Done!");
         Ok(TileManager {
