@@ -197,7 +197,6 @@ pub fn game_loop(mut window: Window,
                                     objs[pos].message_buffer.issue(message);
                                 });
                         }
-                        _ => {}
                     }
                 }
 
