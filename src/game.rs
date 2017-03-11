@@ -177,14 +177,14 @@ pub fn game_loop(mut window: Window,
     let mut prev_time = SystemTime::now();
 
     let mut events = Events::new(EventSettings::new());
-    'events: while let Some(e) = events.next(&mut window) {
+    while let Some(e) = events.next(&mut window) {
         //  Get update from window and match against appropriate type
         match e {
             Input::Update(u_args) => {
                 //  Generate world
                 let (ghost_tiles, ghost_blocks) =
-                    gen.gen_to(view_follower.vt.x + 1800.0);
-                tiles.extend(tile_manager.from_ghosts(ghost_tiles));
+                    gen.gen_to(view_follower.vt.x + 5000.0);
+                tiles.extend(tile_manager.propogate_ghosts(ghost_tiles));
                 objs.extend(blocks_from_ghosts(ghost_blocks,
                                                player_phys.clone(),
                                                &mut world));
@@ -262,7 +262,7 @@ pub fn game_loop(mut window: Window,
                     .collect::<Vec<Tile>>();
 
                 //  Add new objects
-                if objects_add.len() > 0 {
+                if !objects_add.is_empty() {
                     objs.extend(objects_add);
                     objs.sort_by(|a, b| a.id.cmp(&b.id));
                 }
@@ -305,7 +305,7 @@ pub fn game_loop(mut window: Window,
                     //  Draw all objects
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
-                    if gphx.should_draw(&view_rect) {
+                    if gphx.should_draw(view_rect) {
                         gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                     }
                 }

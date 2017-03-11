@@ -49,46 +49,46 @@ impl TileManager {
             pagoda_roof: pagoda_roof,
         })
     }
-    pub fn create_from_platform<'a>(&'a self,
-                                    x: fphys,
-                                    y: fphys,
-                                    length: fphys)
-                                    -> Vec<Tile<'a>> {
+    pub fn create_from_platform(&self,
+                                x: fphys,
+                                y: fphys,
+                                length: fphys)
+                                -> Vec<Tile> {
         let mut ret = Vec::new();
         let tile_y = y;
-        let t1: &'a Texture = &self.pagoda_back01;
+        let t1: &Texture = &self.pagoda_back01;
         ret.push(Tile::new(x, tile_y, t1));
         let mut ix = x + TILE_W;
         while ix < x + length {
-            let t: &'a Texture = &self.pagoda_back01;
+            let t: &Texture = &self.pagoda_back01;
             ret.push(Tile::new(ix, tile_y, t));
             ix += TILE_W;
         }
         ret
     }
 
-    pub fn from_ghosts<'a>(&'a self, ghosts: Vec<GhostTile>) -> Vec<Tile<'a>> {
+    pub fn propogate_ghosts(&self, ghosts: Vec<GhostTile>) -> Vec<Tile> {
         ghosts.iter()
             .map(|ghost| {
-                let texture: &'a Texture = match ghost.tile_type {
-                    GhostTileType::GTPagodaBack(ref edge) => {
+                let texture: &Texture = match ghost.tile_type {
+                    GhostTileType::PagodaBack(ref edge) => {
                         match *edge {
-                            TileEdge::TELeft => &self.pagoda_back_left,
-                            TileEdge::TECenter => &self.pagoda_back01,
-                            TileEdge::TERight => &self.pagoda_back_right,
+                            TileEdge::Left => &self.pagoda_back_left,
+                            TileEdge::Center => &self.pagoda_back01,
+                            TileEdge::Right => &self.pagoda_back_right,
                         }
                     }
-                    GhostTileType::GTPagodaRoof(ref edge) => {
+                    GhostTileType::PagodaRoof(ref edge) => {
                         match *edge {
-                            TileEdge::TELeft => &self.pagoda_roof_left,
-                            TileEdge::TECenter => &self.pagoda_roof,
-                            TileEdge::TERight => &self.pagoda_roof_right,
+                            TileEdge::Left => &self.pagoda_roof_left,
+                            TileEdge::Center => &self.pagoda_roof,
+                            TileEdge::Right => &self.pagoda_roof_right,
                         }
                     }
                 };
                 Tile::new(ghost.x, ghost.y, texture)
             })
-            .collect::<Vec<Tile<'a>>>()
+            .collect::<Vec<Tile>>()
     }
 }
 

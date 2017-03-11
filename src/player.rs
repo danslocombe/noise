@@ -137,15 +137,15 @@ impl Logical for PlayerLogic {
             let mut d = self.draw.lock().unwrap();
             //  Set draw state
             d.state = if self.dash_cd > 0.0 {
-                PlayerDrawState::PDSDash
+                PlayerDrawState::Dash
             } else if self.grappling {
-                PlayerDrawState::PDSSwing
+                PlayerDrawState::Swing
             } else if !phys.on_ground {
-                PlayerDrawState::PDSJump
+                PlayerDrawState::Jump
             } else if xvel.abs() > 0.1 {
-                PlayerDrawState::PDSRun
+                PlayerDrawState::Run
             } else {
-                PlayerDrawState::PDSIdle
+                PlayerDrawState::Idle
             };
 
             if xvel > 0.1 {
@@ -160,7 +160,6 @@ impl Logical for PlayerLogic {
             if self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
                 //  Out of invuln
                 phys.p.owner_type = BBO_PLAYER;
-                let mut d = self.draw.lock().unwrap();
             }
         }
         if self.dash_cd < self.descr.dash_cd - self.descr.dash_duration {
@@ -231,14 +230,7 @@ impl Logical for PlayerLogic {
 
         phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN) ||
                               self.grappling;
-        phys.collide_with = {
-            let blocks = BBO_PLATFORM | BBO_BLOCK;
-            if self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
-                blocks | BBO_ENEMY
-            } else {
-                blocks | BBO_ENEMY
-            }
-        };
+        phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY;
     }
 }
 
@@ -299,7 +291,7 @@ pub fn create(id: u32,
         y: 0.0,
         scale: descr.scale,
         speed: descr.speed,
-        state: PlayerDrawState::PDSIdle,
+        state: PlayerDrawState::Idle,
         reverse: false,
         manager: descr.clone(),
         frame: 1,

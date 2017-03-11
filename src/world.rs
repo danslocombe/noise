@@ -42,7 +42,7 @@ impl World {
     }
     pub fn update(&mut self) {
         //  Leave loop on first instance of None
-        while let Some((p, maybe_bb)) = self.receiver.try_iter().next() {
+        for (p, maybe_bb) in self.receiver.try_iter() {
             match maybe_bb {
                 Some(bb) => {
                     self.world.insert(p.id, (p, bb));
@@ -54,7 +54,7 @@ impl World {
         }
         //  Buffer into list
         self.buffer = Vec::new();
-        for (_, descr) in self.world.iter() {
+        for (_, descr) in &self.world {
             self.buffer.push(descr.clone());
         }
     }

@@ -191,6 +191,8 @@ pub struct GrappleDescriptor {
     pub retract_speed: fphys,
     pub retract_force: fphys,
     pub retract_epsilon: fphys,
+    pub elast: fphys,
+    pub damp: fphys,
     pub cd: fphys,
 }
 
@@ -202,6 +204,8 @@ impl Descriptor for GrappleDescriptor {
             retract_speed: get_float("grapple", &obj, "retract_speed")?,
             retract_force: get_float("grapple", &obj, "retract_force")?,
             retract_epsilon: get_float("grapple", &obj, "retract_epsilon")?,
+            damp: get_float("grapple", &obj, "damp")?,
+            elast: get_float("grapple", &obj, "elast")?,
             cd: get_float("grapple", &obj, "cd")?,
         }))
     }

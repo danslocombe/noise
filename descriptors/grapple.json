@@ -4,5 +4,7 @@
   "retract_speed": 400,
   "retract_force": 15,
   "retract_epsilon": 15,
-  "cd": 0.65
+  "cd": 0.65,
+  "elast": 0.25,
+  "damp": 0.001
 }

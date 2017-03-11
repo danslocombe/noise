@@ -8,19 +8,17 @@ use graphics::image;
 use opengl_graphics::{Filter, GlGraphics};
 use opengl_graphics::Texture;
 use piston::input::*;
-use piston_window::TextureSettings;
 
-use player::*;
 use std::ops::Rem;
 
 use std::rc::Rc;
 
 pub enum PlayerDrawState {
-    PDSIdle,
-    PDSRun,
-    PDSJump,
-    PDSSwing,
-    PDSDash,
+    Idle,
+    Run,
+    Jump,
+    Swing,
+    Dash,
 }
 
 pub struct PlayerGphx {
@@ -34,10 +32,10 @@ pub struct PlayerGphx {
     pub frame: u64,
 }
 
-fn get_index(frame: u64, ts: &Vec<Texture>, speed: fphys) -> &Texture {
+fn get_index(frame: u64, ts: &[Texture], speed: fphys) -> &Texture {
     let speed_2 = 60.0 / (speed as f64);
     let f = (frame as f64 / speed_2).floor() as usize;
-    ts.get((f.rem(ts.len()))).unwrap()
+    &ts[f.rem(ts.len())]
 }
 
 impl Drawable for PlayerGphx {
@@ -47,11 +45,11 @@ impl Drawable for PlayerGphx {
             vt: &ViewTransform) {
         self.frame += 1;
         let texture_vec = match self.state {
-            PlayerDrawState::PDSIdle => &self.manager.idle,
-            PlayerDrawState::PDSRun => &self.manager.running,
-            PlayerDrawState::PDSJump => &self.manager.jumping,
-            PlayerDrawState::PDSSwing => &self.manager.swinging,
-            PlayerDrawState::PDSDash => &self.manager.dashing,
+            PlayerDrawState::Idle => &self.manager.idle,
+            PlayerDrawState::Run => &self.manager.running,
+            PlayerDrawState::Jump => &self.manager.jumping,
+            PlayerDrawState::Swing => &self.manager.swinging,
+            PlayerDrawState::Dash => &self.manager.dashing,
         };
         let texture = get_index(self.frame, texture_vec, self.speed);
         ctx.draw(args.viewport(), |c, gl| {

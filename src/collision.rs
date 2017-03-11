@@ -1,5 +1,7 @@
 use game::fphys;
 
+use std::f64::EPSILON;
+
 pub type BBDescriptor = (BBProperties, BoundingBox);
 
 #[derive(Clone)]
@@ -273,7 +275,7 @@ fn resolve_col_it_recurse(its: i32,
                 w: bb_test.w,
                 h: bb_test.h,
             };
-            if on_ground && ystart == yend &&
+            if on_ground && (ystart - yend).abs() < EPSILON &&
                !does_collide_bool(p,
                                   &bb_test_step,
                                   bbs,

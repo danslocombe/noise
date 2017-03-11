@@ -34,8 +34,8 @@ pub struct Gen {
 }
 
 pub enum GhostBlockType {
-    GBBlock,
-    GBPlatform,
+    Block,
+    Platform,
 }
 
 pub struct GhostBlock {
@@ -46,13 +46,13 @@ pub struct GhostBlock {
 }
 
 pub enum TileEdge {
-    TELeft,
-    TECenter,
-    TERight,
+    Left,
+    Center,
+    Right,
 }
 pub enum GhostTileType {
-    GTPagodaBack(TileEdge),
-    GTPagodaRoof(TileEdge),
+    PagodaBack(TileEdge),
+    PagodaRoof(TileEdge),
 }
 
 pub struct GhostTile {
@@ -124,7 +124,7 @@ impl Gen {
                     x: self.generated_to,
                     y: self.last_block_y,
                     length: length,
-                    block_type: GhostBlockType::GBBlock,
+                    block_type: GhostBlockType::Block,
                 });
 
                 //  Bulk of structure
@@ -147,7 +147,7 @@ impl Gen {
                     x: self.generated_to,
                     y: y,
                     length: BLOCKWIDTH,
-                    block_type: GhostBlockType::GBBlock,
+                    block_type: GhostBlockType::Block,
                 });
             }
         }
@@ -157,32 +157,30 @@ impl Gen {
 
 fn pagoda_platform_tiles(x: fphys, y: fphys, length: fphys) -> Vec<GhostTile> {
     let mut ts = Vec::new();
-    ts.push(GhostTile::new(x,
-                           y,
-                           GhostTileType::GTPagodaBack(TileEdge::TELeft)));
+    ts.push(GhostTile::new(x, y, GhostTileType::PagodaBack(TileEdge::Left)));
     ts.push(GhostTile::new(x - TILE_W,
                            y - TILE_H,
-                           GhostTileType::GTPagodaRoof(TileEdge::TELeft)));
+                           GhostTileType::PagodaRoof(TileEdge::Left)));
     ts.push(GhostTile::new(x,
                            y - TILE_H,
-                           GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
+                           GhostTileType::PagodaRoof(TileEdge::Center)));
     let mut ix = x + TILE_W;
     while ix < x + length - TILE_W {
-        ts.push(GhostTile::new(ix, y, GhostTileType::GTPagodaBack(TileEdge::TECenter)));
+        ts.push(GhostTile::new(ix,
+                               y,
+                               GhostTileType::PagodaBack(TileEdge::Center)));
         ts.push(GhostTile::new(ix,
                                y - TILE_H,
-                               GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
+                               GhostTileType::PagodaRoof(TileEdge::Center)));
         ix += TILE_W;
     }
-    ts.push(GhostTile::new(ix,
-                           y,
-                           GhostTileType::GTPagodaBack(TileEdge::TERight)));
+    ts.push(GhostTile::new(ix, y, GhostTileType::PagodaBack(TileEdge::Right)));
     ts.push(GhostTile::new(ix,
                            y - TILE_H,
-                           GhostTileType::GTPagodaRoof(TileEdge::TECenter)));
+                           GhostTileType::PagodaRoof(TileEdge::Center)));
     ts.push(GhostTile::new(ix + TILE_W,
                            y - TILE_H,
-                           GhostTileType::GTPagodaRoof(TileEdge::TERight)));
+                           GhostTileType::PagodaRoof(TileEdge::Right)));
     ts
 }
 
@@ -209,7 +207,7 @@ fn create_uniform_structure(x: fphys,
             x: x,
             y: iy,
             length: length,
-            block_type: GhostBlockType::GBPlatform,
+            block_type: GhostBlockType::Platform,
         });
     }
     (tiles, platforms)
@@ -261,8 +259,8 @@ fn next_perlin(octaves: &mut [PerlinOctave]) -> f64 {
     //  Amplitude to give current octave
     let mut amplitude = 2.0;
 
-    let mut i: i32 = 0;
-    for o in octaves {
+    for (i_usize, o) in octaves.iter_mut().enumerate() {
+        let i = i_usize as i32;
 
         let value : f64 =
             //  If we are directly on the node we return the
@@ -286,7 +284,6 @@ fn next_perlin(octaves: &mut [PerlinOctave]) -> f64 {
 
         //  Increase importance of each octave as the spacing increases
         amplitude /= PERLIN_PERSIST_RECIPROCAL;
-        i += 1;
     }
 
     sum

@@ -87,18 +87,16 @@ impl Logical for GrappleHolster {
             self.cd -= dt;
         }
         {
-            use grapple::GrappleState::*;
-
             let mut g = self.grapple.lock().unwrap();
             match g.state {
-                GrappleNone => {
+                GrappleState::None => {
                     if self.cd <= 0.0 && !self.input.is_empty() {
                         let (vx, vy) = self.vel_from_inputs();
                         g.shoot(vx, vy);
                         self.cd = self.descr.cd;
                     }
                 }
-                GrappleOut => {
+                GrappleState::Out => {
                     if self.input.is_empty() {
                         g.end_grapple();
                     } else {
@@ -106,24 +104,22 @@ impl Logical for GrappleHolster {
                         g.set_vel(vx, vy);
                     }
                 }
-                GrappleLocked(len) => {
+                GrappleState::Locked(len) => {
                     if self.input.is_empty() {
                         metabuffer.issue(
                             MetaCommand::MessageObject(self.player_id, 
                                 ObjMessage::MPlayerEndGrapple));
                         g.end_grapple();
-                    } else {
-                        if self.input.contains(GI_RETRACT) {
-                            g.retracting = true;
-                            let len_new = len - self.descr.retract_speed * dt;
-                            if len_new < 0.0 {
-                                g.state = GrappleLocked(0.0);
-                            } else {
-                                g.state = GrappleLocked(len_new);
-                            }
+                    } else if self.input.contains(GI_RETRACT) {
+                        g.retracting = true;
+                        let len_new = len - self.descr.retract_speed * dt;
+                        if len_new < 0.0 {
+                            g.state = GrappleState::Locked(0.0);
                         } else {
-                            g.retracting = false;
+                            g.state = GrappleState::Locked(len_new);
                         }
+                    } else {
+                        g.retracting = false;
                     }
                 }
             }
@@ -176,9 +172,9 @@ impl InputHandler for GrappleHolster {
 
 #[derive(PartialEq)]
 enum GrappleState {
-    GrappleNone,
-    GrappleOut,
-    GrappleLocked(fphys),
+    None,
+    Out,
+    Locked(fphys),
 }
 
 pub struct Grapple {
@@ -216,7 +212,7 @@ impl Grapple {
         Grapple {
             id: id,
             player_id: player_id,
-            state: GrappleState::GrappleNone,
+            state: GrappleState::None,
             start_x: init_x,
             start_y: init_y,
             end_x: init_x,
@@ -231,7 +227,7 @@ impl Grapple {
     }
 
     fn shoot(&mut self, vel_x: fphys, vel_y: fphys) {
-        self.state = GrappleState::GrappleOut;
+        self.state = GrappleState::Out;
         self.vel_x = vel_x;
         self.vel_y = vel_y;
         self.end_x = self.start_x;
@@ -243,14 +239,14 @@ impl Grapple {
     }
 
     fn set_vel(&mut self, vel_x: fphys, vel_y: fphys) {
-        if self.state == GrappleState::GrappleOut {
+        if self.state == GrappleState::Out {
             self.vel_x = vel_x;
             self.vel_y = vel_y;
         }
     }
 
     fn end_grapple(&mut self) {
-        self.state = GrappleState::GrappleNone;
+        self.state = GrappleState::None;
         {
             let mut d = self.draw.lock().unwrap();
             d.drawing = false;
@@ -266,8 +262,8 @@ impl Physical for Grapple {
             metabuffer: &CommandBuffer<MetaCommand>,
             world: &World) {
         match self.state {
-            GrappleState::GrappleNone => {}
-            GrappleState::GrappleOut => {
+            GrappleState::None => {}
+            GrappleState::Out => {
                 let dt = args.dt as fphys;
 
                 let end_x0 = self.end_x;
@@ -278,7 +274,7 @@ impl Physical for Grapple {
                 let len_2 = (self.end_x - self.start_x).powi(2) +
                             (self.end_y - self.start_y).powi(2);
                 if len_2 > MAX_LENGTH_SQR {
-                    self.state = GrappleState::GrappleNone;
+                    self.state = GrappleState::None;
                     let mut d = self.draw.lock().unwrap();
                     d.drawing = false;
                     self.end_x = self.start_x;
@@ -303,8 +299,7 @@ impl Physical for Grapple {
                                         ObjMessage::MPlayerStartGrapple));
                                 self.end_x = col_x;
                                 self.end_y = col_y;
-                                self.state =
-                                    GrappleState::GrappleLocked(len_2.sqrt());
+                                self.state = GrappleState::Locked(len_2.sqrt());
                             });
                     }
 
@@ -313,23 +308,21 @@ impl Physical for Grapple {
                     d.end_y = self.end_y;
                 }
             }
-            GrappleState::GrappleLocked(grapple_len) => {
+            GrappleState::Locked(grapple_len) => {
                 {
                     let mut p = self.player.lock().unwrap();
                     let (x, y) = p.get_position();
                     let diff = ((x - self.end_x).powi(2) +
                                 (y - self.end_y).powi(2))
                         .sqrt() - grapple_len;
-                    const GRAPPLE_ELAST: fphys = 0.25;
-                    const GRAPPLE_DAMP: fphys = 0.001;
 
                     if diff > 0.0 {
                         let angle = (self.end_y - y).atan2(self.end_x - x);
 
                         //  Tension
 
-                        let g_force_x = diff * GRAPPLE_ELAST * angle.cos();
-                        let g_force_y = diff * GRAPPLE_ELAST * angle.sin();
+                        let g_force_x = diff * self.descr.elast * angle.cos();
+                        let g_force_y = diff * self.descr.elast * angle.sin();
 
                         p.apply_force(g_force_x, g_force_y);
 
@@ -337,8 +330,8 @@ impl Physical for Grapple {
                         let dot = p_vel_x * (self.end_x - x) +
                                   p_vel_y * (self.end_y - y);
 
-                        p.apply_force(-dot * GRAPPLE_DAMP * angle.cos(),
-                                      -dot * GRAPPLE_DAMP * angle.sin());
+                        p.apply_force(-dot * self.descr.damp * angle.cos(),
+                                      -dot * self.descr.damp * angle.sin());
 
                         if self.retracting {
                             p.apply_force(self.descr.retract_force *
@@ -349,7 +342,7 @@ impl Physical for Grapple {
                     }
 
                     if self.retracting && diff < self.descr.retract_epsilon {
-                        self.state = GrappleState::GrappleNone;
+                        self.state = GrappleState::None;
                         {
                             let mut d = self.draw.lock().unwrap();
                             d.drawing = false;

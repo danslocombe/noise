@@ -225,7 +225,7 @@ impl NoisyShader {
     }
     pub fn update(&mut self, world: &World) {
 
-        self.time = self.time + 0.001;
+        self.time += 0.001;
 
         self.obj_id.map(|id| {
             world.get(id).map(|(_, bb)| {
