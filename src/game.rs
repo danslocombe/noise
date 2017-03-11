@@ -146,7 +146,7 @@ pub fn game_loop(mut window: Window,
     };
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
     shader.set_following(player_id);
-    let overlay = Overlay::new(player_logic.clone());
+    let mut overlay = Overlay::new(player_logic.clone());
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
@@ -271,7 +271,7 @@ pub fn game_loop(mut window: Window,
                 draw_background(&r_args, &mut ctx);
 
                 shader.set_textured(&mut ctx);
-                for tile in &tiles {
+                for tile in &mut tiles {
                     tile.draw(&r_args, &mut ctx, &view_follower.vt);
                 }
 
@@ -280,7 +280,7 @@ pub fn game_loop(mut window: Window,
                 for o in &objs {
                     //  Draw all objects
                     //  Currently no concept of depth
-                    let gphx = o.draws.lock().unwrap();
+                    let mut gphx = o.draws.lock().unwrap();
                     if gphx.should_draw(&view_rect) {
                         gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                     }

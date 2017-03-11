@@ -116,7 +116,7 @@ pub const TILE_W: fphys = TILE_TEXW * TILE_BASESCALE;
 pub const TILE_H: fphys = TILE_TEXH * TILE_BASESCALE;
 
 impl<'a> Drawable for Tile<'a> {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {

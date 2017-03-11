@@ -9,19 +9,18 @@ use logic::Logical;
 use opengl_graphics::Texture;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
-use player_graphics::PlayerSpriteManager;
+use player_graphics::*;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
 
 pub struct PlayerLogic {
-    pub draw: Arc<Mutex<Drawable>>,
+    pub draw: Arc<Mutex<PlayerGphx>>,
     pub physics: Arc<Mutex<PhysDyn>>,
     input: PlayerInput,
     dash_cd: fphys,
     jump_cd: fphys,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
-    sprites: PlayerSpriteManager,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -38,20 +37,10 @@ bitflags! {
 }
 
 impl PlayerLogic {
-    pub fn new(draw: Arc<Mutex<Drawable>>,
+    pub fn new(draw: Arc<Mutex<PlayerGphx>>,
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
-        let sprites_r = PlayerSpriteManager::new("sprites/player/player.json");
-        let sprites = match sprites_r {
-            Ok(s) => s,
-            Err(e) => {
-                println!("Error loading player sprites!");
-                println!("{:?}", e.get_ref());
-                println!("Crashing... :(");
-                panic!();
-            }
-        };
         PlayerLogic {
             draw: draw,
             physics: physics,
@@ -59,7 +48,6 @@ impl PlayerLogic {
             jump_cd: 0.0,
             damage_cd: 0.0,
             input: PI_NONE,
-            sprites: sprites,
             collision_buffer: Vec::new(),
             hp: START_HP,
             hp_max: START_HP,
@@ -148,13 +136,32 @@ impl Logical for PlayerLogic {
             self.damage_cd -= dt;
         }
 
+        {
+            let mut d = self.draw.lock().unwrap();
+            //  Set draw state
+            d.state = if self.dash_cd > 0.0 {
+                PlayerDrawState::PDSDash
+            } else if !phys.on_ground {
+                PlayerDrawState::PDSJump
+            } else if xvel.abs() > 0.1 {
+                PlayerDrawState::PDSRun
+            } else {
+                PlayerDrawState::PDSIdle
+            };
+
+            if xvel > 0.1 {
+                d.reverse = false;
+            } else {
+                d.reverse = true;
+            }
+        }
+
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
             if self.dash_cd < DASH_CD - DASH_INVULN {
                 //  Out of invuln
                 phys.p.owner_type = BBO_PLAYER;
                 let mut d = self.draw.lock().unwrap();
-                d.set_color(COLOR_NORMAL);
             }
         }
         if self.dash_cd < DASH_CD - DASH_DURATION {
@@ -182,10 +189,6 @@ impl Logical for PlayerLogic {
                            (if self.input.contains(PI_UP) { 1.0 } else { 0.0 });
                 phys.p.owner_type = BBO_PLAYER_DMG;
                 phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
-                {
-                    let mut d = self.draw.lock().unwrap();
-                    d.set_color(COLOR_DASH);
-                }
             }
 
             if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
@@ -285,22 +288,39 @@ pub fn create(id: u32,
               x: fphys,
               y: fphys)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
-    let rect = GrphxRect {
+
+    let sprites_r = PlayerSpriteManager::new("sprites/player/player.json");
+    let sprites = match sprites_r {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Error loading player sprites!");
+            println!("{:?}", e.get_ref());
+            println!("Crashing... :(");
+            panic!();
+        }
+    };
+    let width = sprites.width * sprites.scale;
+    let height = sprites.height * sprites.scale;
+    let graphics = PlayerGphx {
         x: 0.0,
         y: 0.0,
-        w: SIZE,
-        h: SIZE,
-        color: COLOR_NORMAL,
+        scale: sprites.scale,
+        speed: sprites.speed,
+        state: PlayerDrawState::PDSIdle,
+        reverse: false,
+        manager: sprites,
+        frame: 1,
     };
-    let g = arc_mut(rect);
+
+    let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_PLAYER);
     let p = arc_mut(PhysDyn::new(props,
                                  x,
                                  y,
                                  1.0,
                                  MAXSPEED,
-                                 SIZE,
-                                 SIZE,
+                                 width,
+                                 height,
                                  g.clone()));
 
     let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));

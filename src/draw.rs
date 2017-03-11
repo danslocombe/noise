@@ -36,7 +36,7 @@ impl Rectangle {
 }
 
 pub trait Drawable {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform);
@@ -54,7 +54,7 @@ pub struct GrphxContainer {
 pub struct GrphxNoDraw {}
 
 impl Drawable for GrphxNoDraw {
-    fn draw(&self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
+    fn draw(&mut self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
     fn set_position(&mut self, _: fphys, _: fphys) {}
     fn set_color(&mut self, _: Color) {}
     fn should_draw(&self, _: &Rectangle) -> bool {
@@ -63,12 +63,12 @@ impl Drawable for GrphxNoDraw {
 }
 
 impl Drawable for GrphxContainer {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
         for arc_mut_d in &self.drawables {
-            let d = arc_mut_d.lock().unwrap();
+            let mut d = arc_mut_d.lock().unwrap();
             let vt_mod = ViewTransform {
                 x: vt.x - self.x_offset,
                 y: vt.y - self.y_offset,
@@ -241,7 +241,7 @@ impl NoisyShader {
 }
 
 impl Drawable for GrphxRect {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
@@ -298,7 +298,7 @@ impl Overlay {
 }
 
 impl Drawable for Overlay {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             _: &ViewTransform) {

@@ -1,11 +1,11 @@
 {
-  "idle_frames":1,
+  "idle_frames":3,
   "idle_path":"sprites/player/idle",
 
   "running_frames":1,
   "running_path":"sprites/player/run",
 
-  "jumping_frames":1,
+  "jumping_frames":2,
   "jumping_path":"sprites/player/jump",
 
   "swinging_frames":1,
@@ -14,6 +14,9 @@
   "dashing_frames":1,
   "dashing_path":"sprites/player/dash",
 
-  "framerate":1,
-  "scale":1
+  "speed":15,
+  "scale":4,
+
+  "width":8,
+  "height":8
 }

@@ -522,7 +522,7 @@ impl GrappleDraw {
 }
 
 impl Drawable for GrappleDraw {
-    fn draw(&self,
+    fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
