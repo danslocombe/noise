@@ -1,4 +1,3 @@
-
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
 use game::fphys;

@@ -64,6 +64,8 @@ impl GameObj {
 pub enum ObjMessage {
     MCollision(Collision),
     MApplyForce(fphys, fphys),
+    MPlayerStartGrapple,
+    MPlayerEndGrapple,
 }
 
 pub enum MetaCommand {
@@ -130,7 +132,7 @@ pub fn game_loop(mut window: Window,
 
     let grapple_id = world.generate_id();
     let (grapple_obj, grapple_input_handler) =
-        grapple_create(grapple_id, player_obj.physics.clone());
+        grapple_create(grapple_id, player_id, player_obj.physics.clone());
 
     objs.push(grapple_obj);
     objs.push(player_obj);

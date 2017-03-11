@@ -21,6 +21,7 @@ pub struct PlayerLogic {
     jump_cd: fphys,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
+    grappling: bool,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -49,6 +50,7 @@ impl PlayerLogic {
             damage_cd: 0.0,
             input: PI_NONE,
             collision_buffer: Vec::new(),
+            grappling: false,
             hp: START_HP,
             hp_max: START_HP,
         }
@@ -105,6 +107,12 @@ impl Logical for PlayerLogic {
                 ObjMessage::MCollision(c) => {
                     self.collision_buffer.push(c);
                 }
+                ObjMessage::MPlayerStartGrapple => {
+                    self.grappling = true;
+                }
+                ObjMessage::MPlayerEndGrapple => {
+                    self.grappling = false;
+                }
                 _ => {}
             }
         }
@@ -141,6 +149,8 @@ impl Logical for PlayerLogic {
             //  Set draw state
             d.state = if self.dash_cd > 0.0 {
                 PlayerDrawState::PDSDash
+            } else if self.grappling {
+                PlayerDrawState::PDSSwing
             } else if !phys.on_ground {
                 PlayerDrawState::PDSJump
             } else if xvel.abs() > 0.1 {
@@ -229,7 +239,8 @@ impl Logical for PlayerLogic {
         }
 
 
-        phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN);
+        phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN) ||
+                              self.grappling;
         phys.collide_with = {
             let blocks = BBO_PLATFORM | BBO_BLOCK;
             if self.dash_cd < DASH_CD - DASH_INVULN {

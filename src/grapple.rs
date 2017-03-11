@@ -13,21 +13,26 @@ use world::World;
 pub struct GrappleHolster {
     pub grapple: Arc<Mutex<Grapple>>,
     input: GrappleInput,
+    player_id: u32,
     cd: fphys,
 }
 
 impl GrappleHolster {
     pub fn create(id: u32,
                   player: Arc<Mutex<Physical>>,
+                  player_id: u32,
                   draw: Arc<Mutex<GrappleDraw>>)
                   -> (Self, Arc<Mutex<Grapple>>) {
 
-        let grapple = arc_mut(Grapple::new(id, 0.0, 0.0, player, draw));
+
+        let grapple =
+            arc_mut(Grapple::new(id, 0.0, 0.0, player_id, player, draw));
 
         (GrappleHolster {
              grapple: grapple.clone(),
              input: GI_NONE,
              cd: 0.0,
+             player_id: player_id,
          },
          grapple)
     }
@@ -71,7 +76,7 @@ bitflags! {
 impl Logical for GrappleHolster {
     fn tick(&mut self,
             args: &UpdateArgs,
-            _: &CommandBuffer<MetaCommand>,
+            metabuffer: &CommandBuffer<MetaCommand>,
             _: &CommandBuffer<ObjMessage>) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
@@ -99,6 +104,9 @@ impl Logical for GrappleHolster {
                 }
                 GrappleLocked(len) => {
                     if self.input.is_empty() {
+                        metabuffer.issue(
+                            MetaCommand::MessageObject(self.player_id, 
+                                ObjMessage::MPlayerEndGrapple));
                         g.end_grapple();
                     } else {
                         if self.input.contains(GI_RETRACT) {
@@ -179,6 +187,7 @@ pub struct Grapple {
     vel_x: fphys,
     vel_y: fphys,
     retracting: bool,
+    player_id: u32,
     player: Arc<Mutex<Physical>>,
     draw: Arc<Mutex<GrappleDraw>>,
 }
@@ -187,6 +196,7 @@ impl Grapple {
     fn new(id: u32,
            vel_x: fphys,
            vel_y: fphys,
+           player_id: u32,
            player: Arc<Mutex<Physical>>,
            draw: Arc<Mutex<GrappleDraw>>)
            -> Self {
@@ -199,6 +209,7 @@ impl Grapple {
         }
         Grapple {
             id: id,
+            player_id: player_id,
             state: GrappleState::GrappleNone,
             start_x: init_x,
             start_y: init_y,
@@ -245,7 +256,7 @@ const MAX_LENGTH_SQR: fphys = 240000.0;
 impl Physical for Grapple {
     fn tick(&mut self,
             args: &UpdateArgs,
-            _: &CommandBuffer<MetaCommand>,
+            metabuffer: &CommandBuffer<MetaCommand>,
             world: &World) {
         match self.state {
             GrappleState::GrappleNone => {}
@@ -280,6 +291,9 @@ impl Physical for Grapple {
                                      self.end_y,
                                      bb)
                             .map(|(col_x, col_y)| {
+                                metabuffer.issue(
+                                    MetaCommand::MessageObject(self.player_id, 
+                                        ObjMessage::MPlayerStartGrapple));
                                 self.end_x = col_x;
                                 self.end_y = col_y;
                                 self.state =
@@ -551,10 +565,12 @@ impl Drawable for GrappleDraw {
 }
 
 pub fn create(id: u32,
+              player_id: u32,
               player: Arc<Mutex<Physical>>)
               -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g: Arc<Mutex<GrappleDraw>> = arc_mut(GrappleDraw::new());
-    let (holster, grapple) = GrappleHolster::create(id, player, g.clone());
+    let (holster, grapple) =
+        GrappleHolster::create(id, player, player_id, g.clone());
     let holster_ref = arc_mut(holster);
     (GameObj {
          id: id,
