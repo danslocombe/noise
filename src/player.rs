@@ -1,6 +1,4 @@
-use std::sync::{Arc, Mutex};
-use opengl_graphics::Texture;
-use piston::input::*;
+
 
 use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
                 BBProperties, Collision};
@@ -8,9 +6,12 @@ use draw::{Drawable, GrphxRect};
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
            MetaCommand, ObjMessage, fphys};
 use logic::Logical;
+use opengl_graphics::Texture;
 use physics::{PhysDyn, Physical};
-use tools::{arc_mut, normalise};
+use piston::input::*;
 use player_graphics::PlayerSpriteManager;
+use std::sync::{Arc, Mutex};
+use tools::{arc_mut, normalise};
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<Drawable>>,
@@ -20,7 +21,7 @@ pub struct PlayerLogic {
     jump_cd: fphys,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
-    sprites : PlayerSpriteManager,
+    sprites: PlayerSpriteManager,
     pub hp: fphys,
     pub hp_max: fphys,
 }
