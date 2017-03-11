@@ -14,6 +14,7 @@ use piston::window::WindowSettings;
 
 mod block;
 mod collision;
+mod descriptors;
 mod draw;
 mod enemy;
 mod game;

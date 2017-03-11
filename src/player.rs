@@ -2,6 +2,7 @@
 
 use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
                 BBProperties, Collision};
+use descriptors::*;
 use draw::{Drawable, GrphxRect};
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
            MetaCommand, ObjMessage, fphys};
@@ -9,7 +10,10 @@ use logic::Logical;
 use opengl_graphics::Texture;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
+
 use player_graphics::*;
+
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
 
@@ -21,6 +25,7 @@ pub struct PlayerLogic {
     jump_cd: fphys,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
+    descr: Rc<PlayerDescriptor>,
     grappling: bool,
     pub hp: fphys,
     pub hp_max: fphys,
@@ -39,6 +44,7 @@ bitflags! {
 
 impl PlayerLogic {
     pub fn new(draw: Arc<Mutex<PlayerGphx>>,
+               descr: Rc<PlayerDescriptor>,
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
@@ -48,34 +54,17 @@ impl PlayerLogic {
             dash_cd: 0.0,
             jump_cd: 0.0,
             damage_cd: 0.0,
+            descr: descr.clone(),
             input: PI_NONE,
             collision_buffer: Vec::new(),
             grappling: false,
-            hp: START_HP,
-            hp_max: START_HP,
+            hp: descr.start_hp,
+            hp_max: descr.start_hp,
         }
     }
 }
 
-const START_HP: fphys = 100.0;
 const ENEMY_DMG: fphys = 22.0;
-
-const SIZE: fphys = 28.0;
-
-const FRICTION: fphys = 0.7;
-const FRICTION_AIR: fphys = FRICTION * 0.35;
-const MOVEFORCE: fphys = 15.0;
-const MOVEFORCE_AIR: fphys = MOVEFORCE * 1.0;
-const JUMP_FORCE: fphys = 650.0;
-const MAX_RUNSPEED: fphys = 75.0;
-const DASH_CD: fphys = 0.75;
-const DASH_DURATION: fphys = 0.1;
-const DASH_INVULN: fphys = 0.3;
-const DASH_FORCE: fphys = 300.0;
-const JUMP_CD: fphys = 0.5;
-pub const MAXSPEED: fphys = 300.0;
-
-const DAMAGE_CD: fphys = 0.4;
 
 const ENEMY_BUMP_FORCE: fphys = 400.0;
 const ENEMY_SHOVE_FORCE: fphys = 800.0;
@@ -123,9 +112,9 @@ impl Logical for PlayerLogic {
 
                 let force: fphys;
                 if self.damage_cd <= 0.0 &&
-                   self.dash_cd < DASH_CD - DASH_INVULN {
+                   self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
                     //  Take damage
-                    self.damage_cd = DAMAGE_CD;
+                    self.damage_cd = self.descr.dash_cd;
                     self.hp -= ENEMY_DMG;
                     force = ENEMY_SHOVE_FORCE
                 } else {
@@ -168,13 +157,13 @@ impl Logical for PlayerLogic {
 
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
-            if self.dash_cd < DASH_CD - DASH_INVULN {
+            if self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
                 //  Out of invuln
                 phys.p.owner_type = BBO_PLAYER;
                 let mut d = self.draw.lock().unwrap();
             }
         }
-        if self.dash_cd < DASH_CD - DASH_DURATION {
+        if self.dash_cd < self.descr.dash_cd - self.descr.dash_duration {
             //  Performing regular physics
             let xdir = 0.0 +
                        (if self.input.contains(PI_RIGHT) {
@@ -189,7 +178,7 @@ impl Logical for PlayerLogic {
             });
 
             if self.dash_cd <= 0.0 && self.input.contains(PI_DASH) {
-                self.dash_cd = DASH_CD;
+                self.dash_cd = self.descr.dash_cd;
                 let ydir = 0.0 +
                            (if self.input.contains(PI_DOWN) {
                     1.0
@@ -198,21 +187,22 @@ impl Logical for PlayerLogic {
                 }) -
                            (if self.input.contains(PI_UP) { 1.0 } else { 0.0 });
                 phys.p.owner_type = BBO_PLAYER_DMG;
-                phys.apply_force(DASH_FORCE * xdir, DASH_FORCE * ydir);
+                phys.apply_force(self.descr.dash_force * xdir,
+                                 self.descr.dash_force * ydir);
             }
 
-            if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
+            if xdir != 0.00 && xvel * xdir < self.descr.max_runspeed {
                 let force = if phys.on_ground {
-                    MOVEFORCE
+                    self.descr.moveforce
                 } else {
-                    MOVEFORCE_AIR
+                    self.descr.moveforce * self.descr.moveforce_air_mult
                 };
                 phys.apply_force(force * xdir, 0.0);
             } else {
                 let friction_percent = if phys.on_ground {
-                    FRICTION
+                    self.descr.friction
                 } else {
-                    FRICTION_AIR
+                    self.descr.friction * self.descr.friction_air_mult
                 };
                 let friction = xvel * -1.0 * friction_percent;
                 phys.apply_force(friction, 0.0);
@@ -224,9 +214,9 @@ impl Logical for PlayerLogic {
 
             if phys.on_ground {
                 if self.jump_cd <= 0.0 && self.input.contains(PI_UP) {
-                    phys.apply_force(0.0, -JUMP_FORCE);
+                    phys.apply_force(0.0, -self.descr.jumpforce);
                     phys.set_velocity(xvel, 0.0);
-                    self.jump_cd = JUMP_CD;
+                    self.jump_cd = self.descr.jump_cd;
                 }
             } else {
                 //  Gravity
@@ -243,7 +233,7 @@ impl Logical for PlayerLogic {
                               self.grappling;
         phys.collide_with = {
             let blocks = BBO_PLATFORM | BBO_BLOCK;
-            if self.dash_cd < DASH_CD - DASH_INVULN {
+            if self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
                 blocks | BBO_ENEMY
             } else {
                 blocks | BBO_ENEMY
@@ -297,29 +287,21 @@ impl InputHandler for PlayerLogic {
 
 pub fn create(id: u32,
               x: fphys,
-              y: fphys)
+              y: fphys,
+              descr: Rc<PlayerDescriptor>)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
 
-    let sprites_r = PlayerSpriteManager::new("sprites/player/player.json");
-    let sprites = match sprites_r {
-        Ok(s) => s,
-        Err(e) => {
-            println!("Error loading player sprites!");
-            println!("{:?}", e.get_ref());
-            println!("Crashing... :(");
-            panic!();
-        }
-    };
-    let width = sprites.width * sprites.scale;
-    let height = sprites.height * sprites.scale;
+    let width = descr.width * descr.scale;
+    let height = descr.height * descr.scale;
+    let maxspeed = descr.maxspeed;
     let graphics = PlayerGphx {
         x: 0.0,
         y: 0.0,
-        scale: sprites.scale,
-        speed: sprites.speed,
+        scale: descr.scale,
+        speed: descr.speed,
         state: PlayerDrawState::PDSIdle,
         reverse: false,
-        manager: sprites,
+        manager: descr.clone(),
         frame: 1,
     };
 
@@ -329,12 +311,12 @@ pub fn create(id: u32,
                                  x,
                                  y,
                                  1.0,
-                                 MAXSPEED,
+                                 maxspeed,
                                  width,
                                  height,
                                  g.clone()));
 
-    let l = arc_mut(PlayerLogic::new(g.clone(), p.clone()));
+    let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));
 
     (GameObj::new(id, g, p, l.clone()), l)
 }

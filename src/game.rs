@@ -7,6 +7,7 @@ extern crate rayon;
 
 use block::blocks_from_ghosts;
 use collision::Collision;
+use descriptors::PlayerDescriptor;
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
@@ -20,6 +21,8 @@ use physics::Physical;
 use piston::event_loop::*;
 use piston::input::*;
 use player::create as player_create;
+
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::SystemTime;
@@ -126,8 +129,19 @@ pub fn game_loop(mut window: Window,
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
 
+    let pd_r = PlayerDescriptor::new("descriptors/player.json");
+    let pd = match pd_r {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Error loading player descriptor!");
+            println!("{:?}", e.get_ref());
+            println!("Crashing... :(");
+            panic!();
+        }
+    };
     let player_id = world.generate_id();
-    let (player_obj, player_logic) = player_create(player_id, 800.0, -250.0);
+    let (player_obj, player_logic) =
+        player_create(player_id, 800.0, -250.0, Rc::new(pd));
     let player_phys = player_obj.physics.clone();
 
     let grapple_id = world.generate_id();
