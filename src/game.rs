@@ -7,7 +7,7 @@ extern crate rayon;
 
 use block::blocks_from_ghosts;
 use collision::Collision;
-use descriptors::PlayerDescriptor;
+use descriptors::*;
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
@@ -108,6 +108,19 @@ pub trait InputHandler {
 
 const DESTROY_BUFFER: fphys = 1000.0;
 
+fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
+    let pd_r = T::new(json_path);
+    match pd_r {
+        Ok(s) => s,
+        Err(e) => {
+            println!("Error loading player descriptor!");
+            println!("{:?}", e.get_ref());
+            println!("Crashing... :(");
+            panic!();
+        }
+    }
+}
+
 
 pub fn game_loop(mut window: Window,
                  mut ctx: GlGraphics,
@@ -129,24 +142,19 @@ pub fn game_loop(mut window: Window,
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
 
-    let pd_r = PlayerDescriptor::new("descriptors/player.json");
-    let pd = match pd_r {
-        Ok(s) => s,
-        Err(e) => {
-            println!("Error loading player descriptor!");
-            println!("{:?}", e.get_ref());
-            println!("Crashing... :(");
-            panic!();
-        }
-    };
+    let player_descriptor = load_descriptor("descriptors/player.json");
     let player_id = world.generate_id();
     let (player_obj, player_logic) =
-        player_create(player_id, 800.0, -250.0, Rc::new(pd));
+        player_create(player_id, 800.0, -250.0, player_descriptor);
     let player_phys = player_obj.physics.clone();
 
+    let grapple_descriptor = load_descriptor("descriptors/grapple.json");
     let grapple_id = world.generate_id();
     let (grapple_obj, grapple_input_handler) =
-        grapple_create(grapple_id, player_id, player_obj.physics.clone());
+        grapple_create(grapple_id,
+                       grapple_descriptor,
+                       player_id,
+                       player_obj.physics.clone());
 
     objs.push(grapple_obj);
     objs.push(player_obj);

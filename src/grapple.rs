@@ -1,11 +1,13 @@
 use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BoundingBox};
+use descriptors::GrappleDescriptor;
 use draw::{Drawable, Rectangle, ViewTransform};
-
 use game::{CommandBuffer, GameObj, InputHandler, MetaCommand, ObjMessage, fphys};
 use logic::Logical;
 use opengl_graphics::GlGraphics;
 use physics::Physical;
 use piston::input::*;
+
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
 use world::World;
@@ -14,6 +16,7 @@ pub struct GrappleHolster {
     pub grapple: Arc<Mutex<Grapple>>,
     input: GrappleInput,
     player_id: u32,
+    descr: Rc<GrappleDescriptor>,
     cd: fphys,
 }
 
@@ -21,16 +24,23 @@ impl GrappleHolster {
     pub fn create(id: u32,
                   player: Arc<Mutex<Physical>>,
                   player_id: u32,
+                  descr: Rc<GrappleDescriptor>,
                   draw: Arc<Mutex<GrappleDraw>>)
                   -> (Self, Arc<Mutex<Grapple>>) {
 
 
-        let grapple =
-            arc_mut(Grapple::new(id, 0.0, 0.0, player_id, player, draw));
+        let grapple = arc_mut(Grapple::new(id,
+                                           0.0,
+                                           0.0,
+                                           player_id,
+                                           player,
+                                           descr.clone(),
+                                           draw));
 
         (GrappleHolster {
              grapple: grapple.clone(),
              input: GI_NONE,
+             descr: descr,
              cd: 0.0,
              player_id: player_id,
          },
@@ -52,15 +62,9 @@ impl GrappleHolster {
             y += 1.0;
         }
         let (xn, yn) = normalise((x, y));
-        (xn * GRAPPLE_SPEED, yn * GRAPPLE_SPEED)
+        (xn * self.descr.extend_speed, yn * self.descr.extend_speed)
     }
 }
-
-const GRAPPLE_SPEED: fphys = 1500.0;
-const RETRACT_SPEED: fphys = 400.0;
-const RETRACT_FORCE: fphys = 15.0;
-const RETRACT_EPSILON: fphys = 15.0;
-const GRAPPLE_CD: fphys = 0.65;
 
 bitflags! {
     flags GrappleInput : u16 {
@@ -91,7 +95,7 @@ impl Logical for GrappleHolster {
                     if self.cd <= 0.0 && !self.input.is_empty() {
                         let (vx, vy) = self.vel_from_inputs();
                         g.shoot(vx, vy);
-                        self.cd = GRAPPLE_CD;
+                        self.cd = self.descr.cd;
                     }
                 }
                 GrappleOut => {
@@ -111,7 +115,7 @@ impl Logical for GrappleHolster {
                     } else {
                         if self.input.contains(GI_RETRACT) {
                             g.retracting = true;
-                            let len_new = len - RETRACT_SPEED * dt;
+                            let len_new = len - self.descr.retract_speed * dt;
                             if len_new < 0.0 {
                                 g.state = GrappleLocked(0.0);
                             } else {
@@ -188,6 +192,7 @@ pub struct Grapple {
     vel_y: fphys,
     retracting: bool,
     player_id: u32,
+    descr: Rc<GrappleDescriptor>,
     player: Arc<Mutex<Physical>>,
     draw: Arc<Mutex<GrappleDraw>>,
 }
@@ -198,6 +203,7 @@ impl Grapple {
            vel_y: fphys,
            player_id: u32,
            player: Arc<Mutex<Physical>>,
+           descr: Rc<GrappleDescriptor>,
            draw: Arc<Mutex<GrappleDraw>>)
            -> Self {
         let (init_x, init_y): (fphys, fphys);
@@ -217,6 +223,7 @@ impl Grapple {
             end_y: init_y,
             vel_x: vel_x,
             vel_y: vel_y,
+            descr: descr,
             player: player,
             draw: draw,
             retracting: false,
@@ -334,12 +341,14 @@ impl Physical for Grapple {
                                       -dot * GRAPPLE_DAMP * angle.sin());
 
                         if self.retracting {
-                            p.apply_force(RETRACT_FORCE * angle.cos(),
-                                          RETRACT_FORCE * angle.sin());
+                            p.apply_force(self.descr.retract_force *
+                                          angle.cos(),
+                                          self.descr.retract_force *
+                                          angle.sin());
                         }
                     }
 
-                    if self.retracting && diff < RETRACT_EPSILON {
+                    if self.retracting && diff < self.descr.retract_epsilon {
                         self.state = GrappleState::GrappleNone;
                         {
                             let mut d = self.draw.lock().unwrap();
@@ -565,12 +574,13 @@ impl Drawable for GrappleDraw {
 }
 
 pub fn create(id: u32,
+              descr: Rc<GrappleDescriptor>,
               player_id: u32,
               player: Arc<Mutex<Physical>>)
               -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g: Arc<Mutex<GrappleDraw>> = arc_mut(GrappleDraw::new());
     let (holster, grapple) =
-        GrappleHolster::create(id, player, player_id, g.clone());
+        GrappleHolster::create(id, player, player_id, descr, g.clone());
     let holster_ref = arc_mut(holster);
     (GameObj {
          id: id,

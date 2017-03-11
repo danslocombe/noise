@@ -1,4 +1,3 @@
-
 use descriptors::PlayerDescriptor;
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
