@@ -84,8 +84,8 @@ impl PhysDyn {
                y: fphys,
                mass: fphys,
                maxspeed: fphys,
-               height: fphys,
                width: fphys,
+               height: fphys,
                dr: Arc<Mutex<super::draw::Drawable>>)
                -> PhysDyn {
         let bb = BoundingBox {
