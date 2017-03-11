@@ -1,14 +1,16 @@
+use std::sync::{Arc, Mutex};
+use opengl_graphics::Texture;
+use piston::input::*;
+
 use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
                 BBProperties, Collision};
 use draw::{Drawable, GrphxRect};
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
            MetaCommand, ObjMessage, fphys};
-
 use logic::Logical;
 use physics::{PhysDyn, Physical};
-use piston::input::*;
-use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
+use player_graphics::PlayerSpriteManager;
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<Drawable>>,
@@ -18,6 +20,7 @@ pub struct PlayerLogic {
     jump_cd: fphys,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
+    sprites : PlayerSpriteManager,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -38,6 +41,16 @@ impl PlayerLogic {
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
+        let sprites_r = PlayerSpriteManager::new("sprites/player/player.json");
+        let sprites = match sprites_r {
+            Ok(s) => s,
+            Err(e) => {
+                println!("Error loading player sprites!");
+                println!("{:?}", e.get_ref());
+                println!("Crashing... :(");
+                panic!();
+            }
+        };
         PlayerLogic {
             draw: draw,
             physics: physics,
@@ -45,6 +58,7 @@ impl PlayerLogic {
             jump_cd: 0.0,
             damage_cd: 0.0,
             input: PI_NONE,
+            sprites: sprites,
             collision_buffer: Vec::new(),
             hp: START_HP,
             hp_max: START_HP,

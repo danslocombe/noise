@@ -5,7 +5,7 @@ extern crate opengl_graphics;
 extern crate piston_window;
 #[macro_use]
 extern crate bitflags;
-
+extern crate rustc_serialize;
 
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
@@ -22,6 +22,7 @@ mod grapple;
 mod logic;
 mod physics;
 mod player;
+mod player_graphics;
 mod shaders;
 mod tile;
 mod tools;
