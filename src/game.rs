@@ -8,6 +8,8 @@ extern crate rayon;
 use block::blocks_from_ghosts;
 use collision::Collision;
 use descriptors::*;
+
+use dialogue::{Dialogue, DialogueBuffer};
 use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
@@ -76,6 +78,7 @@ pub enum MetaCommand {
     RemoveObject(u32),
     CreateObject(GameObj),
     MessageObject(u32, ObjMessage),
+    Dialogue(Dialogue),
 }
 
 pub struct CommandBuffer<A> {
@@ -176,6 +179,9 @@ pub fn game_loop(mut window: Window,
 
     let mut prev_time = SystemTime::now();
 
+    let mut dialogue_buffer = DialogueBuffer::new();
+    dialogue_buffer.add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
+
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
         //  Get update from window and match against appropriate type
@@ -220,6 +226,9 @@ pub fn game_loop(mut window: Window,
                                 .map(|pos| {
                                     objs[pos].message_buffer.issue(message);
                                 });
+                        }
+                        MetaCommand::Dialogue(d) => {
+                            dialogue_buffer.add(d);
                         }
                     }
                 }
@@ -308,6 +317,9 @@ pub fn game_loop(mut window: Window,
                     if gphx.should_draw(view_rect) {
                         gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                     }
+                }
+                if overlay.dialogue_empty() {
+                    overlay.set_dialogue(dialogue_buffer.get());
                 }
                 overlay.draw(&r_args, &mut ctx, &view_follower.vt);
             }

@@ -2,13 +2,17 @@ extern crate graphics;
 extern crate gl;
 
 use self::gl::types::GLuint;
-
-
 use game::fphys;
+use graphics::character::CharacterCache;
+use graphics::text::Text;
 use opengl_graphics::GlGraphics;
+
+
+use opengl_graphics::glyph_cache::GlyphCache;
 use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
 use player::PlayerLogic;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 use tools::weight;
 
@@ -280,20 +284,54 @@ pub struct Overlay {
     border: fphys,
     hpbar_c: Color,
     hpbar_border_c: Color,
+    char_size: u32,
+    blackbar_percent: fphys,
+    text: Text,
+    black_bar_ratio: fphys,
+    char_cache: GlyphCache<'static>,
+    dialogue: String,
+    dialogue_time_left: u32,
+    dialogue_chars: usize,
 }
 
 impl Overlay {
     pub fn new(player: Arc<Mutex<PlayerLogic>>) -> Self {
         const COLOR: Color = [1.0, 1.0, 1.0, 1.0];
         const COLOR_BORDER: Color = [0.0, 0.0, 0.0, 1.0];
+        let mut text = Text::new(24);
+        text.color = [1.0, 1.0, 1.0, 1.0];
         Overlay {
             player: player,
             hpbar_h: 9.0,
             hpbar_yo: 2.0,
             border: 2.0,
+            black_bar_ratio: 2.35,
             hpbar_c: COLOR,
             hpbar_border_c: COLOR_BORDER,
+            blackbar_percent: 0.15,
+            char_size: 24,
+            text: text,
+            char_cache: GlyphCache::new(Path::new("fonts/alterebro.ttf"))
+                .unwrap(),
+            dialogue: String::new(),
+            dialogue_time_left: 1,
+            dialogue_chars: 0,
         }
+    }
+    pub fn dialogue_empty(&mut self) -> bool {
+        if self.dialogue_time_left > 0 {
+            self.dialogue_time_left -= 1;
+        }
+        self.dialogue_chars += 1;
+        self.dialogue_time_left <= 1
+    }
+
+    pub fn set_dialogue(&mut self, s: Option<String>) {
+        s.map(|d| {
+            self.dialogue = d;
+            self.dialogue_time_left = 140;
+            self.dialogue_chars = 0
+        });
     }
 }
 
@@ -305,6 +343,7 @@ impl Drawable for Overlay {
         use graphics::*;
         let hp;
         let hp_max;
+        const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
         {
             let p = self.player.lock().unwrap();
             hp = p.hp;
@@ -322,9 +361,40 @@ impl Drawable for Overlay {
                         h + 2.0 * self.border];
         ctx.draw(args.viewport(), |c, gl| {
             rectangle(self.hpbar_border_c, r_border, c.transform, gl);
+            rectangle(self.hpbar_c, r, c.transform, gl);
+            c.viewport.map(|vp| {
+                let letterbox_up = [vp.rect[0] as f64,
+                                    vp.rect[1] as f64,
+                                    vp.rect[2] as f64,
+                                    vp.rect[3] as f64];
+                let transform = c.transform.scale(1.0, self.blackbar_percent);
+                rectangle(BLACK, letterbox_up, transform, gl);
+                let transform_bot = c.transform
+                    .trans(0.0,
+                           (1.0 - self.blackbar_percent) * vp.rect[3] as f64)
+                    .scale(1.0, self.blackbar_percent);
+                rectangle(BLACK, letterbox_up, transform_bot, gl);
+
+                if self.dialogue_time_left > 1 {
+                    let dc = if self.dialogue_chars > self.dialogue.len() {
+                        self.dialogue.len()
+                    } else {
+                        self.dialogue_chars
+                    };
+                    let (t, _) = self.dialogue.as_str().split_at(dc);
+                    let text_width = self.char_cache.width(self.char_size, t);
+                    let transform_text = c.transform
+                        .trans(0.5 * (vp.rect[2] as fphys) - text_width / 2.0,
+                               (1.0 - 0.5 * self.blackbar_percent) *
+                               vp.rect[3] as f64);
+                    self.text.draw(t,
+                                   &mut self.char_cache,
+                                   &c.draw_state,
+                                   transform_text,
+                                   gl);
+                }
+            });
         });
-        ctx.draw(args.viewport(),
-                 |c, gl| { rectangle(self.hpbar_c, r, c.transform, gl); });
     }
     fn set_position(&mut self, _: fphys, _: fphys) {
         // TODO

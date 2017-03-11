@@ -19,6 +19,7 @@ rayon = "0.6.0"
 insertion-sort = "0.1.0"
 rustc-serialize = "0.3.22"
 clippy = {version = "*", optional = true}
+find_folder = "*"
 
 [features]
 default = []

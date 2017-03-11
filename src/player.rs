@@ -3,6 +3,7 @@
 use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
                 BBProperties, Collision};
 use descriptors::*;
+use dialogue::Dialogue;
 use draw::{Drawable, GrphxRect};
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
            MetaCommand, ObjMessage, fphys};
@@ -27,6 +28,7 @@ pub struct PlayerLogic {
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
     grappling: bool,
+    time: fphys,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -54,6 +56,7 @@ impl PlayerLogic {
             dash_cd: 0.0,
             jump_cd: 0.0,
             damage_cd: 0.0,
+            time: 0.0,
             descr: descr.clone(),
             input: PI_NONE,
             collision_buffer: Vec::new(),
@@ -82,6 +85,7 @@ impl Logical for PlayerLogic {
             message_buffer: &CommandBuffer<ObjMessage>) {
 
         let dt = args.dt as fphys;
+        self.time += dt;
         let mut phys = self.physics.lock().unwrap();
         let (x, y) = phys.get_position();
         if self.hp < 0.0 || y > MAX_HEIGHT {
@@ -116,8 +120,10 @@ impl Logical for PlayerLogic {
                     //  Take damage
                     self.damage_cd = self.descr.dash_cd;
                     self.hp -= ENEMY_DMG;
+                    metabuffer.issue(MetaCommand::Dialogue(Dialogue::new(self.time, 7, String::from("I meant to do that"))));
                     force = ENEMY_SHOVE_FORCE
                 } else {
+                    metabuffer.issue(MetaCommand::Dialogue(Dialogue::new(self.time, 6, String::from("I hit him right in the face"))));
                     force = ENEMY_BUMP_FORCE
                 }
                 let diff_x = c.other_bb.x - c.bb.x;

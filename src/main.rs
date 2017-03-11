@@ -10,6 +10,7 @@ extern crate piston_window;
 #[macro_use]
 extern crate bitflags;
 extern crate rustc_serialize;
+extern crate find_folder;
 
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
@@ -32,6 +33,7 @@ mod shaders;
 mod tile;
 mod tools;
 mod world;
+mod dialogue;
 
 use draw::NoisyShader;
 use game::game_loop;
@@ -45,8 +47,7 @@ fn main() {
     println!("Loading opengl");
 
     // Create an Glutin window.
-    let window: Window = WindowSettings::new("noise",
-                                             [SCREEN_WIDTH, SCREEN_HEIGHT])
+    let window = WindowSettings::new("noise", [SCREEN_WIDTH, SCREEN_HEIGHT])
         .opengl(opengl)
         .exit_on_esc(true)
         .build()
@@ -85,6 +86,8 @@ fn main() {
                                   t_program);
 
     println!("Compiled shaders");
+
+    println!("Loading fonts");
 
     println!("Starting");
     game_loop(window, context, shader);
