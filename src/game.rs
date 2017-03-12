@@ -14,8 +14,10 @@ use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
            draw_background};
 use enemy::create as enemy_create;
 use gen::Gen;
+use gen::GhostTile;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
+use load_world::from_json;
 
 use logic::Logical;
 use opengl_graphics::GlGraphics;
@@ -133,14 +135,11 @@ pub fn game_loop(mut window: Window,
     let mut tiles: Vec<Tile> = Vec::new();
 
     //  Initialise world generator
-    let mut gen = Gen::new(BLOCKSIZE, 500.0);
+    //let mut gen = Gen::new(BLOCKSIZE, 500.0);
 
     //  Create new world
     let mut world = World::new();
 
-    //  Initialise set of objects
-    //  We keep this sorted with respect to gameobject id
-    let mut objs: Vec<GameObj> = Vec::new();
 
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
@@ -159,8 +158,17 @@ pub fn game_loop(mut window: Window,
                        player_id,
                        player_obj.physics.clone());
 
-    objs.push(grapple_obj);
-    objs.push(player_obj);
+    //objs.push(grapple_obj);
+    //objs.push(player_obj);
+    //  Initialise set of objects
+    //  We keep this sorted with respect to gameobject id
+    //
+    //  Load from json
+    let mut poss_objs =
+        from_json("worlds/testworld.json", player_obj, grapple_obj, &mut world);
+    let (mut objs, mut ghost_tiles) = poss_objs.unwrap();
+    let mut tiles = tile_manager.propogate_ghosts(ghost_tiles);
+
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
@@ -190,12 +198,15 @@ pub fn game_loop(mut window: Window,
             Input::Update(u_args) => {
                 time += u_args.dt;
                 //  Generate world
+                /*
                 let (ghost_tiles, ghost_blocks) =
                     gen.gen_to(view_follower.vt.x + 5000.0);
                 tiles.extend(tile_manager.propogate_ghosts(ghost_tiles));
                 objs.extend(blocks_from_ghosts(ghost_blocks,
                                                player_phys.clone(),
                                                &mut world));
+                */
+
                 //  Update bounding box list
                 world.update();
 

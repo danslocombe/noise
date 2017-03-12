@@ -1,5 +1,3 @@
-
-
 use game::fphys;
 use std::cmp::Ordering;
 use std::collections::BinaryHeap;

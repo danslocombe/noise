@@ -41,12 +41,15 @@ pub struct PlayerDescriptor {
     pub damage_cd: fphys,
 }
 
-fn error_simple(dname: &str, err: &str) -> Error {
+pub fn error_simple(dname: &str, err: &str) -> Error {
     let message = format!("Error while parsing {} json: {}", dname, err);
     Error::new(ErrorKind::Other, message)
 }
 
-fn get_number(dname: &str, obj: &Object, field: &str) -> Result<u64, Error> {
+pub fn get_number(dname: &str,
+                  obj: &Object,
+                  field: &str)
+                  -> Result<u64, Error> {
     let raw = obj.get(field)
         .ok_or(error_simple(dname,
                             format!("has no field '{}'", field).as_str()))?;
@@ -56,7 +59,7 @@ fn get_number(dname: &str, obj: &Object, field: &str) -> Result<u64, Error> {
                                 .as_str()))
 }
 
-fn get_float(dname: &str, obj: &Object, field: &str) -> Result<f64, Error> {
+pub fn get_float(dname: &str, obj: &Object, field: &str) -> Result<f64, Error> {
     let raw = obj.get(field)
         .ok_or(error_simple(dname,
                             format!("has no field '{}'", field).as_str()))?;
@@ -65,7 +68,10 @@ fn get_float(dname: &str, obj: &Object, field: &str) -> Result<f64, Error> {
                             format!("'{}' is not a number", field).as_str()))
 }
 
-fn get_string(dname: &str, obj: &Object, field: &str) -> Result<String, Error> {
+pub fn get_string(dname: &str,
+                  obj: &Object,
+                  field: &str)
+                  -> Result<String, Error> {
     let raw = obj.get(field)
         .ok_or(error_simple(dname,
                             format!("has no field '{}'", field).as_str()))?;
@@ -74,11 +80,11 @@ fn get_string(dname: &str, obj: &Object, field: &str) -> Result<String, Error> {
                             format!("'{}' is not a string", field).as_str()))?))
 }
 
-fn load_from(ts: &TextureSettings,
-             dname: &str,
-             count: usize,
-             path: &str)
-             -> Result<Vec<Texture>, Error> {
+pub fn load_from(ts: &TextureSettings,
+                 dname: &str,
+                 count: usize,
+                 path: &str)
+                 -> Result<Vec<Texture>, Error> {
     let mut r = Vec::new();
     for i in 1..count + 1 {
         let path_i = if i < 10 {
@@ -97,7 +103,7 @@ fn load_from(ts: &TextureSettings,
     Ok(r)
 }
 
-fn load_json(dname: &str, json_path: &str) -> Result<Object, Error> {
+pub fn load_json(dname: &str, json_path: &str) -> Result<Object, Error> {
     let mut f = (File::open(json_path)).map_err(|_| {
             error_simple(dname,
                          format!("could not open json file {}", json_path)

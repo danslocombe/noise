@@ -155,7 +155,10 @@ impl Gen {
     }
 }
 
-fn pagoda_platform_tiles(x: fphys, y: fphys, length: fphys) -> Vec<GhostTile> {
+pub fn pagoda_platform_tiles(x: fphys,
+                             y: fphys,
+                             length: fphys)
+                             -> Vec<GhostTile> {
     let mut ts = Vec::new();
     ts.push(GhostTile::new(x, y, GhostTileType::PagodaBack(TileEdge::Left)));
     ts.push(GhostTile::new(x - TILE_W,

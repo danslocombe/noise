@@ -34,6 +34,7 @@ mod tile;
 mod tools;
 mod world;
 mod dialogue;
+mod load_world;
 
 use draw::NoisyShader;
 use game::game_loop;
