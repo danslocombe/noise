@@ -26,6 +26,7 @@ fn get_array(dname: &str, obj: &Object, field: &str) -> Result<Array, Error> {
 pub fn from_json(path: &str,
                  player: GameObj,
                  grapple: GameObj,
+                 enemy_descr: Rc<EnemyDescriptor>,
                  world: &mut World)
                  -> Result<(Vec<GameObj>, Vec<GhostTile>), Error> {
     let mut gobjs = Vec::new();
@@ -54,7 +55,11 @@ pub fn from_json(path: &str,
             }
             "enemy" => {
                 let id = world.generate_id();
-                let e = enemy_create(id, x, y, player_phys.clone());
+                let e = enemy_create(id,
+                                     x,
+                                     y,
+                                     enemy_descr.clone(),
+                                     player_phys.clone());
                 gobjs.push(e);
             }
             "ground" => {

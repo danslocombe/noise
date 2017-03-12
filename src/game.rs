@@ -158,14 +158,18 @@ pub fn game_loop(mut window: Window,
                        player_id,
                        player_obj.physics.clone());
 
+    let enemy_descriptor = load_descriptor("descriptors/enemy.json");
     //objs.push(grapple_obj);
     //objs.push(player_obj);
     //  Initialise set of objects
     //  We keep this sorted with respect to gameobject id
     //
     //  Load from json
-    let mut poss_objs =
-        from_json("worlds/testworld.json", player_obj, grapple_obj, &mut world);
+    let mut poss_objs = from_json("worlds/testworld.json",
+                                  player_obj,
+                                  grapple_obj,
+                                  enemy_descriptor,
+                                  &mut world);
     let (mut objs, mut ghost_tiles) = poss_objs.unwrap();
     let mut tiles = tile_manager.propogate_ghosts(ghost_tiles);
 
@@ -206,6 +210,7 @@ pub fn game_loop(mut window: Window,
                                                player_phys.clone(),
                                                &mut world));
                 */
+
 
 
                 //  Update bounding box list

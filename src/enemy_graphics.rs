@@ -1,4 +1,5 @@
-use descriptors::PlayerDescriptor;
+
+use descriptors::EnemyDescriptor;
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
 use game::fphys;
@@ -8,48 +9,43 @@ use graphics::image;
 use opengl_graphics::{Filter, GlGraphics};
 use opengl_graphics::Texture;
 use piston::input::*;
+use player_graphics::get_index;
 
 use std::ops::Rem;
 
 use std::rc::Rc;
 
-pub enum PlayerDrawState {
+pub enum EnemyDrawState {
     Idle,
     Run,
     Jump,
-    Swing,
-    Dash,
+    Attack,
 }
 
-pub struct PlayerGphx {
+
+pub struct EnemyGphx {
     pub x: fphys,
     pub y: fphys,
     pub scale: fphys,
     pub speed: fphys,
-    pub state: PlayerDrawState,
+    pub state: EnemyDrawState,
     pub reverse: bool,
-    pub manager: Rc<PlayerDescriptor>,
+    pub manager: Rc<EnemyDescriptor>,
     pub frame: u64,
 }
 
-pub fn get_index(frame: u64, ts: &[Texture], speed: fphys) -> &Texture {
-    let speed_2 = 60.0 / (speed as f64);
-    let f = (frame as f64 / speed_2).floor() as usize;
-    &ts[f.rem(ts.len())]
-}
 
-impl Drawable for PlayerGphx {
+impl Drawable for EnemyGphx {
     fn draw(&mut self,
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
         self.frame += 1;
         let texture_vec = match self.state {
-            PlayerDrawState::Idle => &self.manager.idle,
-            PlayerDrawState::Run => &self.manager.running,
-            PlayerDrawState::Jump => &self.manager.jumping,
-            PlayerDrawState::Swing => &self.manager.swinging,
-            PlayerDrawState::Dash => &self.manager.dashing,
+            EnemyDrawState::Idle => &self.manager.idle,
+            EnemyDrawState::Run => &self.manager.running,
+            EnemyDrawState::Jump => &self.manager.jumping,
+            EnemyDrawState::Attack => &self.manager.attacking,
         };
         let texture = get_index(self.frame, texture_vec, self.speed);
         ctx.draw(args.viewport(), |c, gl| {
@@ -79,6 +75,6 @@ impl Drawable for PlayerGphx {
         unimplemented!();
     }
     fn should_draw(&self, _: &Rectangle) -> bool {
-        true
+        true //TODO
     }
 }

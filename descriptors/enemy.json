@@ -1,0 +1,36 @@
+{
+  "_comment":"Values for the enemy",
+
+  "idle_frames":1,
+  "idle_path":"sprites/player/idle",
+
+  "running_frames":1,
+  "running_path":"sprites/player/run",
+
+  "jumping_frames":1,
+  "jumping_path":"sprites/player/jump",
+
+  "attacking_frames":1,
+  "attacking_path":"sprites/player/dash",
+
+  "speed":15,
+  "scale":6,
+
+  "width":48,
+  "height":48,
+
+  "friction":0.7,
+  "friction_air_mult":0.35,
+  "moveforce":15,
+  "moveforce_air_mult":0.4,
+  "jumpforce":650,
+  "max_runspeed":200,
+  "jump_cd":0.5,
+  "maxspeed":200,
+  "damage_cd":0.4,
+  "start_hp":100,
+  "bounce_force":200,
+  "idle_move_chance":0.009,
+  "idle_stop_chance":0.035,
+  "alert_dist":200
+}

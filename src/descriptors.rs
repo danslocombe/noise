@@ -216,3 +216,95 @@ impl Descriptor for GrappleDescriptor {
         }))
     }
 }
+
+pub struct EnemyDescriptor {
+    pub idle: Vec<Texture>,
+    pub running: Vec<Texture>,
+    pub jumping: Vec<Texture>,
+    pub attacking: Vec<Texture>,
+    pub speed: fphys,
+    pub scale: fphys,
+    pub width: fphys,
+    pub height: fphys,
+
+    pub start_hp: fphys,
+    pub friction: fphys,
+    pub friction_air_mult: fphys,
+    pub moveforce: fphys,
+    pub moveforce_air_mult: fphys,
+    pub jumpforce: fphys,
+    pub max_runspeed: fphys,
+    pub maxspeed: fphys,
+    pub jump_cd: fphys,
+    pub damage_cd: fphys,
+
+    pub idle_move_chance: fphys,
+    pub idle_stop_chance: fphys,
+    pub alert_dist: fphys,
+
+    pub bounce_force: fphys,
+}
+
+impl Descriptor for EnemyDescriptor {
+    fn new(json_path: &str) -> Result<Rc<Self>, Error> {
+        let obj = load_json("enemy", json_path)?;
+
+        let idle_frames = get_number("enemy", &obj, "idle_frames")?;
+        let running_frames = get_number("enemy", &obj, "running_frames")?;
+        let jumping_frames = get_number("enemy", &obj, "jumping_frames")?;
+        let attacking_frames = get_number("enemy", &obj, "attacking_frames")?;
+
+        let idle_path = get_string("enemy", &obj, "idle_path")?;
+        let running_path = get_string("enemy", &obj, "running_path")?;
+        let jumping_path = get_string("enemy", &obj, "jumping_path")?;
+        let attacking_path = get_string("enemy", &obj, "attacking_path")?;
+
+        let speed = get_float("enemy", &obj, "speed")?;
+        let scale = get_float("enemy", &obj, "scale")?;
+        let width = get_float("enemy", &obj, "width")?;
+        let height = get_float("enemy", &obj, "height")?;
+
+        let mut ts = TextureSettings::new();
+        ts.set_mag(Filter::Nearest);
+
+        let idle =
+            load_from(&ts, "enemy", idle_frames as usize, idle_path.as_str())?;
+        let running = load_from(&ts,
+                                "enemy",
+                                running_frames as usize,
+                                running_path.as_str())?;
+        let jumping = load_from(&ts,
+                                "enemy",
+                                jumping_frames as usize,
+                                jumping_path.as_str())?;
+        let attacking = load_from(&ts,
+                                  "enemy",
+                                  attacking_frames as usize,
+                                  attacking_path.as_str())?;
+
+        Ok(Rc::new(EnemyDescriptor {
+            speed: speed,
+            scale: scale,
+            width: width,
+            height: height,
+            idle: idle,
+            running: running,
+            jumping: jumping,
+            attacking: attacking,
+            start_hp: get_float("enemy", &obj, "start_hp")?,
+            friction: get_float("enemy", &obj, "friction")?,
+            friction_air_mult: get_float("enemy", &obj, "friction_air_mult")?,
+            moveforce: get_float("enemy", &obj, "moveforce")?,
+            moveforce_air_mult: get_float("enemy", &obj, "moveforce_air_mult")?,
+            jumpforce: get_float("enemy", &obj, "jumpforce")?,
+            max_runspeed: get_float("enemy", &obj, "max_runspeed")?,
+            maxspeed: get_float("enemy", &obj, "maxspeed")?,
+            jump_cd: get_float("enemy", &obj, "jump_cd")?,
+            damage_cd: get_float("enemy", &obj, "damage_cd")?,
+            idle_move_chance: get_float("enemy", &obj, "idle_move_chance")?,
+            idle_stop_chance: get_float("enemy", &obj, "idle_stop_chance")?,
+            alert_dist: get_float("enemy", &obj, "alert_dist")?,
+            bounce_force: get_float("enemy", &obj, "bounce_force")?,
+        }))
+    }
+}

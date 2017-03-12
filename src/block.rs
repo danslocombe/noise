@@ -2,12 +2,14 @@ extern crate rand;
 use self::rand::{Rng, thread_rng};
 
 use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
+use descriptors::EnemyDescriptor;
 use draw::{GrphxNoDraw, GrphxRect};
 use enemy::create as enemy_create;
 use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, fphys};
 use gen::{GhostBlock, GhostBlockType};
 use logic::DumbLogic;
 use physics::{PhysStatic, Physical};
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::arc_mut;
 use world::World;
@@ -52,6 +54,7 @@ pub fn create_platform(id: u32,
 
 pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
                           player_phys: Arc<Mutex<Physical>>,
+                          enemy_descr: Rc<EnemyDescriptor>,
                           world: &mut World)
                           -> Vec<GameObj> {
     let mut rng = thread_rng();
@@ -74,6 +77,7 @@ pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
                         let e = enemy_create(e_id,
                                              ix,
                                              y - BLOCKSIZE,
+                                             enemy_descr.clone(),
                                              player_phys.clone());
                         objs.push(e);
                     }
@@ -88,6 +92,7 @@ pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
                     let e = enemy_create(e_id,
                                          x,
                                          y - BLOCKSIZE,
+                                         enemy_descr.clone(),
                                          player_phys.clone());
                     objs.push(e);
                 }

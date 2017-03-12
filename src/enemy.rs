@@ -4,19 +4,19 @@ extern crate rand;
 use self::EnemyState::*;
 use self::rand::{Rng, thread_rng};
 use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBProperties, Collision};
+use descriptors::{Descriptor, EnemyDescriptor};
 use draw::GrphxRect;
+use enemy_graphics::*;
 use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, MetaCommand,
            ObjMessage, fphys};
 
 use logic::Logical;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
+
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
-
-pub const MAXSPEED: fphys = 200.0;
-const SIZE: fphys = 48.0;
-const COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 enum EnemyState {
     EnemyIdle(Option<fphys>),
@@ -29,18 +29,11 @@ struct EnemyLogic {
     target: Arc<Mutex<Physical>>,
     state: EnemyState,
     collision_buffer: Vec<Collision>,
+    descr: Rc<EnemyDescriptor>,
 }
-
-const FRICTION: fphys = 0.7;
-const FRICTION_AIR: fphys = FRICTION * 0.5;
-const MOVEFORCE: fphys = 12.0;
-const MOVEFORCE_AIR: fphys = MOVEFORCE * 0.4;
-const JUMP_FORCE: fphys = 550.0;
-const MAX_RUNSPEED: fphys = 200.0;
 
 //  TODO code reuse from player
 
-const BOUNCE_FORCE: fphys = 200.0;
 impl Logical for EnemyLogic {
     fn tick(&mut self,
             args: &UpdateArgs,
@@ -66,13 +59,15 @@ impl Logical for EnemyLogic {
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * BOUNCE_FORCE, -ny * BOUNCE_FORCE);
+                phys.apply_force(-nx * self.descr.bounce_force,
+                                 -ny * self.descr.bounce_force);
             }
             if c.other_type.contains(BBO_ENEMY) {
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * BOUNCE_FORCE, -ny * BOUNCE_FORCE);
+                phys.apply_force(-nx * self.descr.bounce_force,
+                                 -ny * self.descr.bounce_force);
             }
 
             if c.other_type.contains(BBO_PLAYER_DMG) {
@@ -101,24 +96,21 @@ impl Logical for EnemyLogic {
 
         let (xdir, jump, fall) = match self.state {
             EnemyIdle(movedir) => {
-                const IDLE_MOVE_CHANCE: fphys = 0.009;
-                const IDLE_STOP_CHANCE: fphys = 0.035;
-                const ALERT_DIST: fphys = 200.0;
-                if target_dist < ALERT_DIST {
+                if target_dist < self.descr.alert_dist {
                     self.state = EnemyActive;
                     (0.0, false, false)
                 } else {
                     match movedir {
                         Some(xdir) => {
                             if rng.gen_range(0.0, 100.0 * dt) <
-                               IDLE_STOP_CHANCE {
+                               self.descr.idle_stop_chance {
                                 self.state = EnemyIdle(None);
                             }
                             (xdir, false, false)
                         }
                         None => {
                             if rng.gen_range(0.0, 100.0 * dt) <
-                               IDLE_MOVE_CHANCE {
+                               self.descr.idle_stop_chance {
                                 let xdir = if rng.gen_range(0.0, 1.0) > 0.5 {
                                     1.0
                                 } else {
@@ -140,24 +132,24 @@ impl Logical for EnemyLogic {
             }
         };
 
-        if xdir != 0.00 && xvel * xdir < MAX_RUNSPEED {
+        if xdir != 0.00 && xvel * xdir < self.descr.max_runspeed {
             let force = if phys.on_ground {
-                MOVEFORCE
+                self.descr.moveforce
             } else {
-                MOVEFORCE_AIR
+                self.descr.moveforce * self.descr.moveforce_air_mult
             };
             phys.apply_force(force * xdir, 0.0);
         } else {
             let friction_percent = if phys.on_ground {
-                FRICTION
+                self.descr.friction
             } else {
-                FRICTION_AIR
+                self.descr.friction * self.descr.friction_air_mult
             };
             let friction = xvel * -1.0 * friction_percent;
             phys.apply_force(friction, 0.0);
         }
         if phys.on_ground && jump {
-            phys.apply_force(0.0, -JUMP_FORCE);
+            phys.apply_force(0.0, -self.descr.jumpforce);
         } else {
             //  Gravity
             if yvel < 0.0 {
@@ -174,31 +166,36 @@ impl Logical for EnemyLogic {
 pub fn create(id: u32,
               x: fphys,
               y: fphys,
+              descr: Rc<EnemyDescriptor>,
               player: Arc<Mutex<Physical>>)
               -> GameObj {
 
-    let rect = GrphxRect {
+    let graphics = EnemyGphx {
         x: 0.0,
         y: 0.0,
-        w: SIZE,
-        h: SIZE,
-        color: COLOR,
+        scale: descr.scale,
+        speed: descr.speed,
+        state: EnemyDrawState::Idle,
+        reverse: false,
+        manager: descr.clone(),
+        frame: 1,
     };
-    let g = arc_mut(rect);
+    let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_ENEMY);
     let p = arc_mut(PhysDyn::new(props,
                                  x,
                                  y,
                                  1.0,
-                                 MAXSPEED,
-                                 SIZE,
-                                 SIZE,
+                                 descr.maxspeed,
+                                 descr.width,
+                                 descr.height,
                                  g.clone()));
 
     let l = arc_mut(EnemyLogic {
         target: player,
         physics: p.clone(),
         state: EnemyIdle(None),
+        descr: descr,
         collision_buffer: Vec::new(),
     });
 
