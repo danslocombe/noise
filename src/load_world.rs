@@ -1,4 +1,3 @@
-
 use block::*;
 use descriptors::*;
 use enemy::create as enemy_create;

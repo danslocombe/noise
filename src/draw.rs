@@ -115,11 +115,14 @@ pub struct ViewTransform {
 }
 
 impl ViewTransform {
-    pub fn to_rectangle(&self) -> Rectangle {
+    pub fn to_rectangle(&self,
+                        screen_width: fphys,
+                        screen_height: fphys)
+                        -> Rectangle {
         Rectangle::new(self.x,
                        self.y,
-                       self.x + super::SCREEN_WIDTH as fphys,
-                       self.y + super::SCREEN_HEIGHT as fphys)
+                       self.scale * screen_width as fphys,
+                       self.scale * screen_height as fphys)
     }
 }
 
@@ -134,6 +137,7 @@ pub struct ViewFollower {
     pub follow_prev_y: fphys,
     pub x_max: fphys,
     pub min_buffer: fphys,
+    pub enable_min_buffer: bool,
 }
 
 impl ViewFollower {
@@ -147,6 +151,7 @@ impl ViewFollower {
             scale_mult: 0.035,
             follow_prev_x: 0.0,
             follow_prev_y: 0.0,
+            enable_min_buffer: false,
             x_max: 0.0,
             min_buffer: 800.0,
         }
@@ -163,7 +168,8 @@ impl ViewFollower {
             self.vt.x = weight(self.vt.x, bb.x + offset - 320.0, self.w);
             self.vt.y = weight(self.vt.y, bb.y - 320.0, self.w);
 
-            if self.vt.x < self.x_max - self.min_buffer {
+            if self.enable_min_buffer &&
+               self.vt.x < self.x_max - self.min_buffer {
                 self.vt.x = self.x_max - self.min_buffer;
             }
             self.vt.scale = weight(self.vt.scale,

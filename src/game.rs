@@ -207,6 +207,7 @@ pub fn game_loop(mut window: Window,
                                                &mut world));
                 */
 
+
                 //  Update bounding box list
                 world.update();
 
@@ -320,13 +321,19 @@ pub fn game_loop(mut window: Window,
 
                 draw_background(&r_args, &mut ctx);
 
+                let viewport = r_args.viewport().rect;
+                let view_rect = &view_follower.vt
+                    .to_rectangle(2.0 * viewport[2] as fphys,
+                                  2.0 * viewport[3] as fphys);
+
                 shader.set_textured(&mut ctx);
                 for tile in &mut tiles {
-                    tile.draw(&r_args, &mut ctx, &view_follower.vt);
+                    if tile.should_draw(view_rect) {
+                        tile.draw(&r_args, &mut ctx, &view_follower.vt);
+                    }
                 }
 
                 shader.set_colored(&mut ctx);
-                let view_rect = &view_follower.vt.to_rectangle();
                 for o in &objs {
                     //  Draw all objects
                     //  Currently no concept of depth
