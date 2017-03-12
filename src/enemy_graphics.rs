@@ -1,11 +1,11 @@
-
 use descriptors::EnemyDescriptor;
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
 use game::fphys;
+use graphics::{image, polygon};
 use graphics::ImageSize;
 use graphics::Transformed;
-use graphics::image;
+use graphics::math::Vec2d;
 use opengl_graphics::{Filter, GlGraphics};
 use opengl_graphics::Texture;
 use piston::input::*;
@@ -34,6 +34,29 @@ pub struct EnemyGphx {
     pub frame: u64,
 }
 
+fn arc(centre: (fphys, fphys),
+       radius: fphys,
+       angle_start: fphys,
+       angle_end: fphys,
+       steps: u32)
+       -> Vec<Vec2d> {
+    let mut r = Vec::new();
+    let (cx, cy) = centre;
+    r.push([cx, cy]);
+    for step in 0..steps {
+        let angle = angle_start +
+                    (step as fphys / steps as fphys) *
+                    (angle_end - angle_start);
+        let px = cx + radius * angle.cos();
+        let py = cy + radius * angle.sin();
+        println!("px {} py {}", px, py);
+        r.push([px, py]);
+    }
+    r.push([cx, cy]);
+    r
+}
+
+const PI: fphys = 3.141;
 
 impl Drawable for EnemyGphx {
     fn draw(&mut self,
@@ -49,10 +72,10 @@ impl Drawable for EnemyGphx {
         };
         let texture = get_index(self.frame, texture_vec, self.speed);
         ctx.draw(args.viewport(), |c, gl| {
+
             let transform_base = c.transform
                 .scale(vt.scale, vt.scale)
                 .trans(-vt.x, -vt.y);
-
             let transform = if self.reverse {
                 transform_base
                 .trans(self.x + self.scale*(texture.get_width() as fphys), self.y)
@@ -63,6 +86,20 @@ impl Drawable for EnemyGphx {
                 .trans(self.x, self.y)
                 .scale(self.scale, self.scale)
             };
+
+            let cone_angle_base = if self.reverse {
+                1.0 * PI
+            }
+            else {
+                2.0 * PI
+            };
+
+            let cone_angle = 0.45;
+
+            //  Draw view cone
+            let centre = (self.x + self.manager.width / 2.0, self.y + self.manager.height / 2.0);
+            let cone_polygon = arc(centre, 250.0, cone_angle_base - cone_angle, cone_angle_base + cone_angle, 6);
+            polygon([1.0, 1.0, 0.7, 0.1], &cone_polygon, transform_base, gl);
 
             image(texture, transform, gl);
         });

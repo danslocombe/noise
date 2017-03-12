@@ -213,6 +213,7 @@ pub fn game_loop(mut window: Window,
 
 
 
+
                 //  Update bounding box list
                 world.update();
 

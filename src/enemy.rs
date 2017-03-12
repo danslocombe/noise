@@ -26,6 +26,7 @@ enum EnemyState {
 
 struct EnemyLogic {
     physics: Arc<Mutex<PhysDyn>>,
+    draw: Arc<Mutex<EnemyGphx>>,
     target: Arc<Mutex<Physical>>,
     state: EnemyState,
     collision_buffer: Vec<Collision>,
@@ -132,6 +133,16 @@ impl Logical for EnemyLogic {
             }
         };
 
+        {
+            let mut d = self.draw.lock().unwrap();
+            if xvel > 1.0 {
+                d.reverse = false;
+            } else {
+                d.reverse = true;
+            }
+        }
+
+
         if xdir != 0.00 && xvel * xdir < self.descr.max_runspeed {
             let force = if phys.on_ground {
                 self.descr.moveforce
@@ -196,6 +207,7 @@ pub fn create(id: u32,
         physics: p.clone(),
         state: EnemyIdle(None),
         descr: descr,
+        draw: g.clone(),
         collision_buffer: Vec::new(),
     });
 
