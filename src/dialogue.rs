@@ -7,9 +7,9 @@ use std::f64::EPSILON;
 
 #[derive(Clone)]
 pub struct Dialogue {
-    timestamp: fphys,
-    priority: u32,
-    text: String,
+    pub timestamp: fphys,
+    pub priority: u32,
+    pub text: String,
 }
 
 impl Dialogue {
@@ -45,16 +45,26 @@ impl PartialOrd for Dialogue {
 
 pub struct DialogueBuffer {
     priority_queue: BinaryHeap<Dialogue>,
+    elapse_time: fphys,
 }
 
 impl DialogueBuffer {
     pub fn new() -> Self {
-        DialogueBuffer { priority_queue: BinaryHeap::new() }
+        DialogueBuffer {
+            priority_queue: BinaryHeap::new(),
+            elapse_time: 1.5,
+        }
     }
     pub fn add(&mut self, d: Dialogue) {
         self.priority_queue.push(d);
     }
-    pub fn get(&mut self) -> Option<String> {
-        self.priority_queue.pop().map(|d| d.text)
+    pub fn get(&mut self, time: fphys) -> Option<String> {
+        while let Some(d) = self.priority_queue.pop() {
+            println!("time diff {}", time - d.timestamp);
+            if time - d.timestamp < self.elapse_time {
+                return Some(d.text);
+            }
+        }
+        None
     }
 }

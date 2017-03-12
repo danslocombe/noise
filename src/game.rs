@@ -78,7 +78,7 @@ pub enum MetaCommand {
     RemoveObject(u32),
     CreateObject(GameObj),
     MessageObject(u32, ObjMessage),
-    Dialogue(Dialogue),
+    Dialogue(u32, String),
 }
 
 pub struct CommandBuffer<A> {
@@ -178,6 +178,7 @@ pub fn game_loop(mut window: Window,
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
     let mut prev_time = SystemTime::now();
+    let mut time = 0.0;
 
     let mut dialogue_buffer = DialogueBuffer::new();
     dialogue_buffer.add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
@@ -187,6 +188,7 @@ pub fn game_loop(mut window: Window,
         //  Get update from window and match against appropriate type
         match e {
             Input::Update(u_args) => {
+                time += u_args.dt;
                 //  Generate world
                 let (ghost_tiles, ghost_blocks) =
                     gen.gen_to(view_follower.vt.x + 5000.0);
@@ -227,8 +229,12 @@ pub fn game_loop(mut window: Window,
                                     objs[pos].message_buffer.issue(message);
                                 });
                         }
-                        MetaCommand::Dialogue(d) => {
-                            dialogue_buffer.add(d);
+                        MetaCommand::Dialogue(p, t) => {
+                            dialogue_buffer.add(Dialogue {
+                                timestamp: time,
+                                priority: p,
+                                text: t,
+                            });
                         }
                     }
                 }
@@ -319,7 +325,7 @@ pub fn game_loop(mut window: Window,
                     }
                 }
                 if overlay.dialogue_empty() {
-                    overlay.set_dialogue(dialogue_buffer.get());
+                    overlay.set_dialogue(dialogue_buffer.get(time));
                 }
                 overlay.draw(&r_args, &mut ctx, &view_follower.vt);
             }
