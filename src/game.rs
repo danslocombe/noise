@@ -83,6 +83,7 @@ pub enum MetaCommand {
     CreateObject(GameObj),
     MessageObject(Id, ObjMessage),
     Dialogue(u32, String),
+    CollectCrown,
 }
 
 pub struct CommandBuffer<A> {
@@ -165,7 +166,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     let player_descriptor: Rc<PlayerDescriptor> = load_descriptor("descriptors/player.json");
 
     //  Create player
-    let player_id = world.generate_id();
+    let player_id = world.player_id();
     let (mut player_obj, mut player_logic) =
         player_create(player_id, 800.0, -250.0, player_descriptor.clone());
     let mut player_phys = player_obj.physics.clone();
@@ -286,6 +287,7 @@ pub fn game_loop(mut window: Window,
                                 text: t,
                             });
                         }
+                        MetaCommand::CollectCrown => {}
                     }
                 }
 

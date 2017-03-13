@@ -15,6 +15,7 @@ pub struct World {
     sender: Sender<SendType>,
     //  For static generation of ids
     new_id: Id,
+    player_id: Id,
     buffer: Vec<BBDescriptor>,
     fighters: HashMap<Id, Fighter>,
     fighter_sender: Sender<FighterSendType>,
@@ -42,12 +43,13 @@ impl World {
             world: world,
             receiver: rx,
             sender: tx,
-            new_id: 0,
             buffer: Vec::new(),
             fighters: HashMap::new(),
             fighter_sender: fighter_tx,
             fighter_receiver: fighter_rx,
             fighter_buffer: Vec::new(),
+            player_id: 0,
+            new_id: 1,
         }
     }
 
@@ -102,6 +104,10 @@ impl World {
         let r = self.new_id;
         self.new_id = r + 1;
         r
+    }
+
+    pub fn player_id(&self) -> Id {
+        self.player_id
     }
 
     pub fn send(&self, p: BBProperties, bb: Option<BoundingBox>) {

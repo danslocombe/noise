@@ -1,5 +1,4 @@
-use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
-                BBProperties, Collision};
+use collision::*;
 use descriptors::*;
 use dialogue::Dialogue;
 use draw::{Drawable, GrphxRect};
@@ -73,7 +72,6 @@ const COLOR_NORMAL: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 const COLOR_DASH: [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 
 const MAX_HEIGHT: fphys = 2500.0;
-
 
 impl Logical for PlayerLogic {
     fn tick(&mut self,
@@ -160,10 +158,6 @@ impl Logical for PlayerLogic {
 
         if self.dash_cd > 0.0 {
             self.dash_cd -= dt;
-            if self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
-                //  Out of invuln
-                phys.p.owner_type = BBO_PLAYER;
-            }
         }
         if self.dash_cd < self.descr.dash_cd - self.descr.dash_duration {
             //  Performing regular physics
@@ -188,7 +182,6 @@ impl Logical for PlayerLogic {
                     0.0
                 }) -
                            (if self.input.contains(PI_UP) { 1.0 } else { 0.0 });
-                phys.p.owner_type = BBO_PLAYER_DMG;
                 phys.apply_force(self.descr.dash_force * xdir,
                                  self.descr.dash_force * ydir);
             }
@@ -233,7 +226,8 @@ impl Logical for PlayerLogic {
 
         phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN) ||
                               self.grappling;
-        phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY;
+        phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY |
+                            BBO_PLAYER_COL;
     }
 }
 
