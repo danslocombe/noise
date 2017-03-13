@@ -1,4 +1,3 @@
-
 use collision::*;
 use draw::*;
 use game::{GameObj, Id, fphys};

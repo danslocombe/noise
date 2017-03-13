@@ -35,5 +35,5 @@
   "jump_cd":0.5,
   "maxspeed":300,
   "damage_cd":0.4,
-  "start_hp":100
+  "start_hp":20
 }

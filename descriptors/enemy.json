@@ -29,7 +29,7 @@
   "maxspeed":200,
   "damage_cd":0.4,
   "start_hp":100,
-  "bounce_force":200,
+  "bounce_force":500,
   "idle_move_chance":0.009,
   "idle_stop_chance":0.035,
   "alert_dist":200

@@ -128,53 +128,67 @@ fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
     }
 }
 
+struct PlayerInfo {
+    pub player_id: Id,
+    pub grapple_id: Id,
+    pub player_phys: Arc<Mutex<Physical>>, 
+    //pub player_input_handler : InputHandler,
+    //pub grapple_input_handler : InputHandler,
+}
 
-pub fn game_loop(mut window: Window,
-                 mut ctx: GlGraphics,
-                 mut shader: NoisyShader) {
+struct Noise<'a> {
+    pub world: World,
+    pub player_info: PlayerInfo,
+    pub input_handlers: Vec<Arc<Mutex<InputHandler>>>,
+    pub player_descriptor: Rc<PlayerDescriptor>,
+    pub grapple_descriptor: Rc<GrappleDescriptor>,
+    pub enemy_descriptor: Rc<EnemyDescriptor>,
+    pub view_follower: ViewFollower,
+    pub metabuffer: CommandBuffer<MetaCommand>,
+    pub objs: Vec<GameObj>,
+    pub overlay: Overlay,
+    pub tile_manager: &'a TileManager,
+    pub dialogue_buffer: DialogueBuffer,
+    pub tiles: Vec<Tile<'a>>,
+}
 
-    let tile_manager = TileManager::load().unwrap();
-    let mut tiles: Vec<Tile> = Vec::new();
-
-    //  Initialise world generator
-    //let mut gen = Gen::new(BLOCKSIZE, 500.0);
-
+fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     //  Create new world
     let mut world = World::new();
+
+    let mut tiles: Vec<Tile> = Vec::new();
 
 
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
 
-    let player_descriptor = load_descriptor("descriptors/player.json");
-    let player_id = world.generate_id();
-    let (player_obj, player_logic) =
-        player_create(player_id, 800.0, -250.0, player_descriptor);
-    let player_phys = player_obj.physics.clone();
+    let player_descriptor: Rc<PlayerDescriptor> = load_descriptor("descriptors/player.json");
 
-    let grapple_descriptor = load_descriptor("descriptors/grapple.json");
-    let grapple_id = world.generate_id();
-    let (grapple_obj, grapple_input_handler) =
+    //  Create player
+    let player_id = world.generate_id();
+    let (mut player_obj, mut player_logic) =
+        player_create(player_id, 800.0, -250.0, player_descriptor.clone());
+    let mut player_phys = player_obj.physics.clone();
+
+    let grapple_descriptor: Rc<GrappleDescriptor> = load_descriptor("descriptors/grapple.json");
+    let mut grapple_id = world.generate_id();
+    let (mut grapple_obj, mut grapple_input_handler) =
         grapple_create(grapple_id,
-                       grapple_descriptor,
+                       grapple_descriptor.clone(),
                        player_id,
                        player_obj.physics.clone());
 
-    let enemy_descriptor = load_descriptor("descriptors/enemy.json");
-    //objs.push(grapple_obj);
-    //objs.push(player_obj);
-    //  Initialise set of objects
-    //  We keep this sorted with respect to gameobject id
-    //
+    let enemy_descriptor: Rc<EnemyDescriptor> = load_descriptor("descriptors/enemy.json");
+
     //  Load from json
     let mut poss_objs = from_json("worlds/testworld.json",
                                   player_obj,
                                   grapple_obj,
-                                  enemy_descriptor,
+                                  enemy_descriptor.clone(),
                                   &mut world);
+
     let (mut objs, mut ghost_tiles) = poss_objs.unwrap();
     let mut tiles = tile_manager.propogate_ghosts(ghost_tiles);
-
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
@@ -186,16 +200,49 @@ pub fn game_loop(mut window: Window,
         scale: 1.0,
     };
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
-    shader.set_following(player_id);
     let mut overlay = Overlay::new(player_logic.clone());
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
+    let player_info = PlayerInfo {
+        player_id: player_id,
+        grapple_id: grapple_id,
+        player_phys: player_phys,
+    };
+
+    let mut dialogue_buffer = DialogueBuffer::new();
+
+    Noise {
+        world: world,
+        player_info: player_info,
+        input_handlers: input_handlers,
+        player_descriptor: player_descriptor,
+        grapple_descriptor: grapple_descriptor,
+        enemy_descriptor: enemy_descriptor,
+        view_follower: view_follower,
+        tile_manager: tile_manager,
+        dialogue_buffer: dialogue_buffer,
+        objs: objs,
+        metabuffer: metabuffer,
+        tiles: tiles,
+        overlay: overlay,
+    }
+}
+
+pub fn game_loop(mut window: Window,
+                 mut ctx: GlGraphics,
+                 mut shader: NoisyShader) {
+
+    let tile_manager = TileManager::load().unwrap();
+    let mut game = init_game(&tile_manager);
+
+    game.dialogue_buffer
+        .add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
+
     let mut prev_time = SystemTime::now();
     let mut time = 0.0;
 
-    let mut dialogue_buffer = DialogueBuffer::new();
-    dialogue_buffer.add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
+    shader.set_following(game.player_info.player_id);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
@@ -203,41 +250,19 @@ pub fn game_loop(mut window: Window,
         match e {
             Input::Update(u_args) => {
                 time += u_args.dt;
-                //  Generate world
-                /*
-                let (ghost_tiles, ghost_blocks) =
-                    gen.gen_to(view_follower.vt.x + 5000.0);
-                tiles.extend(tile_manager.propogate_ghosts(ghost_tiles));
-                objs.extend(blocks_from_ghosts(ghost_blocks,
-                                               player_phys.clone(),
-                                               &mut world));
-                */
-
-
-
-
-
 
                 //  Update bounding box list
-                world.update();
+                game.world.update();
 
                 let mut ids_remove: Vec<Id> = Vec::new();
                 let mut objects_add: Vec<GameObj> = Vec::new();
 
                 //  Meta commands
-                let meta_commands = metabuffer.read_buffer();
+                let meta_commands = game.metabuffer.read_buffer();
                 for c in meta_commands {
                     match c {
                         MetaCommand::RestartGame => {
-                            /*
-                            objs = restart_game(&mut gen,
-                                                &mut world,
-                                                &player_obj,
-                                                player_logic.clone(),
-                                                &grapple_obj,
-                                                &mut view_follower);
-                            continue 'events;
-                            */
+                            game = init_game(&tile_manager);
                         }
                         MetaCommand::RemoveObject(id) => {
                             ids_remove.push(id);
@@ -246,13 +271,16 @@ pub fn game_loop(mut window: Window,
                             objects_add.push(obj);
                         }
                         MetaCommand::MessageObject(id, message) => {
-                            let _ = objs.binary_search_by(|o| o.id.cmp(&id))
+                            let _ = game.objs
+                                .binary_search_by(|o| o.id.cmp(&id))
                                 .map(|pos| {
-                                    objs[pos].message_buffer.issue(message);
+                                    game.objs[pos]
+                                        .message_buffer
+                                        .issue(message);
                                 });
                         }
                         MetaCommand::Dialogue(p, t) => {
-                            dialogue_buffer.add(Dialogue {
+                            game.dialogue_buffer.add(Dialogue {
                                 timestamp: time,
                                 priority: p,
                                 text: t,
@@ -261,70 +289,45 @@ pub fn game_loop(mut window: Window,
                     }
                 }
 
-                //  Get objects offscreen to remove
-                /*
-                let clip_x = view_follower.vt.x - DESTROY_BUFFER;
-                let clip_objects = world.buffer()
-                    .iter()
-                    .filter(|bb_descr| {
-                        let (ref p, ref bb) = **bb_descr;
-                        bb.x + bb.w < clip_x && p.id != player_id &&
-                        p.id != grapple_id
-                    })
-                    .map(|bb_descr| {
-                        let (ref props, _) = *bb_descr;
-                        props.id
-                    })
-                    .collect::<Vec<Id>>();
-
-                ids_remove.extend(clip_objects);
-                */
-
-
                 //  Remove objects
                 for id in ids_remove {
-                    let _ = objs.binary_search_by(|o| o.id.cmp(&id))
+                    let _ = game.objs
+                        .binary_search_by(|o| o.id.cmp(&id))
                         .map(|pos| {
                             {
                                 let mut phys =
-                                    objs[pos].physics.lock().unwrap();
-                                phys.destroy(&world);
+                                    game.objs[pos].physics.lock().unwrap();
+                                phys.destroy(&game.world);
                             }
-                            objs.remove(pos);
+                            game.objs.remove(pos);
 
                         });
                 }
 
-                //  Clip tiles
-                /*
-                tiles = tiles.iter()
-                    .cloned()
-                    .filter(|tile| tile.x + TILE_W > clip_x)
-                    .collect::<Vec<Tile>>();
-                    */
-
-
                 //  Add new objects
                 if !objects_add.is_empty() {
-                    objs.extend(objects_add);
-                    objs.sort_by(|a, b| a.id.cmp(&b.id));
+                    game.objs.extend(objects_add);
+                    game.objs.sort_by(|a, b| a.id.cmp(&b.id));
                 }
 
-                for o in &objs {
+                for o in &game.objs {
                     {
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
-                        l.tick(&u_args, &metabuffer, &o.message_buffer, &world);
+                        l.tick(&u_args,
+                               &game.metabuffer,
+                               &o.message_buffer,
+                               &game.world);
                     }
                     {
                         //  Physics ticks
                         let mut p = o.physics.lock().unwrap();
-                        p.tick(&u_args, &metabuffer, &world);
+                        p.tick(&u_args, &game.metabuffer, &game.world);
                     }
                 }
 
                 //  Update shader
-                shader.update(&world);
+                shader.update(&game.world);
 
             }
             Input::Render(r_args) => {
@@ -333,44 +336,45 @@ pub fn game_loop(mut window: Window,
                 print!("fps {}\r",
                        1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64);
 
-                view_follower.update(&world);
+                game.view_follower.update(&game.world);
 
                 draw_background(&r_args, &mut ctx);
 
                 let viewport = r_args.viewport().rect;
-                let view_rect = &view_follower.vt
+                let view_rect = &game.view_follower
+                    .vt
                     .to_rectangle(2.0 * viewport[2] as fphys,
                                   2.0 * viewport[3] as fphys);
 
                 shader.set_textured(&mut ctx);
-                for tile in &mut tiles {
+                for tile in &mut game.tiles {
                     //if tile.should_draw(view_rect) {
-                    tile.draw(&r_args, &mut ctx, &view_follower.vt);
+                    tile.draw(&r_args, &mut ctx, &game.view_follower.vt);
                     //}
                 }
 
                 shader.set_colored(&mut ctx);
-                for o in &objs {
+                for o in &game.objs {
                     //  Draw all objects
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
                     //if gphx.should_draw(view_rect) {
-                    gphx.draw(&r_args, &mut ctx, &view_follower.vt);
+                    gphx.draw(&r_args, &mut ctx, &game.view_follower.vt);
                     //}
                 }
-                if overlay.dialogue_empty() {
-                    overlay.set_dialogue(dialogue_buffer.get(time));
+                if game.overlay.dialogue_empty() {
+                    game.overlay.set_dialogue(game.dialogue_buffer.get(time));
                 }
-                overlay.draw(&r_args, &mut ctx, &view_follower.vt);
+                game.overlay.draw(&r_args, &mut ctx, &game.view_follower.vt);
             }
             Input::Press(i) => {
-                for input_handler in &input_handlers {
+                for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
                     ih.press(i);
                 }
             }
             Input::Release(i) => {
-                for input_handler in &input_handlers {
+                for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
                     ih.release(i);
                 }
@@ -379,36 +383,3 @@ pub fn game_loop(mut window: Window,
         }
     }
 }
-
-/*
-pub fn restart_game(gen: &mut Gen,
-                    world: &mut World,
-                    player: &GameObj,
-                    player_logic: Arc<Mutex<PlayerLogic>>,
-                    grapple: &GameObj,
-                    view_follower: &mut ViewFollower)
-                    -> Vec<GameObj> {
-    println!("RESTARTING GAME");
-    gen.reset();
-    world.reset(2);
-
-    let mut p_logic = player_logic.lock().unwrap();
-    let mut p_physics = player.physics.lock().unwrap();
-    p_physics.set_position(300.0, -1000.0);
-    p_physics.set_velocity(0.0, 0.0);
-    p_logic.hp = p_logic.hp_max;
-
-    view_follower.vt.y = -200.0;
-    view_follower.vt.x = 150.0;
-    view_follower.vt.scale = 1.0;
-    view_follower.x_max = 0.0;
-    view_follower.follow_prev_x = view_follower.vt.x;
-    view_follower.follow_prev_y = view_follower.vt.y;
-
-    let mut objs = Vec::new();
-    objs.push(grapple);
-    objs.push(player);
-
-    objs
-}
-*/
