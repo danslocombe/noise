@@ -217,6 +217,7 @@ pub fn game_loop(mut window: Window,
 
 
 
+
                 //  Update bounding box list
                 world.update();
 
@@ -279,6 +280,7 @@ pub fn game_loop(mut window: Window,
                 ids_remove.extend(clip_objects);
                 */
 
+
                 //  Remove objects
                 for id in ids_remove {
                     let _ = objs.binary_search_by(|o| o.id.cmp(&id))
@@ -300,6 +302,7 @@ pub fn game_loop(mut window: Window,
                     .filter(|tile| tile.x + TILE_W > clip_x)
                     .collect::<Vec<Tile>>();
                     */
+
 
                 //  Add new objects
                 if !objects_add.is_empty() {
@@ -342,7 +345,7 @@ pub fn game_loop(mut window: Window,
                 shader.set_textured(&mut ctx);
                 for tile in &mut tiles {
                     //if tile.should_draw(view_rect) {
-                        tile.draw(&r_args, &mut ctx, &view_follower.vt);
+                    tile.draw(&r_args, &mut ctx, &view_follower.vt);
                     //}
                 }
 
@@ -352,7 +355,7 @@ pub fn game_loop(mut window: Window,
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
                     //if gphx.should_draw(view_rect) {
-                        gphx.draw(&r_args, &mut ctx, &view_follower.vt);
+                    gphx.draw(&r_args, &mut ctx, &view_follower.vt);
                     //}
                 }
                 if overlay.dialogue_empty() {

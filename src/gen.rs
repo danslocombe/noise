@@ -45,6 +45,18 @@ pub struct GhostBlock {
     pub block_type: GhostBlockType,
 }
 
+bitflags! {
+    pub flags Borders : u8 {
+        const BORDER_LEFT    = 0b0001,
+        const BORDER_RIGHT   = 0b0010,
+        const BORDER_UP      = 0b0100,
+        const BORDER_DOWN    = 0b1000,
+        const BORDER_ALL     = 0b1111,
+        const BORDER_NONE    = 0b0000,
+    }
+}
+
+
 pub enum TileEdge {
     Left,
     Center,
@@ -119,6 +131,7 @@ impl Gen {
                 //  Floor of building
                 t.extend(pagoda_platform_tiles(self.generated_to,
                                                self.last_block_y,
+                                               BORDER_ALL,
                                                length));
                 r.push(GhostBlock {
                     x: self.generated_to,
@@ -157,13 +170,25 @@ impl Gen {
 
 pub fn pagoda_platform_tiles(x: fphys,
                              y: fphys,
+                             tile_edge: Borders,
                              length: fphys)
                              -> Vec<GhostTile> {
     let mut ts = Vec::new();
-    ts.push(GhostTile::new(x, y, GhostTileType::PagodaBack(TileEdge::Left)));
-    ts.push(GhostTile::new(x - TILE_W,
-                           y - TILE_H,
-                           GhostTileType::PagodaRoof(TileEdge::Left)));
+    if tile_edge.contains(BORDER_LEFT) {
+        ts.push(GhostTile::new(x,
+                               y,
+                               GhostTileType::PagodaBack(TileEdge::Left)));
+        ts.push(GhostTile::new(x - TILE_W,
+                               y - TILE_H,
+                               GhostTileType::PagodaRoof(TileEdge::Left)));
+    } else {
+        ts.push(GhostTile::new(x,
+                               y,
+                               GhostTileType::PagodaBack(TileEdge::Center)));
+        ts.push(GhostTile::new(x - TILE_W,
+                               y - TILE_H,
+                               GhostTileType::PagodaRoof(TileEdge::Center)));
+    }
     ts.push(GhostTile::new(x,
                            y - TILE_H,
                            GhostTileType::PagodaRoof(TileEdge::Center)));
@@ -177,13 +202,19 @@ pub fn pagoda_platform_tiles(x: fphys,
                                GhostTileType::PagodaRoof(TileEdge::Center)));
         ix += TILE_W;
     }
-    ts.push(GhostTile::new(ix, y, GhostTileType::PagodaBack(TileEdge::Right)));
+    if tile_edge.contains(BORDER_RIGHT) {
+        ts.push(GhostTile::new(ix,
+                               y,
+                               GhostTileType::PagodaBack(TileEdge::Right)));
+    }
     ts.push(GhostTile::new(ix,
                            y - TILE_H,
                            GhostTileType::PagodaRoof(TileEdge::Center)));
-    ts.push(GhostTile::new(ix + TILE_W,
-                           y - TILE_H,
-                           GhostTileType::PagodaRoof(TileEdge::Right)));
+    if tile_edge.contains(BORDER_RIGHT) {
+        ts.push(GhostTile::new(ix + TILE_W,
+                               y - TILE_H,
+                               GhostTileType::PagodaRoof(TileEdge::Right)));
+    }
     ts
 }
 
@@ -205,7 +236,7 @@ fn create_uniform_structure(x: fphys,
     let mut tiles = Vec::new();
     for i in 0..height {
         let iy = y - STRUCTURE_PLATFORM_HEIGHT * (i as fphys);
-        tiles.extend(pagoda_platform_tiles(x, iy, length));
+        tiles.extend(pagoda_platform_tiles(x, iy, BORDER_ALL, length));
         platforms.push(GhostBlock {
             x: x,
             y: iy,
