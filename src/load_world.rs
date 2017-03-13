@@ -108,6 +108,23 @@ pub fn from_json(path: &str,
                 let c = create_crown(id, x, y, &world);
                 gobjs.push(c);
             }
+            "trigger" => {
+                let width = get_float("trigger", obj, "width")?;
+                let height = get_float("trigger", obj, "height")?;
+                let trigger_id =
+                    get_number("trigger", obj, "connect_target_id")? as Id;
+                let c =
+                    create_trigger(id, trigger_id, x, y, width, height, &world);
+                gobjs.push(c);
+            }
+            "dialogue" => {
+                let text = get_string("dialogue", obj, "text")?;
+                let trigger_id = get_number("dialogue", obj, "connect_id")? as
+                                 TriggerId;
+                let c = create_dialogue(id, text, x, y, &world);
+                world.add_to_trigger_id_map(trigger_id, id);
+                gobjs.push(c);
+            }
             _ => {
                 println!("Could not interpret: {}", name.as_str());
             }

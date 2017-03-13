@@ -1,7 +1,7 @@
 
 
 use collision::{BBDescriptor, BBProperties, BoundingBox};
-use game::Id;
+use game::{Id, TriggerId};
 use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 
@@ -21,6 +21,7 @@ pub struct World {
     fighter_sender: Sender<FighterSendType>,
     fighter_receiver: Receiver<FighterSendType>,
     fighter_buffer: Vec<Fighter>,
+    trigger_id_map: HashMap<TriggerId, Id>,
 }
 
 #[derive(Clone)]
@@ -50,6 +51,7 @@ impl World {
             fighter_buffer: Vec::new(),
             player_id: 0,
             new_id: 1,
+            trigger_id_map: HashMap::new(),
         }
     }
 
@@ -132,5 +134,12 @@ impl World {
 
     pub fn fighter_buffer(&self) -> &Vec<Fighter> {
         &self.fighter_buffer
+    }
+
+    pub fn add_to_trigger_id_map(&mut self, trigger_id: TriggerId, id: Id) {
+        self.trigger_id_map.insert(trigger_id, id);
+    }
+    pub fn get_from_trigger_id(&mut self, trigger_id: TriggerId) -> Option<Id> {
+        self.trigger_id_map.get(&trigger_id).map(|id| id.clone())
     }
 }

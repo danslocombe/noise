@@ -26,6 +26,33 @@ pub trait Physical {
     fn destroy(&mut self, world: &World);
 }
 
+pub struct PhysNone {
+    pub id: Id,
+}
+impl Physical for PhysNone {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            world: &World) {
+    }
+    fn apply_force(&mut self, xforce: fphys, yforce: fphys) {}
+    fn get_position(&self) -> (fphys, fphys) {
+        (0.0, 0.0)
+    }
+    fn get_width_height(&self) -> (fphys, fphys) {
+        (0.0, 0.0)
+    }
+    fn get_vel(&self) -> (fphys, fphys) {
+        (0.0, 0.0)
+    }
+    fn get_id(&self) -> Id {
+        self.id
+    }
+    fn set_velocity(&mut self, x: fphys, y: fphys) {}
+    fn set_position(&mut self, x: fphys, y: fphys) {}
+    fn destroy(&mut self, world: &World) {}
+}
+
 pub struct PhysStatic {
     pub p: BBProperties,
     pub x: fphys,

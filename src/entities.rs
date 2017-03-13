@@ -74,3 +74,88 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
     });
     GameObj::new(id, g, p, l)
 }
+
+struct TriggerLogic {
+    pub id: Id,
+    pub trigger_id: Id,
+    pub bb: BoundingBox,
+}
+
+impl Logical for TriggerLogic {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            message_buffer: &CommandBuffer<ObjMessage>,
+            world: &World) {
+        let player_bb = world.get(world.player_id());
+        player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
+            metabuffer.issue(MetaCommand::Trigger(self.trigger_id));
+        });
+
+    }
+}
+
+pub fn create_trigger(id: Id,
+                      trigger_id: Id,
+                      x: fphys,
+                      y: fphys,
+                      width: fphys,
+                      height: fphys,
+                      world: &World)
+                      -> GameObj {
+    let g = arc_mut(GrphxNoDraw {});
+    let p = arc_mut(PhysNone { id: id });
+    let l = arc_mut(TriggerLogic {
+        id: id,
+        trigger_id: trigger_id,
+        bb: BoundingBox {
+            x: x,
+            y: y,
+            w: width,
+            h: height,
+        },
+    });
+    GameObj::new(id, g, p, l)
+}
+
+struct DialogueLogic {
+    pub id: Id,
+    pub text: String,
+    pub triggered: bool,
+}
+
+impl Logical for DialogueLogic {
+    fn tick(&mut self,
+            args: &UpdateArgs,
+            metabuffer: &CommandBuffer<MetaCommand>,
+            message_buffer: &CommandBuffer<ObjMessage>,
+            world: &World) {
+        if !self.triggered {
+            for m in message_buffer.read_buffer() {
+                match m {
+                    ObjMessage::MTrigger => {
+                        metabuffer.issue(MetaCommand::Dialogue(9, self.text.clone()));
+                        self.triggered = true;
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+}
+
+pub fn create_dialogue(id: Id,
+                       text: String,
+                       x: fphys,
+                       y: fphys,
+                       world: &World)
+                       -> GameObj {
+    let g = arc_mut(GrphxNoDraw {});
+    let p = arc_mut(PhysNone { id: id });
+    let l = arc_mut(DialogueLogic {
+        id: id,
+        text: text,
+        triggered: false,
+    });
+    GameObj::new(id, g, p, l)
+}

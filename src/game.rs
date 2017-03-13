@@ -37,6 +37,7 @@ pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
 pub type Id = u32;
+pub type TriggerId = u32;
 
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
@@ -75,6 +76,7 @@ pub enum ObjMessage {
     MApplyForce(fphys, fphys),
     MPlayerStartGrapple,
     MPlayerEndGrapple,
+    MTrigger,
 }
 
 pub enum MetaCommand {
@@ -84,6 +86,7 @@ pub enum MetaCommand {
     MessageObject(Id, ObjMessage),
     Dialogue(u32, String),
     CollectCrown,
+    Trigger(TriggerId),
 }
 
 pub struct CommandBuffer<A> {
@@ -288,6 +291,19 @@ pub fn game_loop(mut window: Window,
                             });
                         }
                         MetaCommand::CollectCrown => {}
+                        MetaCommand::Trigger(trigger_id) => {
+                            game.world
+                                .get_from_trigger_id(trigger_id)
+                                .map(|id| {
+                                    let _ = game.objs
+                                        .binary_search_by(|o| o.id.cmp(&id))
+                                        .map(|pos| {
+                                            game.objs[pos]
+                                                .message_buffer
+                                                .issue(ObjMessage::MTrigger);
+                                        });
+                                });
+                        }
                     }
                 }
 
