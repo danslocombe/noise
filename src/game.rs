@@ -261,6 +261,7 @@ pub fn game_loop(mut window: Window,
                 }
 
                 //  Get objects offscreen to remove
+                /*
                 let clip_x = view_follower.vt.x - DESTROY_BUFFER;
                 let clip_objects = world.buffer()
                     .iter()
@@ -276,6 +277,7 @@ pub fn game_loop(mut window: Window,
                     .collect::<Vec<Id>>();
 
                 ids_remove.extend(clip_objects);
+                */
 
                 //  Remove objects
                 for id in ids_remove {
@@ -292,10 +294,12 @@ pub fn game_loop(mut window: Window,
                 }
 
                 //  Clip tiles
+                /*
                 tiles = tiles.iter()
                     .cloned()
                     .filter(|tile| tile.x + TILE_W > clip_x)
                     .collect::<Vec<Tile>>();
+                    */
 
                 //  Add new objects
                 if !objects_add.is_empty() {
@@ -337,9 +341,9 @@ pub fn game_loop(mut window: Window,
 
                 shader.set_textured(&mut ctx);
                 for tile in &mut tiles {
-                    if tile.should_draw(view_rect) {
+                    //if tile.should_draw(view_rect) {
                         tile.draw(&r_args, &mut ctx, &view_follower.vt);
-                    }
+                    //}
                 }
 
                 shader.set_colored(&mut ctx);
@@ -347,9 +351,9 @@ pub fn game_loop(mut window: Window,
                     //  Draw all objects
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
-                    if gphx.should_draw(view_rect) {
+                    //if gphx.should_draw(view_rect) {
                         gphx.draw(&r_args, &mut ctx, &view_follower.vt);
-                    }
+                    //}
                 }
                 if overlay.dialogue_empty() {
                     overlay.set_dialogue(dialogue_buffer.get(time));
