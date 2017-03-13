@@ -53,10 +53,11 @@ pub fn get_number(dname: &str,
     let raw = obj.get(field)
         .ok_or(error_simple(dname,
                             format!("has no field '{}'", field).as_str()))?;
-    raw.as_u64()
+    let fl = raw.as_f64()
         .ok_or(error_simple(dname,
-                            format!("'{}' is not a positive integer", field)
-                                .as_str()))
+                            format!("'{}' is not a positive number", field)
+                                .as_str()))?;
+    Ok(fl.floor() as u64)
 }
 
 pub fn get_float(dname: &str, obj: &Object, field: &str) -> Result<f64, Error> {
