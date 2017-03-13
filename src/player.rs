@@ -1,11 +1,9 @@
-
-
 use collision::{BBO_BLOCK, BBO_ENEMY, BBO_PLATFORM, BBO_PLAYER, BBO_PLAYER_DMG,
                 BBProperties, Collision};
 use descriptors::*;
 use dialogue::Dialogue;
 use draw::{Drawable, GrphxRect};
-use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, InputHandler,
+use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, Id, InputHandler,
            MetaCommand, ObjMessage, fphys};
 use logic::Logical;
 use opengl_graphics::Texture;
@@ -17,6 +15,7 @@ use player_graphics::*;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
+use world::World;
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<PlayerGphx>>,
@@ -80,7 +79,8 @@ impl Logical for PlayerLogic {
     fn tick(&mut self,
             args: &UpdateArgs,
             metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>) {
+            message_buffer: &CommandBuffer<ObjMessage>,
+            world: &World) {
 
         let dt = args.dt as fphys;
         let mut phys = self.physics.lock().unwrap();
@@ -280,7 +280,7 @@ impl InputHandler for PlayerLogic {
     }
 }
 
-pub fn create(id: u32,
+pub fn create(id: Id,
               x: fphys,
               y: fphys,
               descr: Rc<PlayerDescriptor>)

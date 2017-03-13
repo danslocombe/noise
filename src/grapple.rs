@@ -1,7 +1,8 @@
 use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BoundingBox};
 use descriptors::GrappleDescriptor;
 use draw::{Drawable, Rectangle, ViewTransform};
-use game::{CommandBuffer, GameObj, InputHandler, MetaCommand, ObjMessage, fphys};
+use game::{CommandBuffer, GameObj, Id, InputHandler, MetaCommand, ObjMessage,
+           fphys};
 use logic::Logical;
 use opengl_graphics::GlGraphics;
 use physics::Physical;
@@ -15,15 +16,15 @@ use world::World;
 pub struct GrappleHolster {
     pub grapple: Arc<Mutex<Grapple>>,
     input: GrappleInput,
-    player_id: u32,
+    player_id: Id,
     descr: Rc<GrappleDescriptor>,
     cd: fphys,
 }
 
 impl GrappleHolster {
-    pub fn create(id: u32,
+    pub fn create(id: Id,
                   player: Arc<Mutex<Physical>>,
-                  player_id: u32,
+                  player_id: Id,
                   descr: Rc<GrappleDescriptor>,
                   draw: Arc<Mutex<GrappleDraw>>)
                   -> (Self, Arc<Mutex<Grapple>>) {
@@ -81,7 +82,8 @@ impl Logical for GrappleHolster {
     fn tick(&mut self,
             args: &UpdateArgs,
             metabuffer: &CommandBuffer<MetaCommand>,
-            _: &CommandBuffer<ObjMessage>) {
+            _: &CommandBuffer<ObjMessage>,
+            world: &World) {
         let dt = args.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
@@ -178,7 +180,7 @@ enum GrappleState {
 }
 
 pub struct Grapple {
-    id: u32,
+    id: Id,
     state: GrappleState,
     start_x: fphys,
     start_y: fphys,
@@ -187,17 +189,17 @@ pub struct Grapple {
     vel_x: fphys,
     vel_y: fphys,
     retracting: bool,
-    player_id: u32,
+    player_id: Id,
     descr: Rc<GrappleDescriptor>,
     player: Arc<Mutex<Physical>>,
     draw: Arc<Mutex<GrappleDraw>>,
 }
 
 impl Grapple {
-    fn new(id: u32,
+    fn new(id: Id,
            vel_x: fphys,
            vel_y: fphys,
-           player_id: u32,
+           player_id: Id,
            player: Arc<Mutex<Physical>>,
            descr: Rc<GrappleDescriptor>,
            draw: Arc<Mutex<GrappleDraw>>)
@@ -375,7 +377,7 @@ impl Physical for Grapple {
     fn get_vel(&self) -> (fphys, fphys) {
         (self.vel_x, self.vel_y)
     }
-    fn get_id(&self) -> u32 {
+    fn get_id(&self) -> Id {
         self.id
     }
     fn set_position(&mut self, _: fphys, _: fphys) {
@@ -566,9 +568,9 @@ impl Drawable for GrappleDraw {
     }
 }
 
-pub fn create(id: u32,
+pub fn create(id: Id,
               descr: Rc<GrappleDescriptor>,
-              player_id: u32,
+              player_id: Id,
               player: Arc<Mutex<Physical>>)
               -> (GameObj, Arc<Mutex<InputHandler>>) {
     let g: Arc<Mutex<GrappleDraw>> = arc_mut(GrappleDraw::new());

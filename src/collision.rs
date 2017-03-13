@@ -1,4 +1,4 @@
-use game::fphys;
+use game::{Id, fphys};
 
 use std::f64::EPSILON;
 
@@ -9,11 +9,11 @@ pub struct Collision {
     pub bb: BoundingBox,
     pub other_bb: BoundingBox,
     pub other_type: BBOwnerType,
-    pub other_id: u32,
+    pub other_id: Id,
 }
 
 impl Collision {
-    pub fn flip_new(&self, id: u32, our_type: BBOwnerType) -> Self {
+    pub fn flip_new(&self, id: Id, our_type: BBOwnerType) -> Self {
         Collision {
             bb: self.other_bb.clone(),
             other_bb: self.bb.clone(),
@@ -25,7 +25,7 @@ impl Collision {
 
 #[derive(Clone)]
 pub struct BBProperties {
-    pub id: u32,
+    pub id: Id,
     pub owner_type: BBOwnerType,
 }
 
@@ -42,7 +42,7 @@ bitflags! {
 }
 
 impl BBProperties {
-    pub fn new(id: u32, owner_type: BBOwnerType) -> Self {
+    pub fn new(id: Id, owner_type: BBOwnerType) -> Self {
         BBProperties {
             id: id,
             owner_type: owner_type,

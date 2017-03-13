@@ -55,11 +55,13 @@ pub fn from_json(path: &str,
             }
             "enemy" => {
                 let id = world.generate_id();
+                let faction = get_number("world", obj, "allegiance")? as u32;
                 let e = enemy_create(id,
                                      x,
                                      y,
                                      enemy_descr.clone(),
-                                     player_phys.clone());
+                                     &world,
+                                     faction);
                 gobjs.push(e);
             }
             "ground" => {

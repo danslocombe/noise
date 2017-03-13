@@ -6,12 +6,14 @@ use std::f64::EPSILON;
 #[derive(Clone)]
 pub struct Dialogue {
     pub timestamp: fphys,
-    pub priority: u32,
+    pub priority: Priority,
     pub text: String,
 }
 
+pub type Priority = u32;
+
 impl Dialogue {
-    pub fn new(timestamp: fphys, priority: u32, text: String) -> Self {
+    pub fn new(timestamp: fphys, priority: Priority, text: String) -> Self {
         Dialogue {
             timestamp: timestamp,
             priority: priority,

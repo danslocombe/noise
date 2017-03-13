@@ -6,7 +6,7 @@ extern crate opengl_graphics;
 
 use collision::*;
 use draw::Drawable;
-use game::{CommandBuffer, MetaCommand, ObjMessage, fphys};
+use game::{CommandBuffer, Id, MetaCommand, ObjMessage, fphys};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 use world::World;
@@ -20,7 +20,7 @@ pub trait Physical {
     fn get_position(&self) -> (fphys, fphys);
     fn get_width_height(&self) -> (fphys, fphys);
     fn get_vel(&self) -> (fphys, fphys);
-    fn get_id(&self) -> u32;
+    fn get_id(&self) -> Id;
     fn set_velocity(&mut self, x: fphys, y: fphys);
     fn set_position(&mut self, x: fphys, y: fphys);
     fn destroy(&mut self, world: &World);
@@ -137,7 +137,7 @@ impl Physical for PhysStatic {
         //  Do nothing
     }
 
-    fn get_id(&self) -> u32 {
+    fn get_id(&self) -> Id {
         self.p.id
     }
     fn get_width_height(&self) -> (fphys, fphys) {
@@ -251,7 +251,7 @@ impl Physical for PhysDyn {
     fn get_vel(&self) -> (fphys, fphys) {
         (self.xvel, self.yvel)
     }
-    fn get_id(&self) -> u32 {
+    fn get_id(&self) -> Id {
         self.p.id
     }
     fn get_width_height(&self) -> (fphys, fphys) {

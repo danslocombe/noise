@@ -5,7 +5,7 @@ use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
 use descriptors::EnemyDescriptor;
 use draw::{GrphxNoDraw, GrphxRect};
 use enemy::create as enemy_create;
-use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, fphys};
+use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, Id, fphys};
 use gen::{GhostBlock, GhostBlockType};
 use logic::DumbLogic;
 use physics::{PhysStatic, Physical};
@@ -14,7 +14,7 @@ use std::sync::{Arc, Mutex};
 use tools::arc_mut;
 use world::World;
 
-pub fn create_block(id: u32,
+pub fn create_block(id: Id,
                     x: fphys,
                     y: fphys,
                     length: fphys,
@@ -36,7 +36,7 @@ pub fn create_block(id: u32,
     GameObj::new(id, g, p, l)
 }
 
-pub fn create_platform(id: u32,
+pub fn create_platform(id: Id,
                        x: fphys,
                        y: fphys,
                        width: fphys,
@@ -52,6 +52,14 @@ pub fn create_platform(id: u32,
     GameObj::new(id, g, p, l)
 }
 
+pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
+                          player_phys: Arc<Mutex<Physical>>,
+                          enemy_descr: Rc<EnemyDescriptor>,
+                          world: &mut World)
+                          -> Vec<GameObj> {
+    unimplemented!();
+}
+/*
 pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
                           player_phys: Arc<Mutex<Physical>>,
                           enemy_descr: Rc<EnemyDescriptor>,
@@ -101,3 +109,4 @@ pub fn blocks_from_ghosts(ghost_blocks: Vec<GhostBlock>,
     }
     objs
 }
+*/

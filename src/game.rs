@@ -36,6 +36,8 @@ use world::World;
 pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
+pub type Id = u32;
+
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
 
@@ -43,7 +45,7 @@ pub const ENEMY_GEN_P: fphys = 0.01;
 pub type fphys = f64;
 
 pub struct GameObj {
-    pub id: u32,
+    pub id: Id,
     pub draws: Arc<Mutex<Drawable>>,
     pub physics: Arc<Mutex<Physical>>,
     pub logic: Arc<Mutex<Logical>>,
@@ -52,7 +54,7 @@ pub struct GameObj {
 
 
 impl GameObj {
-    pub fn new(id: u32,
+    pub fn new(id: Id,
                draws: Arc<Mutex<Drawable>>,
                physics: Arc<Mutex<Physical>>,
                logic: Arc<Mutex<Logical>>)
@@ -77,9 +79,9 @@ pub enum ObjMessage {
 
 pub enum MetaCommand {
     RestartGame,
-    RemoveObject(u32),
+    RemoveObject(Id),
     CreateObject(GameObj),
-    MessageObject(u32, ObjMessage),
+    MessageObject(Id, ObjMessage),
     Dialogue(u32, String),
 }
 
@@ -214,10 +216,11 @@ pub fn game_loop(mut window: Window,
 
 
 
+
                 //  Update bounding box list
                 world.update();
 
-                let mut ids_remove: Vec<u32> = Vec::new();
+                let mut ids_remove: Vec<Id> = Vec::new();
                 let mut objects_add: Vec<GameObj> = Vec::new();
 
                 //  Meta commands
@@ -270,7 +273,7 @@ pub fn game_loop(mut window: Window,
                         let (ref props, _) = *bb_descr;
                         props.id
                     })
-                    .collect::<Vec<u32>>();
+                    .collect::<Vec<Id>>();
 
                 ids_remove.extend(clip_objects);
 
@@ -304,7 +307,7 @@ pub fn game_loop(mut window: Window,
                     {
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
-                        l.tick(&u_args, &metabuffer, &o.message_buffer);
+                        l.tick(&u_args, &metabuffer, &o.message_buffer, &world);
                     }
                     {
                         //  Physics ticks

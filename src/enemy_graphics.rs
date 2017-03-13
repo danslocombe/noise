@@ -49,7 +49,6 @@ fn arc(centre: (fphys, fphys),
                     (angle_end - angle_start);
         let px = cx + radius * angle.cos();
         let py = cy + radius * angle.sin();
-        println!("px {} py {}", px, py);
         r.push([px, py]);
     }
     r.push([cx, cy]);
@@ -97,9 +96,11 @@ impl Drawable for EnemyGphx {
             let cone_angle = 0.45;
 
             //  Draw view cone
+            /*
             let centre = (self.x + self.manager.width / 2.0, self.y + self.manager.height / 2.0);
             let cone_polygon = arc(centre, 250.0, cone_angle_base - cone_angle, cone_angle_base + cone_angle, 6);
             polygon([1.0, 1.0, 0.7, 0.1], &cone_polygon, transform_base, gl);
+            */
 
             image(texture, transform, gl);
         });
