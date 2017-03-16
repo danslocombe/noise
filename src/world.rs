@@ -64,7 +64,7 @@ impl World {
         self.new_id = id;
     }
     pub fn update(&mut self) {
-        //  Leave loop on first instance of None
+        //  Collect any new bounding box updates from the receiver
         for (p, maybe_bb) in self.receiver.try_iter() {
             match maybe_bb {
                 Some(bb) => {
@@ -76,10 +76,8 @@ impl World {
             }
         }
         //  Buffer into list
-        self.buffer = Vec::new();
-        for (_, descr) in &self.world {
-            self.buffer.push(descr.clone());
-        }
+        self.buffer =
+            self.world.values().cloned().collect::<Vec<BBDescriptor>>();
 
         for (id, fighter) in self.fighter_receiver.try_iter() {
             match fighter {
@@ -92,10 +90,8 @@ impl World {
             }
         }
 
-        self.fighter_buffer = Vec::new();
-        for (_, fighter) in &self.fighters {
-            self.fighter_buffer.push(fighter.clone());
-        }
+        self.fighter_buffer =
+            self.fighters.values().cloned().collect::<Vec<Fighter>>();
     }
 
     pub fn get(&self, id: Id) -> Option<BBDescriptor> {

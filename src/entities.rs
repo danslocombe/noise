@@ -24,15 +24,12 @@ impl Logical for CrownLogic {
 
         //  Handle messages
         for m in message_buffer.read_buffer() {
-            match m {
-                ObjMessage::MCollision(c) => {
-                    if c.other_type.contains(BBO_PLAYER) {
-                        metabuffer.issue(MetaCommand::RemoveObject(self.id));
-                        metabuffer.issue(MetaCommand::CollectCrown);
-                        metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
-                    }
+            if let ObjMessage::MCollision(c) = m {
+                if c.other_type.contains(BBO_PLAYER) {
+                    metabuffer.issue(MetaCommand::RemoveObject(self.id));
+                    metabuffer.issue(MetaCommand::CollectCrown);
+                    metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
                 }
-                _ => {}
             }
         }
 
@@ -132,12 +129,9 @@ impl Logical for DialogueLogic {
             world: &World) {
         if !self.triggered {
             for m in message_buffer.read_buffer() {
-                match m {
-                    ObjMessage::MTrigger => {
-                        metabuffer.issue(MetaCommand::Dialogue(9, self.text.clone()));
-                        self.triggered = true;
-                    }
-                    _ => {}
+                if let ObjMessage::MTrigger = m {
+                    metabuffer.issue(MetaCommand::Dialogue(9, self.text.clone()));
+                    self.triggered = true;
                 }
             }
         }
