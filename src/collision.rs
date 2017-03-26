@@ -61,6 +61,17 @@ pub struct BoundingBox {
 }
 
 impl BoundingBox {
+    pub fn new(x: fphys, y: fphys, w: fphys, h: fphys) -> Self {
+        BoundingBox {
+            x: x,
+            y: y,
+            w: w,
+            h: h,
+        }
+    }
+}
+
+impl BoundingBox {
     pub fn check_col(&self, other: &BoundingBox) -> bool {
         !(self.x + self.w <= other.x || self.x >= other.x + other.w ||
           self.y + self.h <= other.y || self.y >= other.y + other.h)

@@ -136,6 +136,6 @@ impl World {
         self.trigger_id_map.insert(trigger_id, id);
     }
     pub fn get_from_trigger_id(&mut self, trigger_id: TriggerId) -> Option<Id> {
-        self.trigger_id_map.get(&trigger_id).map(|id| id.clone())
+        self.trigger_id_map.get(&trigger_id).map(|id| *id)
     }
 }

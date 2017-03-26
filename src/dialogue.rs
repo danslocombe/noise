@@ -60,7 +60,6 @@ impl DialogueBuffer {
     }
     pub fn get(&mut self, time: fphys) -> Option<String> {
         while let Some(d) = self.priority_queue.pop() {
-            println!("time diff {}", time - d.timestamp);
             if time - d.timestamp < self.elapse_time {
                 return Some(d.text);
             }

@@ -49,11 +49,8 @@ impl Logical for EnemyLogic {
 
         //  Handle messages
         for m in message_buffer.read_buffer() {
-            match m {
-                ObjMessage::MCollision(c) => {
-                    self.collision_buffer.push(c);
-                }
-                _ => {}
+            if let ObjMessage::MCollision(c) = m {
+                self.collision_buffer.push(c);
             }
         }
 
