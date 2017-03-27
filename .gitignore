@@ -1,3 +1,4 @@
 target
 *.swp
+*.ase
 Cargo.lock

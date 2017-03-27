@@ -1,17 +1,20 @@
 {
   "_comment":"Values for the player, feel free to play around with them",
 
-  "idle_frames":3,
+  "idle_frames":8,
   "idle_path":"sprites/player/idle",
 
-  "running_frames":1,
+  "running_frames":8,
   "running_path":"sprites/player/run",
 
-  "jumping_frames":2,
+  "jumping_frames":4,
   "jumping_path":"sprites/player/jump",
 
+  "falling_frames":20,
+  "falling_path":"sprites/player/fall",
+
   "swinging_frames":1,
-  "swinging_path":"sprites/player/swing",
+  "swinging_path":"sprites/player/grapple",
 
   "dashing_frames":1,
   "dashing_path":"sprites/player/dash",
@@ -19,8 +22,8 @@
   "speed":15,
   "scale":4,
 
-  "width":8,
-  "height":8,
+  "width":16,
+  "height":24,
 
   "friction":0.7,
   "friction_air_mult":0.35,
@@ -35,5 +38,5 @@
   "jump_cd":0.5,
   "maxspeed":300,
   "damage_cd":0.4,
-  "start_hp":20
+  "start_hp":200000
 }

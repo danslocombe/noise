@@ -220,7 +220,7 @@ pub fn create(id: Id,
         state: EnemyDrawState::Idle,
         reverse: false,
         manager: descr.clone(),
-        frame: 1,
+        frame: 1.0,
     };
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_ENEMY);

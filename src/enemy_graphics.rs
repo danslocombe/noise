@@ -31,7 +31,7 @@ pub struct EnemyGphx {
     pub state: EnemyDrawState,
     pub reverse: bool,
     pub manager: Rc<EnemyDescriptor>,
-    pub frame: u64,
+    pub frame: f64,
 }
 
 fn arc(centre: (fphys, fphys),
@@ -62,7 +62,7 @@ impl Drawable for EnemyGphx {
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
-        self.frame += 1;
+        self.frame += 1.0;
         let texture_vec = match self.state {
             EnemyDrawState::Idle => &self.manager.idle,
             EnemyDrawState::Run => &self.manager.running,

@@ -26,6 +26,7 @@ pub struct PlayerLogic {
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
     grappling: bool,
+    grapple_target: Option<(fphys, fphys)>,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -57,6 +58,7 @@ impl PlayerLogic {
             input: PI_NONE,
             collision_buffer: Vec::new(),
             grappling: false,
+            grapple_target: None,
             hp: descr.start_hp,
             hp_max: descr.start_hp,
         }
@@ -95,11 +97,13 @@ impl Logical for PlayerLogic {
                 ObjMessage::MCollision(c) => {
                     self.collision_buffer.push(c);
                 }
-                ObjMessage::MPlayerStartGrapple => {
+                ObjMessage::MPlayerStartGrapple(gt) => {
                     self.grappling = true;
+                    self.grapple_target = Some(gt);
                 }
                 ObjMessage::MPlayerEndGrapple => {
                     self.grappling = false;
+                    self.grapple_target = None;
                 }
                 _ => {}
             }
@@ -133,21 +137,39 @@ impl Logical for PlayerLogic {
         if self.damage_cd > 0.0 {
             self.damage_cd -= dt;
         }
-
         {
             let mut d = self.draw.lock().unwrap();
             //  Set draw state
-            d.state = if self.dash_cd > 0.0 {
-                PlayerDrawState::Dash
+            let (draw_state, draw_speed_mod, draw_angle) = if self.dash_cd > 0.0 {
+                (PlayerDrawState::Dash, 1.0, 0.0)
+            /*
             } else if self.grappling {
-                PlayerDrawState::Swing
+                let angle = match self.grapple_target {
+                    Some((gx, gy)) => {
+                        let dx = gx - x;
+                        let dy = gy - y;
+                        dy.atan2(dx)
+                    }
+                    None => {0.0}
+                };
+                (PlayerDrawState::Swing, 1.0, angle)
+                */
             } else if !phys.on_ground {
-                PlayerDrawState::Jump
-            } else if xvel.abs() > 0.1 {
-                PlayerDrawState::Run
+                if yvel < 0.0 {
+                    (PlayerDrawState::Jump, 1.0, 0.0)
+                }
+                else {
+                    (PlayerDrawState::Fall, 1.0, 0.0)
+                }
+            } else if xvel.abs() > 1.0 {
+                let sm = xvel.abs() / self.descr.max_runspeed;
+                (PlayerDrawState::Run, (sm.sqrt()) + 0.5, 0.0)
             } else {
-                PlayerDrawState::Idle
+                (PlayerDrawState::Idle, 1.0, 0.0)
             };
+            d.state = draw_state;
+            d.speed_mod = draw_speed_mod;
+            d.angle = draw_angle;
 
             if xvel > 0.1 {
                 d.reverse = false;
@@ -286,12 +308,14 @@ pub fn create(id: Id,
     let graphics = PlayerGphx {
         x: 0.0,
         y: 0.0,
+        angle : 0.0,
         scale: descr.scale,
         speed: descr.speed,
+        speed_mod: 1.0,
         state: PlayerDrawState::Idle,
         reverse: false,
         manager: descr.clone(),
-        frame: 1,
+        frame: 1.0,
     };
 
     let g = arc_mut(graphics);

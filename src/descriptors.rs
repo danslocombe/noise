@@ -17,6 +17,7 @@ pub trait Descriptor {
 pub struct PlayerDescriptor {
     pub idle: Vec<Texture>,
     pub running: Vec<Texture>,
+    pub falling: Vec<Texture>,
     pub jumping: Vec<Texture>,
     pub swinging: Vec<Texture>,
     pub dashing: Vec<Texture>,
@@ -88,6 +89,14 @@ pub fn load_from(ts: &TextureSettings,
                  -> Result<Vec<Texture>, Error> {
     let mut r = Vec::new();
     for i in 1..count + 1 {
+<<<<<<< HEAD
+=======
+        let path_i = if i < 10 {
+            format!("{}{}.png", path, i)
+        } else {
+            format!("{}{}.png", path, i)
+        };
+>>>>>>> Improve player animations
         let err = error_simple(dname,
                                format!("could not load file {}",
                                        path_i.as_str())
@@ -120,17 +129,15 @@ impl Descriptor for PlayerDescriptor {
         let obj = load_json("player", json_path)?;
 
         let idle_frames = get_number("player", &obj, "idle_frames")?;
-        let running_frames =
-            get_number("player", &obj, "running_frames")?;
-        let jumping_frames =
-            get_number("player", &obj, "jumping_frames")?;
-        let swinging_frames =
-            get_number("player", &obj, "swinging_frames")?;
-        let dashing_frames =
-            get_number("player", &obj, "dashing_frames")?;
+        let running_frames = get_number("player", &obj, "running_frames")?;
+        let jumping_frames = get_number("player", &obj, "jumping_frames")?;
+        let falling_frames = get_number("player", &obj, "falling_frames")?;
+        let swinging_frames = get_number("player", &obj, "swinging_frames")?;
+        let dashing_frames = get_number("player", &obj, "dashing_frames")?;
 
         let idle_path = get_string("player", &obj, "idle_path")?;
         let running_path = get_string("player", &obj, "running_path")?;
+        let falling_path = get_string("player", &obj, "falling_path")?;
         let jumping_path = get_string("player", &obj, "jumping_path")?;
         let swinging_path = get_string("player", &obj, "swinging_path")?;
         let dashing_path = get_string("player", &obj, "dashing_path")?;
@@ -151,6 +158,10 @@ impl Descriptor for PlayerDescriptor {
                                 "player",
                                 running_frames as usize,
                                 running_path.as_str())?;
+        let falling = load_from(&ts,
+                                "player",
+                                falling_frames as usize,
+                                falling_path.as_str())?;
         let jumping = load_from(&ts,
                                 "player",
                                 jumping_frames as usize,
@@ -171,6 +182,7 @@ impl Descriptor for PlayerDescriptor {
             height: height,
             idle: idle,
             running: running,
+            falling: falling,
             jumping: jumping,
             swinging: swinging,
             dashing: dashing,

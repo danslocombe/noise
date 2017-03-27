@@ -72,7 +72,7 @@ impl GameObj {
 pub enum ObjMessage {
     MCollision(Collision),
     MApplyForce(fphys, fphys),
-    MPlayerStartGrapple,
+    MPlayerStartGrapple((fphys,fphys)),
     MPlayerEndGrapple,
     MTrigger,
 }
@@ -133,7 +133,7 @@ fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
 struct PlayerInfo {
     pub player_id: Id,
     pub grapple_id: Id,
-    pub player_phys: Arc<Mutex<Physical>>, 
+    pub player_phys: Arc<Mutex<Physical>>,
     //pub player_input_handler : InputHandler,
     //pub grapple_input_handler : InputHandler,
 }

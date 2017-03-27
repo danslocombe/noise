@@ -109,7 +109,7 @@ impl Logical for GrappleHolster {
                 GrappleState::Locked(len) => {
                     if self.input.is_empty() {
                         metabuffer.issue(
-                            MetaCommand::MessageObject(self.player_id, 
+                            MetaCommand::MessageObject(self.player_id,
                                 ObjMessage::MPlayerEndGrapple));
                         g.end_grapple();
                     } else if self.input.contains(GI_RETRACT) {
@@ -297,8 +297,8 @@ impl Physical for Grapple {
                                      bb)
                             .map(|(col_x, col_y)| {
                                 metabuffer.issue(
-                                    MetaCommand::MessageObject(self.player_id, 
-                                        ObjMessage::MPlayerStartGrapple));
+                                    MetaCommand::MessageObject(self.player_id,
+                                        ObjMessage::MPlayerStartGrapple((col_x, col_y))));
                                 self.end_x = col_x;
                                 self.end_y = col_y;
                                 self.state = GrappleState::Locked(len_2.sqrt());
