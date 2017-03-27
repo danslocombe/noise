@@ -39,7 +39,7 @@ impl PlayerColLogic {
                -> (Self, Arc<Mutex<Physical>>) {
         let props = BBProperties {
             id: id,
-            owner_type: BBO_PLAYER_COL,
+            owner_type: BBO_NOCLIP,
         };
         let p =
             arc_mut(PhysDyn::new(props, bb.x, bb.y, 1.0, 100.0, bb.w, bb.h, g));

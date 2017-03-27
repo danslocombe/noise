@@ -88,11 +88,6 @@ pub fn load_from(ts: &TextureSettings,
                  -> Result<Vec<Texture>, Error> {
     let mut r = Vec::new();
     for i in 1..count + 1 {
-        let path_i = if i < 10 {
-            format!("{}0{}.png", path, i)
-        } else {
-            format!("{}{}.png", path, i)
-        };
         let err = error_simple(dname,
                                format!("could not load file {}",
                                        path_i.as_str())
@@ -125,10 +120,14 @@ impl Descriptor for PlayerDescriptor {
         let obj = load_json("player", json_path)?;
 
         let idle_frames = get_number("player", &obj, "idle_frames")?;
-        let running_frames = get_number("player", &obj, "running_frames")?;
-        let jumping_frames = get_number("player", &obj, "jumping_frames")?;
-        let swinging_frames = get_number("player", &obj, "swinging_frames")?;
-        let dashing_frames = get_number("player", &obj, "dashing_frames")?;
+        let running_frames =
+            get_number("player", &obj, "running_frames")?;
+        let jumping_frames =
+            get_number("player", &obj, "jumping_frames")?;
+        let swinging_frames =
+            get_number("player", &obj, "swinging_frames")?;
+        let dashing_frames =
+            get_number("player", &obj, "dashing_frames")?;
 
         let idle_path = get_string("player", &obj, "idle_path")?;
         let running_path = get_string("player", &obj, "running_path")?;
@@ -144,8 +143,10 @@ impl Descriptor for PlayerDescriptor {
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
 
-        let idle =
-            load_from(&ts, "player", idle_frames as usize, idle_path.as_str())?;
+        let idle = load_from(&ts,
+                             "player",
+                             idle_frames as usize,
+                             idle_path.as_str())?;
         let running = load_from(&ts,
                                 "player",
                                 running_frames as usize,

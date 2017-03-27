@@ -10,22 +10,20 @@ use collision::Collision;
 use descriptors::*;
 
 use dialogue::{Dialogue, DialogueBuffer};
-use draw::{Drawable, NoisyShader, Overlay, ViewFollower, ViewTransform,
-           draw_background};
+use draw::{Drawable, NoisyShader, ViewFollower, ViewTransform};
 use enemy::create as enemy_create;
 use gen::Gen;
 use gen::GhostTile;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
 use load_world::from_json;
-
 use logic::Logical;
 use opengl_graphics::GlGraphics;
+use overlay::*;
 use physics::Physical;
 use piston::event_loop::*;
 use piston::input::*;
 use player::create as player_create;
-
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};

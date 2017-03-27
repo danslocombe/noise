@@ -38,6 +38,7 @@ bitflags! {
         const BBO_ENEMY      = 0b00001000,
         const BBO_BLOCK      = 0b00010000,
         const BBO_PLAYER_COL = 0b00100000,
+        const BBO_NOCLIP     = 0b01000000,
         const BBO_ALL        = 0b11111111,
     }
 }

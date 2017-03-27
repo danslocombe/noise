@@ -37,6 +37,7 @@ mod dialogue;
 mod load_world;
 mod enemy_graphics;
 mod entities;
+mod overlay;
 
 use draw::NoisyShader;
 use game::game_loop;
