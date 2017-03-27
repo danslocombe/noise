@@ -8,10 +8,8 @@ use std::sync::{Arc, Mutex};
 use tools::*;
 use world::World;
 
-type UpdateFn = Fn(&UpdateArgs, Arc<Mutex<Physical>>, &World);
-type TriggerFn = Fn(Id,
-                    &CommandBuffer<MetaCommand>,
-                    &CommandBuffer<ObjMessage>);
+type UpdateFn = Fn(&LogicUpdateArgs, Arc<Mutex<Physical>>);
+type TriggerFn = Fn(Id, &LogicUpdateArgs);
 
 struct PlayerColLogic {
     pub id: Id,
@@ -54,22 +52,18 @@ impl PlayerColLogic {
     }
 }
 impl Logical for PlayerColLogic {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World) {
+    fn tick(&mut self, args: &LogicUpdateArgs) {
 
         let ref maybe_update = self.update;
         let ref maybe_phys = self.phys;
 
         maybe_update.as_ref().map(|f| {
-            maybe_phys.as_ref().map(|phys| { f(args, phys.clone(), world); });
+            maybe_phys.as_ref().map(|phys| { f(args, phys.clone()); });
         });
 
-        let player_bb = world.get(world.player_id());
+        let player_bb = args.world.get(args.world.player_id());
         player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            (self.f)(self.id, metabuffer, message_buffer);
+            (self.f)(self.id, args);
         });
     }
 }
@@ -81,14 +75,10 @@ struct TriggerLogic {
 }
 
 impl Logical for TriggerLogic {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World) {
-        let player_bb = world.get(world.player_id());
+    fn tick(&mut self, args: &LogicUpdateArgs) {
+        let player_bb = args.world.get(args.world.player_id());
         player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            metabuffer.issue(MetaCommand::Trigger(self.trigger_id));
+            args.metabuffer.issue(MetaCommand::Trigger(self.trigger_id));
         });
     }
 }
@@ -123,15 +113,12 @@ struct DialogueLogic {
 }
 
 impl Logical for DialogueLogic {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World) {
+    fn tick(&mut self, args: &LogicUpdateArgs) {
         if !self.triggered {
-            for m in message_buffer.read_buffer() {
+            for m in args.message_buffer.read_buffer() {
                 if let ObjMessage::MTrigger = m {
-                    metabuffer.issue(MetaCommand::Dialogue(9, self.text.clone()));
+                    args.metabuffer
+                        .issue(MetaCommand::Dialogue(9, self.text.clone()));
                     self.triggered = true;
                 }
             }
@@ -166,26 +153,21 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
         h: h,
         color: c,
     });
-    let crown_trigger =
-        Box::new(|id: Id,
-                  metabuffer: &CommandBuffer<MetaCommand>,
-                  message_buffer: &CommandBuffer<ObjMessage>| {
-            for m in message_buffer.read_buffer() {
-                if let ObjMessage::MCollision(c) = m {
-                    if c.other_type.contains(BBO_PLAYER) {
-                        metabuffer.issue(MetaCommand::RemoveObject(id));
-                        metabuffer.issue(MetaCommand::CollectCrown);
-                        metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
-                    }
-                }
+    let crown_trigger = Box::new(|id: Id, args: &LogicUpdateArgs| for m in
+        args.message_buffer.read_buffer() {
+        if let ObjMessage::MCollision(c) = m {
+            if c.other_type.contains(BBO_PLAYER) {
+                args.metabuffer.issue(MetaCommand::RemoveObject(id));
+                args.metabuffer.issue(MetaCommand::CollectCrown);
+                args.metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
             }
-        });
-    let crown_update = Box::new(|args: &UpdateArgs,
-                                 phys: Arc<Mutex<Physical>>,
-                                 world: &World| {
+        }
+    });
+    let crown_update = Box::new(|args: &LogicUpdateArgs,
+                                 phys: Arc<Mutex<Physical>>| {
         let mut p = phys.lock().unwrap();
         let (x, y) = p.get_position();
-        let pos_player_bb = world.get(world.player_id());
+        let pos_player_bb = args.world.get(args.world.player_id());
         pos_player_bb.map(|(_, player_bb)| {
             let dist2 = (player_bb.x - x).powi(2) + (player_bb.y - y).powi(2);
             if dist2 < 20000.0 {

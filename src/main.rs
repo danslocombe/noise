@@ -38,6 +38,8 @@ mod load_world;
 mod enemy_graphics;
 mod entities;
 mod overlay;
+mod weapons;
+mod humanoid;
 
 use draw::NoisyShader;
 use game::game_loop;

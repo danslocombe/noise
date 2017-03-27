@@ -11,10 +11,10 @@
   "attacking_frames":1,
   "attacking_path":"sprites/enemy/dash",
 
-  "weapon":"melee",
+  "weapon":"bow",
 
-  "speed":15,
-  "scale":6,
+  "speed":11,
+  "scale":4,
 
   "width":48,
   "height":48,
@@ -23,18 +23,14 @@
   "friction_air_mult":0.35,
   "moveforce":15,
   "moveforce_air_mult":0.4,
-  "jumpforce":650,
+  "jumpforce":350,
   "max_runspeed":200,
-  "jump_cd":0.5,
+  "jump_cd":1.5,
   "maxspeed":200,
   "damage_cd":0.4,
-  "start_hp":100,
-  "bounce_force":120,
+  "start_hp":60,
+  "bounce_force":500,
   "idle_move_chance":0.009,
   "idle_stop_chance":0.035,
-  "alert_dist":200,
-  "dash_duration":0.1,
-  "dash_cd":0.5,
-  "dash_invuln":0.3,
-  "dash_force":300
+  "alert_dist":500
 }

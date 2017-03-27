@@ -2,9 +2,9 @@ use collision::*;
 use descriptors::*;
 use dialogue::Dialogue;
 use draw::{Drawable, GrphxRect};
-use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, Id, InputHandler,
-           MetaCommand, ObjMessage, fphys};
-use logic::Logical;
+use game::*;
+use humanoid::*;
+use logic::*;
 use opengl_graphics::Texture;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
@@ -17,11 +17,11 @@ use tools::{arc_mut, normalise};
 use world::World;
 
 pub struct PlayerLogic {
+    pub id: Id,
     pub draw: Arc<Mutex<PlayerGphx>>,
     pub physics: Arc<Mutex<PhysDyn>>,
-    input: PlayerInput,
-    dash_cd: fphys,
-    jump_cd: fphys,
+    input: HumanoidInput,
+    cds: Cooldowns,
     damage_cd: fphys,
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
@@ -31,36 +31,29 @@ pub struct PlayerLogic {
     pub hp_max: fphys,
 }
 
-bitflags! {
-    flags PlayerInput : u16 {
-        const PI_NONE    = 0b00000000,
-        const PI_LEFT    = 0b00000001,
-        const PI_RIGHT   = 0b00000010,
-        const PI_DOWN    = 0b00000100,
-        const PI_UP      = 0b00001000,
-        const PI_DASH    = 0b00010000,
-    }
-}
-
 impl PlayerLogic {
-    pub fn new(draw: Arc<Mutex<PlayerGphx>>,
+    pub fn new(id: Id,
+               draw: Arc<Mutex<PlayerGphx>>,
                descr: Rc<PlayerDescriptor>,
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
         PlayerLogic {
+            id: id,
             draw: draw,
             physics: physics,
-            dash_cd: 0.0,
-            jump_cd: 0.0,
             damage_cd: 0.0,
             descr: descr.clone(),
-            input: PI_NONE,
+            input: HI_NONE,
             collision_buffer: Vec::new(),
             grappling: false,
             grapple_target: None,
             hp: descr.start_hp,
             hp_max: descr.start_hp,
+            cds: Cooldowns {
+                jump: 0.0,
+                dash: 0.0,
+            },
         }
     }
 }
@@ -76,23 +69,18 @@ const COLOR_DASH: [f32; 4] = [0.3, 0.9, 0.9, 1.0];
 const MAX_HEIGHT: fphys = 2500.0;
 
 impl Logical for PlayerLogic {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World) {
+    fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let dt = args.dt as fphys;
-        let mut phys = self.physics.lock().unwrap();
-        let (x, y) = phys.get_position();
+        let dt = args.piston.dt as fphys;
+        let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+
         if self.hp < 0.0 || y > MAX_HEIGHT {
-            metabuffer.issue(MetaCommand::RestartGame);
+            args.metabuffer.issue(MetaCommand::RestartGame);
             return;
         }
-        let (xvel, yvel) = phys.get_vel();
 
         //  Handle messages
-        for m in message_buffer.read_buffer() {
+        for m in args.message_buffer.read_buffer() {
             match m {
                 ObjMessage::MCollision(c) => {
                     self.collision_buffer.push(c);
@@ -115,20 +103,27 @@ impl Logical for PlayerLogic {
 
                 let force: fphys;
                 if self.damage_cd <= 0.0 &&
-                   self.dash_cd < self.descr.dash_cd - self.descr.dash_invuln {
+                   self.cds.dash < self.descr.dash_cd - self.descr.dash_invuln {
                     //  Take damage
                     self.damage_cd = self.descr.dash_cd;
                     self.hp -= ENEMY_DMG;
-                    metabuffer.issue(MetaCommand::Dialogue(7, String::from("I meant to do that")));
+                    args.metabuffer.issue(MetaCommand::Dialogue(7, String::from("I meant to do that")));
                     force = ENEMY_SHOVE_FORCE
                 } else {
-                    metabuffer.issue(MetaCommand::Dialogue(6, String::from("I hit him right in the face")));
+                    args.metabuffer
+                        .issue(MetaCommand::Dialogue(6,
+                                                     String::from("I hit him \
+                                                                   right in \
+                                                                   the face")));
                     force = ENEMY_BUMP_FORCE
                 }
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * force, -ny * force);
+                //args.metabuffer.mess_obj(self.id, ObjMessage::MApplyForce(-nx * force, -ny * force));
+                args.metabuffer.issue(MetaCommand::ApplyForce(self.id,
+                                                              (-nx * force,
+                                                               -ny * force)));
             }
         }
         //  Reset collisions
@@ -137,12 +132,18 @@ impl Logical for PlayerLogic {
         if self.damage_cd > 0.0 {
             self.damage_cd -= dt;
         }
+        let mut on_ground = false;
+        {
+            let phys = self.physics.lock().unwrap();
+            on_ground = phys.on_ground;
+        }
         {
             let mut d = self.draw.lock().unwrap();
             //  Set draw state
-            let (draw_state, draw_speed_mod, draw_angle) = if self.dash_cd > 0.0 {
-                (PlayerDrawState::Dash, 1.0, 0.0)
-            /*
+            let (draw_state, draw_speed_mod, draw_angle) =
+                if self.cds.dash > 0.0 {
+                    (PlayerDrawState::Dash, 1.0, 0.0)
+                    /*
             } else if self.grappling {
                 let angle = match self.grapple_target {
                     Some((gx, gy)) => {
@@ -154,19 +155,18 @@ impl Logical for PlayerLogic {
                 };
                 (PlayerDrawState::Swing, 1.0, angle)
                 */
-            } else if !phys.on_ground {
-                if yvel < 0.0 {
-                    (PlayerDrawState::Jump, 1.0, 0.0)
-                }
-                else {
-                    (PlayerDrawState::Fall, 1.0, 0.0)
-                }
-            } else if xvel.abs() > 3.0 {
-                let sm = xvel.abs() / self.descr.max_runspeed;
-                (PlayerDrawState::Run, (sm.sqrt()) + 0.5, 0.0)
-            } else {
-                (PlayerDrawState::Idle, 1.0, 0.0)
-            };
+                } else if !on_ground {
+                    if yvel < 0.0 {
+                        (PlayerDrawState::Jump, 1.0, 0.0)
+                    } else {
+                        (PlayerDrawState::Fall, 1.0, 0.0)
+                    }
+                } else if xvel.abs() > 3.0 {
+                    let sm = xvel.abs() / self.descr.max_runspeed;
+                    (PlayerDrawState::Run, (sm.sqrt()) + 0.5, 0.0)
+                } else {
+                    (PlayerDrawState::Idle, 1.0, 0.0)
+                };
             d.state = draw_state;
             d.speed_mod = draw_speed_mod;
             d.angle = draw_angle;
@@ -178,78 +178,14 @@ impl Logical for PlayerLogic {
             }
         }
 
-        if self.dash_cd > 0.0 {
-            self.dash_cd -= dt;
-        }
-        if self.dash_cd < self.descr.dash_cd - self.descr.dash_duration {
-            //  Performing regular physics
-            let xdir = 0.0 +
-                       (if self.input.contains(PI_RIGHT) {
-                1.0
-            } else {
-                0.0
-            }) -
-                       (if self.input.contains(PI_LEFT) {
-                1.0
-            } else {
-                0.0
-            });
-
-            if self.dash_cd <= 0.0 && self.input.contains(PI_DASH) {
-                self.dash_cd = self.descr.dash_cd;
-                let ydir = 0.0 +
-                           (if self.input.contains(PI_DOWN) {
-                    1.0
-                } else {
-                    0.0
-                }) -
-                           (if self.input.contains(PI_UP) { 1.0 } else { 0.0 });
-                phys.apply_force(self.descr.dash_force * xdir,
-                                 self.descr.dash_force * ydir);
-            }
-
-            if xdir != 0.00 && xvel * xdir < self.descr.max_runspeed {
-                let force = if phys.on_ground {
-                    self.descr.moveforce
-                } else {
-                    self.descr.moveforce * self.descr.moveforce_air_mult
-                };
-                phys.apply_force(force * xdir, 0.0);
-            } else {
-                let friction_percent = if phys.on_ground {
-                    self.descr.friction
-                } else {
-                    self.descr.friction * self.descr.friction_air_mult
-                };
-                let friction = xvel * -1.0 * friction_percent;
-                phys.apply_force(friction, 0.0);
-            }
-
-            if self.jump_cd > 0.0 {
-                self.jump_cd -= dt;
-            }
-
-            if phys.on_ground {
-                if self.jump_cd <= 0.0 && self.input.contains(PI_UP) {
-                    phys.apply_force(0.0, -self.descr.jumpforce);
-                    phys.set_velocity(xvel, 0.0);
-                    self.jump_cd = self.descr.jump_cd;
-                }
-            } else {
-                //  Gravity
-                if yvel < 0.0 {
-                    phys.apply_force(0.0, GRAVITY_UP);
-                } else {
-                    phys.apply_force(0.0, GRAVITY_DOWN);
-                }
-            }
-        }
-
-
-        phys.pass_platforms = yvel < 0.0 || self.input.contains(PI_DOWN) ||
-                              self.grappling;
-        phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY |
-                            BBO_PLAYER_COL;
+        //phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY |
+        //BBO_PLAYER_COL;
+        humanoid_input(self.id,
+                       args,
+                       &self.input,
+                       &mut self.cds,
+                       &self.descr.to_move_descr(),
+                       self.physics.clone());
     }
 }
 
@@ -257,19 +193,19 @@ impl InputHandler for PlayerLogic {
     fn press(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
-                self.input |= PI_UP;
+                self.input |= HI_JUMP;
             }
             Button::Keyboard(Key::S) => {
-                self.input |= PI_DOWN;
+                self.input |= HI_FALL;
             }
             Button::Keyboard(Key::A) => {
-                self.input |= PI_LEFT;
+                self.input |= HI_LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.input |= PI_RIGHT;
+                self.input |= HI_RIGHT;
             }
             Button::Keyboard(Key::Space) => {
-                self.input |= PI_DASH;
+                self.input |= HI_DASH;
             }
             _ => {}
         }
@@ -277,19 +213,19 @@ impl InputHandler for PlayerLogic {
     fn release(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
-                self.input &= !PI_UP;
+                self.input &= !HI_JUMP;
             }
             Button::Keyboard(Key::S) => {
-                self.input &= !PI_DOWN;
+                self.input &= !HI_FALL;
             }
             Button::Keyboard(Key::A) => {
-                self.input &= !PI_LEFT;
+                self.input &= !HI_LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.input &= !PI_RIGHT;
+                self.input &= !HI_RIGHT;
             }
             Button::Keyboard(Key::Space) => {
-                self.input &= !PI_DASH;
+                self.input &= !HI_DASH;
             }
             _ => {}
         }
@@ -308,7 +244,7 @@ pub fn create(id: Id,
     let graphics = PlayerGphx {
         x: 0.0,
         y: 0.0,
-        angle : 0.0,
+        angle: 0.0,
         scale: descr.scale,
         speed: descr.speed,
         speed_mod: 1.0,
@@ -329,7 +265,7 @@ pub fn create(id: Id,
                                  height,
                                  g.clone()));
 
-    let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));
+    let l = arc_mut(PlayerLogic::new(id, g.clone(), descr, p.clone()));
 
     (GameObj::new(id, g, p, l.clone()), l)
 }

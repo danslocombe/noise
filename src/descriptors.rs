@@ -1,4 +1,5 @@
 use game::fphys;
+use humanoid::*;
 use opengl_graphics::{Filter, Texture};
 use piston_window::TextureSettings;
 use rustc_serialize::json::Json;
@@ -9,9 +10,11 @@ use std::io::{Error, ErrorKind};
 use std::io::Read;
 
 use std::rc::Rc;
+use weapons::*;
 
 pub trait Descriptor {
     fn new(&str) -> Result<Rc<Self>, Error>;
+    fn to_move_descr(&self) -> MovementDescriptor;
 }
 
 pub struct PlayerDescriptor {
@@ -143,10 +146,8 @@ impl Descriptor for PlayerDescriptor {
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
 
-        let idle = load_from(&ts,
-                             "player",
-                             idle_frames as usize,
-                             idle_path.as_str())?;
+        let idle =
+            load_from(&ts, "player", idle_frames as usize, idle_path.as_str())?;
         let running = load_from(&ts,
                                 "player",
                                 running_frames as usize,
@@ -197,6 +198,21 @@ impl Descriptor for PlayerDescriptor {
             damage_cd: get_float("player", &obj, "damage_cd")?,
         }))
     }
+
+    fn to_move_descr(&self) -> MovementDescriptor {
+        MovementDescriptor {
+            max_runspeed: self.max_runspeed,
+            moveforce: self.moveforce,
+            moveforce_air_mult: self.moveforce_air_mult,
+            friction: self.friction,
+            friction_air_mult: self.friction_air_mult,
+            jumpforce: self.jumpforce,
+            dash_cd: self.dash_cd,
+            dash_duration: self.dash_duration,
+            dash_force: self.dash_force,
+            jump_cd: self.jump_cd,
+        }
+    }
 }
 
 pub struct GrappleDescriptor {
@@ -222,6 +238,9 @@ impl Descriptor for GrappleDescriptor {
             cd: get_float("grapple", &obj, "cd")?,
         }))
     }
+    fn to_move_descr(&self) -> MovementDescriptor {
+        unimplemented!();
+    }
 }
 
 pub struct EnemyDescriptor {
@@ -234,6 +253,8 @@ pub struct EnemyDescriptor {
     pub width: fphys,
     pub height: fphys,
 
+    pub weapon: Weapon,
+
     pub start_hp: fphys,
     pub friction: fphys,
     pub friction_air_mult: fphys,
@@ -244,6 +265,10 @@ pub struct EnemyDescriptor {
     pub maxspeed: fphys,
     pub jump_cd: fphys,
     pub damage_cd: fphys,
+
+    pub dash_cd: fphys,
+    pub dash_duration: fphys,
+    pub dash_force: fphys,
 
     pub idle_move_chance: fphys,
     pub idle_stop_chance: fphys,
@@ -270,6 +295,17 @@ impl Descriptor for EnemyDescriptor {
         let scale = get_float("enemy", &obj, "scale")?;
         let width = get_float("enemy", &obj, "width")?;
         let height = get_float("enemy", &obj, "height")?;
+
+        let weapon_str = get_string("enemy", &obj, "weapon")?;
+        let weapon = (match weapon_str.as_str() {
+            "melee" => Ok(Weapon::Melee),
+            "bow" => Ok(Weapon::Bow),
+            _ => {
+                Err(error_simple("enemy",
+                                 format!("Unknown weapon {}", weapon_str)
+                                     .as_str()))
+            }
+        })?;
 
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
@@ -298,6 +334,7 @@ impl Descriptor for EnemyDescriptor {
             running: running,
             jumping: jumping,
             attacking: attacking,
+            weapon: weapon,
             start_hp: get_float("enemy", &obj, "start_hp")?,
             friction: get_float("enemy", &obj, "friction")?,
             friction_air_mult: get_float("enemy", &obj, "friction_air_mult")?,
@@ -312,6 +349,23 @@ impl Descriptor for EnemyDescriptor {
             idle_stop_chance: get_float("enemy", &obj, "idle_stop_chance")?,
             alert_dist: get_float("enemy", &obj, "alert_dist")?,
             bounce_force: get_float("enemy", &obj, "bounce_force")?,
+            dash_cd: get_float("enemy", &obj, "dash_cd")?,
+            dash_duration: get_float("enemy", &obj, "dash_duration")?,
+            dash_force: get_float("enemy", &obj, "dash_force")?,
         }))
+    }
+    fn to_move_descr(&self) -> MovementDescriptor {
+        MovementDescriptor {
+            max_runspeed: self.max_runspeed,
+            moveforce: self.moveforce,
+            moveforce_air_mult: self.moveforce_air_mult,
+            friction: self.friction,
+            friction_air_mult: self.friction_air_mult,
+            jumpforce: self.jumpforce,
+            dash_cd: self.dash_cd,
+            dash_duration: self.dash_duration,
+            dash_force: self.dash_force,
+            jump_cd: self.jump_cd,
+        }
     }
 }

@@ -17,7 +17,7 @@ use gen::GhostTile;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
 use load_world::from_json;
-use logic::Logical;
+use logic::*;
 use opengl_graphics::GlGraphics;
 use overlay::*;
 use physics::Physical;
@@ -31,11 +31,11 @@ use std::time::SystemTime;
 use tile::{TILE_W, Tile, TileManager};
 use world::World;
 
-pub const GRAVITY_UP: fphys = 9.8;
-pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
-
 pub type Id = u32;
 pub type TriggerId = u32;
+pub type Pos = (fphys, fphys);
+pub type Vel = (fphys, fphys);
+pub type Force = (fphys, fphys);
 
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
@@ -71,8 +71,7 @@ impl GameObj {
 #[derive(Clone)]
 pub enum ObjMessage {
     MCollision(Collision),
-    MApplyForce(fphys, fphys),
-    MPlayerStartGrapple((fphys,fphys)),
+    MPlayerStartGrapple((fphys, fphys)),
     MPlayerEndGrapple,
     MTrigger,
 }
@@ -82,9 +81,16 @@ pub enum MetaCommand {
     RemoveObject(Id),
     CreateObject(GameObj),
     MessageObject(Id, ObjMessage),
+    ApplyForce(Id, Force),
     Dialogue(u32, String),
     CollectCrown,
     Trigger(TriggerId),
+}
+
+impl CommandBuffer<MetaCommand> {
+    pub fn mess_obj(&self, id: Id, msg: ObjMessage) {
+        self.issue(MetaCommand::MessageObject(id, msg));
+    }
 }
 
 pub struct CommandBuffer<A> {
@@ -133,7 +139,7 @@ fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
 struct PlayerInfo {
     pub player_id: Id,
     pub grapple_id: Id,
-    pub player_phys: Arc<Mutex<Physical>>,
+    pub player_phys: Arc<Mutex<Physical>>, 
     //pub player_input_handler : InputHandler,
     //pub grapple_input_handler : InputHandler,
 }
@@ -281,6 +287,17 @@ pub fn game_loop(mut window: Window,
                                         .issue(message);
                                 });
                         }
+                        MetaCommand::ApplyForce(id, (xf, yf)) => {
+                            let _ = game.objs
+                                .binary_search_by(|o| o.id.cmp(&id))
+                                .map(|pos| {
+                                    let mut phys = game.objs[pos]
+                                        .physics
+                                        .lock()
+                                        .unwrap();
+                                    phys.apply_force(xf, yf);
+                                });
+                        }
                         MetaCommand::Dialogue(p, t) => {
                             game.dialogue_buffer.add(Dialogue {
                                 timestamp: time,
@@ -330,10 +347,13 @@ pub fn game_loop(mut window: Window,
                     {
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
-                        l.tick(&u_args,
-                               &game.metabuffer,
-                               &o.message_buffer,
-                               &game.world);
+                        let args = LogicUpdateArgs {
+                            piston: &u_args,
+                            metabuffer: &game.metabuffer,
+                            message_buffer: &o.message_buffer,
+                            world: &game.world,
+                        };
+                        l.tick(&args);
                     }
                     {
                         //  Physics ticks

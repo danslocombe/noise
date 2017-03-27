@@ -6,10 +6,10 @@ use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBProperties, Collision};
 use descriptors::{Descriptor, EnemyDescriptor};
 use draw::GrphxRect;
 use enemy_graphics::*;
-use game::{CommandBuffer, GRAVITY_DOWN, GRAVITY_UP, GameObj, Id, MetaCommand,
-           ObjMessage, fphys};
+use game::*;
+use humanoid::*;
 
-use logic::Logical;
+use logic::*;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
 
@@ -25,30 +25,25 @@ enum EnemyState {
 }
 
 struct EnemyLogic {
+    id: Id,
     physics: Arc<Mutex<PhysDyn>>,
     draw: Arc<Mutex<EnemyGphx>>,
     state: EnemyState,
     collision_buffer: Vec<Collision>,
     descr: Rc<EnemyDescriptor>,
     faction: Faction,
+    cds: Cooldowns,
 }
 
 //  TODO code reuse from player
 
 impl Logical for EnemyLogic {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World) {
+    fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let mut phys = self.physics.lock().unwrap();
-
-        let (xvel, yvel) = phys.get_vel();
-        let (x, y) = phys.get_position();
+        let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
 
         //  Handle messages
-        for m in message_buffer.read_buffer() {
+        for m in args.message_buffer.read_buffer() {
             if let ObjMessage::MCollision(c) = m {
                 self.collision_buffer.push(c);
             }
@@ -57,23 +52,18 @@ impl Logical for EnemyLogic {
         //  Handle collisions
         for c in &self.collision_buffer {
 
-            if c.other_type.contains(BBO_PLAYER) {
+            if c.other_type.contains(BBO_PLAYER) ||
+               c.other_type.contains(BBO_ENEMY) {
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * self.descr.bounce_force,
-                                 -ny * self.descr.bounce_force);
+                let xf = -nx * self.descr.bounce_force;
+                let yf = -ny * self.descr.bounce_force;
+                args.metabuffer
+                    .issue(MetaCommand::ApplyForce(self.id, (xf, yf)));
             }
-            if c.other_type.contains(BBO_ENEMY) {
-                let diff_x = c.other_bb.x - c.bb.x;
-                let diff_y = c.other_bb.y - c.bb.y;
-                let (nx, ny) = normalise((diff_x, diff_y));
-                phys.apply_force(-nx * self.descr.bounce_force,
-                                 -ny * self.descr.bounce_force);
-            }
-
             if c.other_type.contains(BBO_PLAYER_DMG) {
-                metabuffer.issue(MetaCommand::RemoveObject(phys.p.id));
+                args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
                 return;
             }
         }
@@ -81,13 +71,13 @@ impl Logical for EnemyLogic {
         //  Clear buffer
         self.collision_buffer = Vec::new();
 
-        let dt = args.dt as fphys;
+        let dt = args.piston.dt as fphys;
 
         //  Find a target
-        let poss_target = get_target((x, y), self.faction, 1000.0, world);
+        let poss_target = get_target((x, y), self.faction, 1000.0, args.world);
         match poss_target {
             Some(target) => {
-                let (_, target_bb) = world.get(target).unwrap(); // TODO error handle here
+                let (_, target_bb) = args.world.get(target).unwrap(); // TODO error handle here
                 let tx = target_bb.x;
                 let ty = target_bb.y;
                 self.state = EnemyActive((tx, ty));
@@ -99,7 +89,8 @@ impl Logical for EnemyLogic {
 
         let mut rng = thread_rng();
 
-        let (xdir, jump, fall) = match self.state {
+        //  Handle 'ai'
+        let move_input = match self.state {
             EnemyIdle(movedir) => {
                 match movedir {
                     Some(xdir) => {
@@ -107,7 +98,7 @@ impl Logical for EnemyLogic {
                            self.descr.idle_stop_chance {
                             self.state = EnemyIdle(None);
                         }
-                        (xdir, false, false)
+                        hi_from_xdir(xdir)
                     }
                     None => {
                         if rng.gen_range(0.0, 100.0 * dt) <
@@ -119,16 +110,21 @@ impl Logical for EnemyLogic {
                             };
                             self.state = EnemyIdle(Some(xdir));
                         }
-                        (0.0, false, false)
+                        HI_NONE
                     }
                 }
             }
-            EnemyAlert => (0.0, false, false),
+            EnemyAlert => HI_NONE,
             EnemyActive((tx, ty)) => {
-                let xvel = (tx - x).signum();
-                let jump = (ty - y) < -30.0;
-                let fall = (ty - y) > 30.0;
-                (xvel, jump, fall)
+                let xdir = (tx - x).signum();
+                let mut ret = hi_from_xdir(xdir);
+                if (ty - y) < -30.0 {
+                    ret |= HI_JUMP;
+                }
+                if (ty - y) > 30.0 {
+                    ret |= HI_FALL
+                }
+                ret
             }
         };
 
@@ -141,39 +137,16 @@ impl Logical for EnemyLogic {
             }
         }
 
-
-        if xdir != 0.00 && xvel * xdir < self.descr.max_runspeed {
-            let force = if phys.on_ground {
-                self.descr.moveforce
-            } else {
-                self.descr.moveforce * self.descr.moveforce_air_mult
-            };
-            phys.apply_force(force * xdir, 0.0);
-        } else {
-            let friction_percent = if phys.on_ground {
-                self.descr.friction
-            } else {
-                self.descr.friction * self.descr.friction_air_mult
-            };
-            let friction = xvel * -1.0 * friction_percent;
-            phys.apply_force(friction, 0.0);
-        }
-        if phys.on_ground && jump {
-            phys.apply_force(0.0, -self.descr.jumpforce);
-        } else {
-            //  Gravity
-            if yvel < 0.0 {
-                phys.apply_force(0.0, GRAVITY_UP);
-            } else {
-                phys.apply_force(0.0, GRAVITY_DOWN);
-            }
-        }
-
-        phys.pass_platforms = fall;
+        humanoid_input(self.id,
+                       args,
+                       &move_input,
+                       &mut self.cds,
+                       &self.descr.to_move_descr(),
+                       self.physics.clone());
     }
 }
 
-fn get_target(pos: (fphys, fphys),
+fn get_target(pos: Pos,
               faction: Faction,
               max_dist: fphys,
               world: &World)
@@ -234,12 +207,17 @@ pub fn create(id: Id,
                                  g.clone()));
 
     let l = arc_mut(EnemyLogic {
+        id: id,
         faction: faction,
         physics: p.clone(),
         state: EnemyIdle(None),
         descr: descr,
         draw: g.clone(),
         collision_buffer: Vec::new(),
+        cds: Cooldowns {
+            jump: 0.0,
+            dash: 0.0,
+        },
     });
 
     GameObj::new(id, g, p, l)

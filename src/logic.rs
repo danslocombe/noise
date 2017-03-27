@@ -1,21 +1,20 @@
 use game::{CommandBuffer, MetaCommand, ObjMessage};
 use piston::input::UpdateArgs;
 use world::World;
+
 pub trait Logical {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            cb: &CommandBuffer<MetaCommand>,
-            message_buffer: &CommandBuffer<ObjMessage>,
-            world: &World);
+    fn tick(&mut self, &LogicUpdateArgs);
+}
+
+pub struct LogicUpdateArgs<'a> {
+    pub piston: &'a UpdateArgs,
+    pub metabuffer: &'a CommandBuffer<MetaCommand>,
+    pub message_buffer: &'a CommandBuffer<ObjMessage>,
+    pub world: &'a World,
 }
 
 pub struct DumbLogic {}
 
 impl Logical for DumbLogic {
-    fn tick(&mut self,
-            _: &UpdateArgs,
-            _: &CommandBuffer<MetaCommand>,
-            _: &CommandBuffer<ObjMessage>,
-            _: &World) {
-    }
+    fn tick(&mut self, _: &LogicUpdateArgs) {}
 }

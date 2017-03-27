@@ -3,7 +3,7 @@ use descriptors::GrappleDescriptor;
 use draw::{Drawable, Rectangle, ViewTransform};
 use game::{CommandBuffer, GameObj, Id, InputHandler, MetaCommand, ObjMessage,
            fphys};
-use logic::Logical;
+use logic::*;
 use opengl_graphics::GlGraphics;
 use physics::Physical;
 use piston::input::*;
@@ -79,12 +79,8 @@ bitflags! {
 }
 
 impl Logical for GrappleHolster {
-    fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            _: &CommandBuffer<ObjMessage>,
-            world: &World) {
-        let dt = args.dt as fphys;
+    fn tick(&mut self, args: &LogicUpdateArgs) {
+        let dt = args.piston.dt as fphys;
         if self.cd > 0.0 {
             self.cd -= dt;
         }
@@ -108,7 +104,7 @@ impl Logical for GrappleHolster {
                 }
                 GrappleState::Locked(len) => {
                     if self.input.is_empty() {
-                        metabuffer.issue(
+                        args.metabuffer.issue(
                             MetaCommand::MessageObject(self.player_id,
                                 ObjMessage::MPlayerEndGrapple));
                         g.end_grapple();

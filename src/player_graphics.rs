@@ -27,7 +27,7 @@ pub struct PlayerGphx {
     pub y: fphys,
     pub scale: fphys,
     pub speed: fphys,
-    pub speed_mod : fphys,
+    pub speed_mod: fphys,
     pub state: PlayerDrawState,
     pub reverse: bool,
     pub manager: Rc<PlayerDescriptor>,
@@ -62,22 +62,19 @@ impl Drawable for PlayerGphx {
                 .scale(vt.scale, vt.scale)
                 .trans(-vt.x, -vt.y);
 
-            let w = self.scale*(texture.get_width() as fphys);
-            let h = self.scale*(texture.get_height() as fphys);
+            let w = self.scale * (texture.get_width() as fphys);
+            let h = self.scale * (texture.get_height() as fphys);
             let transform = if self.reverse && self.angle == 0.0 {
-                transform_base
-                .trans(self.x + w, self.y)
-                .scale(-self.scale, self.scale)
-            }
-            else {
-                transform_base
-                .trans(self.x, self.y)
-                .scale(self.scale, self.scale)
+                transform_base.trans(self.x + w, self.y)
+                    .scale(-self.scale, self.scale)
+            } else {
+                transform_base.trans(self.x, self.y)
+                    .scale(self.scale, self.scale)
             };
 
             let transform_rot = transform//.trans(w / 2.0, h / 2.0)
                                          .rot_rad(self.angle);
-                                         //.trans(-w / 2.0, -h / 2.0);
+            //.trans(-w / 2.0, -h / 2.0);
 
             //println!("\nANGLE {}", self.angle);
             image(texture, transform_rot, gl);
