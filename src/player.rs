@@ -161,7 +161,7 @@ impl Logical for PlayerLogic {
                 else {
                     (PlayerDrawState::Fall, 1.0, 0.0)
                 }
-            } else if xvel.abs() > 1.0 {
+            } else if xvel.abs() > 3.0 {
                 let sm = xvel.abs() / self.descr.max_runspeed;
                 (PlayerDrawState::Run, (sm.sqrt()) + 0.5, 0.0)
             } else {

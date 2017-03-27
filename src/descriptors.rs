@@ -89,14 +89,7 @@ pub fn load_from(ts: &TextureSettings,
                  -> Result<Vec<Texture>, Error> {
     let mut r = Vec::new();
     for i in 1..count + 1 {
-<<<<<<< HEAD
-=======
-        let path_i = if i < 10 {
-            format!("{}{}.png", path, i)
-        } else {
-            format!("{}{}.png", path, i)
-        };
->>>>>>> Improve player animations
+        let path_i = format!("{}{}.png", path, i);
         let err = error_simple(dname,
                                format!("could not load file {}",
                                        path_i.as_str())

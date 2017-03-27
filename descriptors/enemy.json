@@ -2,16 +2,16 @@
   "_comment":"Values for the enemy",
 
   "idle_frames":1,
-  "idle_path":"sprites/player/idle",
+  "idle_path":"sprites/enemy/idle",
 
   "running_frames":1,
-  "running_path":"sprites/player/run",
+  "running_path":"sprites/enemy/run",
 
   "jumping_frames":1,
-  "jumping_path":"sprites/player/jump",
+  "jumping_path":"sprites/enemy/jump",
 
   "attacking_frames":1,
-  "attacking_path":"sprites/player/dash",
+  "attacking_path":"sprites/enemy/dash",
 
   "speed":15,
   "scale":6,
