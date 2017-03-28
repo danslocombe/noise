@@ -1,6 +1,7 @@
 use collision::*;
 use draw::*;
 use game::*;
+use humanoid::pos_vel_from_phys;
 use logic::*;
 use physics::*;
 use piston::input::*;
@@ -9,10 +10,9 @@ use tools::*;
 use world::World;
 
 type UpdateFn = Fn(&LogicUpdateArgs, Arc<Mutex<Physical>>);
-type TriggerFn = Fn(Id, &LogicUpdateArgs);
+type TriggerFn = Fn(&LogicUpdateArgs);
 
 struct PlayerColLogic {
-    pub id: Id,
     pub bb: BoundingBox,
     pub f: Arc<Box<TriggerFn>>,
     pub update: Option<Arc<Box<UpdateFn>>>,
@@ -22,7 +22,6 @@ struct PlayerColLogic {
 impl PlayerColLogic {
     fn new_static(id: Id, bb: BoundingBox, f: Box<TriggerFn>) -> Self {
         PlayerColLogic {
-            id: id,
             bb: bb,
             f: Arc::new(f),
             update: None,
@@ -37,12 +36,11 @@ impl PlayerColLogic {
                -> (Self, Arc<Mutex<Physical>>) {
         let props = BBProperties {
             id: id,
-            owner_type: BBO_NOCLIP,
+            owner_type: BBO_PLAYER_ENTITY,
         };
         let p =
             arc_mut(PhysDyn::new(props, bb.x, bb.y, 1.0, 100.0, bb.w, bb.h, g));
         let pl = PlayerColLogic {
-            id: id,
             bb: bb,
             f: Arc::new(f),
             update: Some(Arc::new(update_fn)),
@@ -61,15 +59,20 @@ impl Logical for PlayerColLogic {
             maybe_phys.as_ref().map(|phys| { f(args, phys.clone()); });
         });
 
-        let player_bb = args.world.get(args.world.player_id());
-        player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            (self.f)(self.id, args);
-        });
+        for m in args.message_buffer.read_buffer() {
+            match m {
+                ObjMessage::MCollision(c) => {
+                    if c.other_type.contains(BBO_PLAYER) {
+                        (self.f)(args);
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 }
 
 struct TriggerLogic {
-    pub id: Id,
     pub trigger_id: Id,
     pub bb: BoundingBox,
 }
@@ -94,7 +97,6 @@ pub fn create_trigger(id: Id,
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(TriggerLogic {
-        id: id,
         trigger_id: trigger_id,
         bb: BoundingBox {
             x: x,
@@ -107,7 +109,6 @@ pub fn create_trigger(id: Id,
 }
 
 struct DialogueLogic {
-    pub id: Id,
     pub text: String,
     pub triggered: bool,
 }
@@ -135,7 +136,6 @@ pub fn create_dialogue(id: Id,
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(DialogueLogic {
-        id: id,
         text: text,
         triggered: false,
     });
@@ -153,20 +153,15 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
         h: h,
         color: c,
     });
-    let crown_trigger = Box::new(|id: Id, args: &LogicUpdateArgs| for m in
-        args.message_buffer.read_buffer() {
-        if let ObjMessage::MCollision(c) = m {
-            if c.other_type.contains(BBO_PLAYER) {
-                args.metabuffer.issue(MetaCommand::RemoveObject(id));
-                args.metabuffer.issue(MetaCommand::CollectCrown);
-                args.metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
-            }
-        }
-    });
+    let crown_trigger =
+        Box::new(|args: &LogicUpdateArgs| {
+            args.metabuffer.issue(MetaCommand::RemoveObject(args.id));
+            args.metabuffer.issue(MetaCommand::CollectCrown);
+            args.metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
+        });
     let crown_update = Box::new(|args: &LogicUpdateArgs,
                                  phys: Arc<Mutex<Physical>>| {
-        let mut p = phys.lock().unwrap();
-        let (x, y) = p.get_position();
+        let (x, y) = phys.lock().unwrap().get_position();
         let pos_player_bb = args.world.get(args.world.player_id());
         pos_player_bb.map(|(_, player_bb)| {
             let dist2 = (player_bb.x - x).powi(2) + (player_bb.y - y).powi(2);
@@ -175,7 +170,9 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
                 let (dir_x, dir_y) = normalise((player_bb.x - x,
                                                 player_bb.y - y));
                 let force = 100.0;
-                p.apply_force(dir_x * force, dir_y * force);
+                args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
+                                                              (dir_x * force,
+                                                               dir_y * force)));
             }
         });
     });

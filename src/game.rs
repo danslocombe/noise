@@ -348,6 +348,7 @@ pub fn game_loop(mut window: Window,
                         //  Logic ticks
                         let mut l = o.logic.lock().unwrap();
                         let args = LogicUpdateArgs {
+                            id: o.id,
                             piston: &u_args,
                             metabuffer: &game.metabuffer,
                             message_buffer: &o.message_buffer,

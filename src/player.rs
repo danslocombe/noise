@@ -17,7 +17,6 @@ use tools::{arc_mut, normalise};
 use world::World;
 
 pub struct PlayerLogic {
-    pub id: Id,
     pub draw: Arc<Mutex<PlayerGphx>>,
     pub physics: Arc<Mutex<PhysDyn>>,
     input: HumanoidInput,
@@ -32,14 +31,12 @@ pub struct PlayerLogic {
 }
 
 impl PlayerLogic {
-    pub fn new(id: Id,
-               draw: Arc<Mutex<PlayerGphx>>,
+    pub fn new(draw: Arc<Mutex<PlayerGphx>>,
                descr: Rc<PlayerDescriptor>,
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
         PlayerLogic {
-            id: id,
             draw: draw,
             physics: physics,
             damage_cd: 0.0,
@@ -120,8 +117,7 @@ impl Logical for PlayerLogic {
                 let diff_x = c.other_bb.x - c.bb.x;
                 let diff_y = c.other_bb.y - c.bb.y;
                 let (nx, ny) = normalise((diff_x, diff_y));
-                //args.metabuffer.mess_obj(self.id, ObjMessage::MApplyForce(-nx * force, -ny * force));
-                args.metabuffer.issue(MetaCommand::ApplyForce(self.id,
+                args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
                                                               (-nx * force,
                                                                -ny * force)));
             }
@@ -177,11 +173,7 @@ impl Logical for PlayerLogic {
                 d.reverse = true;
             }
         }
-
-        //phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY |
-        //BBO_PLAYER_COL;
-        humanoid_input(self.id,
-                       args,
+        humanoid_input(args,
                        &self.input,
                        &mut self.cds,
                        &self.descr.to_move_descr(),
@@ -265,7 +257,7 @@ pub fn create(id: Id,
                                  height,
                                  g.clone()));
 
-    let l = arc_mut(PlayerLogic::new(id, g.clone(), descr, p.clone()));
+    let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));
 
     (GameObj::new(id, g, p, l.clone()), l)
 }

@@ -1,4 +1,4 @@
-use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BoundingBox};
+use collision::*;
 use descriptors::GrappleDescriptor;
 use draw::{Drawable, Rectangle, ViewTransform};
 use game::{CommandBuffer, GameObj, Id, InputHandler, MetaCommand, ObjMessage,
@@ -282,7 +282,6 @@ impl Physical for Grapple {
                     for bbprops in world.buffer() {
                         let (ref props, ref bb) = *bbprops;
                         if props.owner_type.contains(BBO_PLAYER) ||
-                           props.owner_type.contains(BBO_PLAYER_DMG) ||
                            props.owner_type.contains(BBO_ENEMY) {
                             continue;
                         }

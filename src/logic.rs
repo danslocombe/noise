@@ -1,4 +1,4 @@
-use game::{CommandBuffer, MetaCommand, ObjMessage};
+use game::{CommandBuffer, Id, MetaCommand, ObjMessage};
 use piston::input::UpdateArgs;
 use world::World;
 
@@ -7,6 +7,7 @@ pub trait Logical {
 }
 
 pub struct LogicUpdateArgs<'a> {
+    pub id: Id,
     pub piston: &'a UpdateArgs,
     pub metabuffer: &'a CommandBuffer<MetaCommand>,
     pub message_buffer: &'a CommandBuffer<ObjMessage>,

@@ -2,7 +2,7 @@ extern crate rand;
 
 use self::EnemyState::*;
 use self::rand::{Rng, thread_rng};
-use collision::{BBO_ENEMY, BBO_PLAYER, BBO_PLAYER_DMG, BBProperties, Collision};
+use collision::*;
 use descriptors::{Descriptor, EnemyDescriptor};
 use draw::GrphxRect;
 use enemy_graphics::*;
@@ -33,6 +33,7 @@ struct EnemyLogic {
     descr: Rc<EnemyDescriptor>,
     faction: Faction,
     cds: Cooldowns,
+    hp: fphys,
 }
 
 //  TODO code reuse from player
@@ -41,6 +42,11 @@ impl Logical for EnemyLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
         let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+
+        if self.hp <= 0.0 {
+            args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
+            return;
+        }
 
         //  Handle messages
         for m in args.message_buffer.read_buffer() {
@@ -61,10 +67,6 @@ impl Logical for EnemyLogic {
                 let yf = -ny * self.descr.bounce_force;
                 args.metabuffer
                     .issue(MetaCommand::ApplyForce(self.id, (xf, yf)));
-            }
-            if c.other_type.contains(BBO_PLAYER_DMG) {
-                args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
-                return;
             }
         }
 
@@ -137,8 +139,7 @@ impl Logical for EnemyLogic {
             }
         }
 
-        humanoid_input(self.id,
-                       args,
+        humanoid_input(args,
                        &move_input,
                        &mut self.cds,
                        &self.descr.to_move_descr(),
@@ -211,6 +212,7 @@ pub fn create(id: Id,
         faction: faction,
         physics: p.clone(),
         state: EnemyIdle(None),
+        hp: descr.start_hp,
         descr: descr,
         draw: g.clone(),
         collision_buffer: Vec::new(),

@@ -1,4 +1,4 @@
-use game::{Id, fphys};
+use game::{Id, Pos, Vel, fphys};
 
 use std::f64::EPSILON;
 
@@ -31,15 +31,14 @@ pub struct BBProperties {
 
 bitflags! {
     pub flags BBOwnerType : u16 {
-        const BBO_NONE       = 0b00000000,
-        const BBO_PLATFORM   = 0b00000001,
-        const BBO_PLAYER     = 0b00000010,
-        const BBO_PLAYER_DMG = 0b00000100,
-        const BBO_ENEMY      = 0b00001000,
-        const BBO_BLOCK      = 0b00010000,
-        const BBO_PLAYER_COL = 0b00100000,
-        const BBO_NOCLIP     = 0b01000000,
-        const BBO_ALL        = 0b11111111,
+        const BBO_NONE          = 0b00000000,
+        const BBO_PLATFORM      = 0b00000001,
+        const BBO_BLOCK         = 0b00000010,
+        const BBO_PLAYER        = 0b00000100,
+        const BBO_ENEMY         = 0b00001000,
+        const BBO_DAMAGE        = 0b00010000,
+        const BBO_PLAYER_ENTITY = 0b00100000,
+        const BBO_ALL           = 0b11111111,
     }
 }
 
@@ -172,8 +171,8 @@ pub fn resolve_col_base(p: &BBProperties,
                         collide_types: BBOwnerType,
                         on_ground: bool,
                         pass_platforms: bool,
-                        (xstart, ystart): (fphys, fphys),
-                        (xend, yend): (fphys, fphys))
+                        (xstart, ystart): Pos,
+                        (xend, yend): Pos)
                         -> PosDelta {
     let pdelta_x = resolve_col_it(8,
                                   p,
@@ -221,8 +220,8 @@ fn resolve_col_it(its: i32,
                   collide_types: BBOwnerType,
                   on_ground: bool,
                   pass_platforms: bool,
-                  pos_start: (fphys, fphys),
-                  pos_end: (fphys, fphys))
+                  pos_start: Pos,
+                  pos_end: Pos)
                   -> PosDelta {
     resolve_col_it_recurse(its - 1,
                            its,
@@ -246,8 +245,8 @@ fn resolve_col_it_recurse(its: i32,
                           collide_types: BBOwnerType,
                           on_ground: bool,
                           pass_platforms: bool,
-                          (xstart, ystart): (fphys, fphys),
-                          (xend, yend): (fphys, fphys))
+                          (xstart, ystart): Pos,
+                          (xend, yend): Pos)
                           -> PosDelta {
     if its <= 0 {
         let bb_test = BoundingBox {

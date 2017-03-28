@@ -1,4 +1,3 @@
-
 use collision::*;
 use game::*;
 use logic::*;
@@ -52,8 +51,7 @@ pub struct Cooldowns {
     pub dash: fphys,
 }
 
-pub fn humanoid_input(id: Id,
-                      args: &LogicUpdateArgs,
+pub fn humanoid_input(args: &LogicUpdateArgs,
                       input: &HumanoidInput,
                       cd: &mut Cooldowns,
                       descr: &MovementDescriptor,
@@ -72,7 +70,7 @@ pub fn humanoid_input(id: Id,
             cd.dash = descr.dash_cd;
             let ydir = 0.0 + (if input.contains(HI_FALL) { 1.0 } else { 0.0 }) -
                        (if input.contains(HI_JUMP) { 1.0 } else { 0.0 });
-            args.metabuffer.issue(MetaCommand::ApplyForce(id,
+            args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
                                                           (descr.dash_force *
                                                            xdir,
                                                            descr.dash_force *
@@ -119,7 +117,7 @@ pub fn humanoid_input(id: Id,
         }
     }
 
-    phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY | BBO_PLAYER_COL;
+    phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY;
     phys.pass_platforms = yvel < 0.0 || input.contains(HI_FALL);
     //self.grappling;
     //phys.pass_platforms = input.contains(HI_FALL);

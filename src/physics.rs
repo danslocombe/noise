@@ -214,7 +214,7 @@ impl Physical for PhysDyn {
         if let Some(collision) = does_collide(&self.p,
                                               &bb_test,
                                               bbs,
-                                              self.collide_with,
+                                              BBO_ALL,
                                               self.pass_platforms) {
 
             metabuffer.issue(MetaCommand::MessageObject(self.p.id,
