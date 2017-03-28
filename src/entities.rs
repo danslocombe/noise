@@ -33,7 +33,7 @@ impl PlayerColLogic {
                f: Box<TriggerFn>,
                update_fn: Box<UpdateFn>,
                g: Arc<Mutex<Drawable>>)
-               -> (Self, Arc<Mutex<Physical>>) {
+               -> (Self, Arc<Mutex<PhysDyn>>) {
         let props = BBProperties {
             id: id,
             owner_type: BBO_PLAYER_ENTITY,
@@ -52,28 +52,21 @@ impl PlayerColLogic {
 impl Logical for PlayerColLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let ref maybe_update = self.update;
-        let ref maybe_phys = self.phys;
-
-        maybe_update.as_ref().map(|f| {
-            maybe_phys.as_ref().map(|phys| { f(args, phys.clone()); });
+        self.update.as_ref().map(|f| {
+            self.phys.as_ref().map(|phys| { f(args, phys.clone()); });
         });
 
         for m in args.message_buffer.read_buffer() {
-            match m {
-                ObjMessage::MCollision(c) => {
-                    if c.other_type.contains(BBO_PLAYER) {
-                        (self.f)(args);
-                    }
+            if let ObjMessage::MCollision(c) = m {
+                if c.other_type.contains(BBO_PLAYER) {
+                    (self.f)(args);
                 }
-                _ => {}
             }
         }
     }
 }
 
 struct TriggerLogic {
-    pub trigger_id: Id,
     pub bb: BoundingBox,
 }
 
@@ -81,7 +74,7 @@ impl Logical for TriggerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
         let player_bb = args.world.get(args.world.player_id());
         player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            args.metabuffer.issue(MetaCommand::Trigger(self.trigger_id));
+            args.metabuffer.issue(MetaCommand::Trigger(args.id));
         });
     }
 }
@@ -97,7 +90,6 @@ pub fn create_trigger(id: Id,
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(TriggerLogic {
-        trigger_id: trigger_id,
         bb: BoundingBox {
             x: x,
             y: y,
@@ -180,6 +172,10 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
     let bb = BoundingBox::new(x, y, w, h);
     let (logic, p) =
         PlayerColLogic::new_dyn(id, bb, crown_trigger, crown_update, g.clone());
+    {
+        let mut phys = p.lock().unwrap();
+        phys.collide_with = BBO_BLOCK;
+    }
     let l = arc_mut(logic);
     GameObj::new(id, g, p, l)
 }

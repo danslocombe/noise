@@ -1,3 +1,7 @@
+/*
+ * Abstract out behaviour similar in player and enemies to humanoid.rs
+ */
+
 use collision::*;
 use game::*;
 use logic::*;
@@ -26,6 +30,17 @@ pub fn hi_from_xdir(xdir: fphys) -> HumanoidInput {
     } else {
         HI_NONE
     }
+}
+
+pub fn buffer_collisions(message_buffer: &CommandBuffer<ObjMessage>)
+                         -> Vec<Collision> {
+    let mut ret = Vec::new();
+    for m in message_buffer.read_buffer() {
+        if let ObjMessage::MCollision(c) = m {
+            ret.push(c);
+        }
+    }
+    ret
 }
 
 pub fn pos_vel_from_phys(p: Arc<Mutex<PhysDyn>>) -> (Pos, Vel) {

@@ -1,8 +1,8 @@
 
-
 use collision::{BBDescriptor, BBProperties, BoundingBox};
 use game::{Id, TriggerId};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
 
 //  Listens for updates on its receiver then updates its representation of the world
@@ -14,7 +14,7 @@ pub struct World {
     receiver: Receiver<SendType>,
     sender: Sender<SendType>,
     //  For static generation of ids
-    new_id: Id,
+    id_gen: Arc<Mutex<IdGen>>,
     player_id: Id,
     buffer: Vec<BBDescriptor>,
     fighters: HashMap<Id, Fighter>,
@@ -22,6 +22,10 @@ pub struct World {
     fighter_receiver: Receiver<FighterSendType>,
     fighter_buffer: Vec<Fighter>,
     trigger_id_map: HashMap<TriggerId, Id>,
+}
+
+struct IdGen {
+    pub current: Id,
 }
 
 #[derive(Clone)]
@@ -50,7 +54,7 @@ impl World {
             fighter_receiver: fighter_rx,
             fighter_buffer: Vec::new(),
             player_id: 0,
-            new_id: 1,
+            id_gen: Arc::new(Mutex::new(IdGen { current: 1 })),
             trigger_id_map: HashMap::new(),
         }
     }
@@ -61,7 +65,7 @@ impl World {
         self.sender = tx;
         self.world = HashMap::new();
         self.buffer = Vec::new();
-        self.new_id = id;
+        self.id_gen = Arc::new(Mutex::new(IdGen { current: id }));
     }
     pub fn update(&mut self) {
         //  Collect any new bounding box updates from the receiver
@@ -98,10 +102,10 @@ impl World {
         self.world.get(&id).map(|x| (*x).clone())
     }
 
-    pub fn generate_id(&mut self) -> Id {
-        let r = self.new_id;
-        self.new_id = r + 1;
-        r
+    pub fn generate_id(&self) -> Id {
+        let mut r = self.id_gen.lock().unwrap();
+        r.current = r.current + 1;
+        r.current
     }
 
     pub fn player_id(&self) -> Id {

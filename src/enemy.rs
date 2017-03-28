@@ -16,6 +16,7 @@ use piston::input::*;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
+use weapons::*;
 use world::*;
 
 enum EnemyState {
@@ -26,6 +27,8 @@ enum EnemyState {
 
 struct EnemyLogic {
     id: Id,
+    weapon: Box<Wieldable>,
+    weapon_cd: fphys,
     physics: Arc<Mutex<PhysDyn>>,
     draw: Arc<Mutex<EnemyGphx>>,
     state: EnemyState,
@@ -42,22 +45,17 @@ impl Logical for EnemyLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
         let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+        let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 {
             args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
             return;
         }
 
-        //  Handle messages
-        for m in args.message_buffer.read_buffer() {
-            if let ObjMessage::MCollision(c) = m {
-                self.collision_buffer.push(c);
-            }
-        }
+        self.collision_buffer = buffer_collisions(args.message_buffer);
 
         //  Handle collisions
         for c in &self.collision_buffer {
-
             if c.other_type.contains(BBO_PLAYER) ||
                c.other_type.contains(BBO_ENEMY) {
                 let diff_x = c.other_bb.x - c.bb.x;
@@ -69,11 +67,6 @@ impl Logical for EnemyLogic {
                     .issue(MetaCommand::ApplyForce(self.id, (xf, yf)));
             }
         }
-
-        //  Clear buffer
-        self.collision_buffer = Vec::new();
-
-        let dt = args.piston.dt as fphys;
 
         //  Find a target
         let poss_target = get_target((x, y), self.faction, 1000.0, args.world);
@@ -126,15 +119,27 @@ impl Logical for EnemyLogic {
                 if (ty - y) > 30.0 {
                     ret |= HI_FALL
                 }
+
+                //  Weapon handling
+                if self.weapon_cd <= 0.0 {
+                    self.weapon_cd = self.weapon.get_cd();
+                    self.weapon.fire((tx, ty), (x, y), args);
+                } else {
+                    self.weapon_cd -= dt;
+                }
+
                 ret
             }
         };
+
+
 
         {
             let mut d = self.draw.lock().unwrap();
             if xvel > 1.0 {
                 d.reverse = false;
-            } else {
+            }
+            if xvel < -1.0 {
                 d.reverse = true;
             }
         }
@@ -198,17 +203,22 @@ pub fn create(id: Id,
     };
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_ENEMY);
-    let p = arc_mut(PhysDyn::new(props,
-                                 x,
-                                 y,
-                                 1.0,
-                                 descr.maxspeed,
-                                 descr.width,
-                                 descr.height,
-                                 g.clone()));
+    let mut phys = PhysDyn::new(props,
+                                x,
+                                y,
+                                1.0,
+                                descr.maxspeed,
+                                descr.width,
+                                descr.height,
+                                g.clone());
+    phys.collide_with = BBO_BLOCK;
+    let p = arc_mut(phys);
 
+    let weapon = Box::new(Bow {});
     let l = arc_mut(EnemyLogic {
         id: id,
+        weapon: weapon,
+        weapon_cd: 0.0,
         faction: faction,
         physics: p.clone(),
         state: EnemyIdle(None),

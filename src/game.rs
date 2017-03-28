@@ -40,6 +40,9 @@ pub type Force = (fphys, fphys);
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
 
+pub const GRAVITY_UP: fphys = 9.8;
+pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
+
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
@@ -121,8 +124,6 @@ pub trait InputHandler {
     fn release(&mut self, button: Button);
 }
 
-const DESTROY_BUFFER: fphys = 1000.0;
-
 fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
     let pd_r = T::new(json_path);
     match pd_r {
@@ -139,9 +140,7 @@ fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
 struct PlayerInfo {
     pub player_id: Id,
     pub grapple_id: Id,
-    pub player_phys: Arc<Mutex<Physical>>, 
-    //pub player_input_handler : InputHandler,
-    //pub grapple_input_handler : InputHandler,
+    pub player_phys: Arc<Mutex<Physical>>,
 }
 
 struct Noise<'a> {

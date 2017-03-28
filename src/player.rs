@@ -167,9 +167,10 @@ impl Logical for PlayerLogic {
             d.speed_mod = draw_speed_mod;
             d.angle = draw_angle;
 
-            if xvel > 0.1 {
+            if xvel > 1.0 {
                 d.reverse = false;
-            } else {
+            }
+            if xvel < -1.0 {
                 d.reverse = true;
             }
         }
