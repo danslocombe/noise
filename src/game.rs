@@ -10,7 +10,7 @@ use collision::Collision;
 use descriptors::*;
 
 use dialogue::{Dialogue, DialogueBuffer};
-use draw::{Drawable, NoisyShader, ViewFollower, ViewTransform};
+use draw::{Drawable, ViewFollower, ViewTransform};
 use enemy::create as enemy_create;
 use gen::Gen;
 use gen::GhostTile;
@@ -24,6 +24,7 @@ use physics::Physical;
 use piston::event_loop::*;
 use piston::input::*;
 use player::create as player_create;
+use shaders::NoisyShader;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};

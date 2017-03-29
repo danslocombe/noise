@@ -4,8 +4,15 @@ in vec2 out_pos;
 
 uniform float time;
 uniform vec2 vel;
+uniform mat4 replacement_colors;
+
 
 out vec4 o_Color;
+
+vec3 color_palette(vec3 color) {
+  vec4 homogeneous_color = vec4(color, 1.0);
+  return (replacement_colors * homogeneous_color).rgb;
+}
 
 float rand(vec2 co){
     return fract(sin(dot(co.xy,vec2(12.9898,78.233))) * 43758.5453);
@@ -55,4 +62,5 @@ void main() {
     else {
         o_Color.b = v_Color.b * NOISE_OTHER;
     }
+    o_Color = vec4(color_palette(o_Color.rgb), o_Color.a);
 }

@@ -41,8 +41,8 @@ mod overlay;
 mod weapons;
 mod humanoid;
 
-use draw::NoisyShader;
 use game::game_loop;
+use shaders::NoisyShader;
 
 pub const SCREEN_WIDTH: u32 = 640;
 pub const SCREEN_HEIGHT: u32 = 480;
@@ -88,12 +88,18 @@ fn main() {
     context.use_program(c_program);
     let uniform_time = context.get_uniform::<SUFloat>("time").unwrap();
     let uniform_vel = context.get_uniform::<SUVec2>("vel").unwrap();
+    let uniform_replacement_colors =
+        context.get_uniform::<SUMat4x4>("replacement_colors").unwrap();
     context.use_program(t_program);
     let uniform_time_tex = context.get_uniform::<SUFloat>("time_tex").unwrap();
+    let uniform_replacement_colors_tex =
+        context.get_uniform::<SUMat4x4>("replacement_colors").unwrap();
 
     let shader = NoisyShader::new(uniform_time,
                                   uniform_time_tex,
                                   uniform_vel,
+                                  uniform_replacement_colors,
+                                  uniform_replacement_colors_tex,
                                   c_program,
                                   t_program);
 

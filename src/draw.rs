@@ -1,10 +1,7 @@
 extern crate graphics;
-extern crate gl;
 
-use self::gl::types::GLuint;
 use game::fphys;
 use opengl_graphics::GlGraphics;
-use opengl_graphics::shader_uniforms::*;
 use piston::input::*;
 use player::PlayerLogic;
 use std::sync::{Arc, Mutex};
@@ -175,75 +172,6 @@ impl ViewFollower {
         });
     }
 }
-
-pub struct NoisyShader {
-    obj_id: Option<u32>,
-    time: f32,
-    vel_x: fphys,
-    vel_y: fphys,
-    obj_prev_x: fphys,
-    obj_prev_y: fphys,
-    weight: fphys,
-    uniform_time: ShaderUniform<SUFloat>,
-    uniform_time_tex: ShaderUniform<SUFloat>,
-    uniform_vel: ShaderUniform<SUVec2>,
-    colored_program: GLuint,
-    textured_program: GLuint,
-}
-
-impl NoisyShader {
-    pub fn new(u_time: ShaderUniform<SUFloat>,
-               u_time_tex: ShaderUniform<SUFloat>,
-               u_vel: ShaderUniform<SUVec2>,
-               c_program: GLuint,
-               t_program: GLuint)
-               -> Self {
-        NoisyShader {
-            obj_id: None,
-            time: 0.0,
-            vel_x: 0.0,
-            vel_y: 0.0,
-            obj_prev_x: 0.0,
-            obj_prev_y: 0.0,
-            weight: 20.0,
-            uniform_time: u_time,
-            uniform_time_tex: u_time_tex,
-            uniform_vel: u_vel,
-            colored_program: c_program,
-            textured_program: t_program,
-        }
-    }
-
-    pub fn set_following(&mut self, obj_id: u32) {
-        self.obj_id = Some(obj_id);
-    }
-    pub fn set_colored(&self, ctx: &mut GlGraphics) {
-        ctx.use_program(self.colored_program);
-        self.uniform_time.set(ctx, self.time);
-        self.uniform_vel.set(ctx, &[self.vel_x as f32, self.vel_y as f32]);
-    }
-    pub fn set_textured(&self, ctx: &mut GlGraphics) {
-        ctx.use_program(self.textured_program);
-        self.uniform_time_tex
-            .set(ctx, 1000.0 * self.time + self.obj_prev_x as f32);
-    }
-    pub fn update(&mut self, world: &World) {
-
-        self.time += 0.001;
-
-        self.obj_id.map(|id| {
-            world.get(id).map(|(_, bb)| {
-                let bb_xvel = bb.x - self.obj_prev_x;
-                let bb_yvel = bb.y - self.obj_prev_y;
-                self.vel_x = weight(self.vel_x, bb_xvel, self.weight);
-                self.vel_y = weight(self.vel_y, bb_yvel, self.weight);
-                self.obj_prev_x = bb.x;
-                self.obj_prev_y = bb.y;
-            });
-        });
-    }
-}
-
 impl Drawable for GrphxRect {
     fn draw(&mut self,
             args: &RenderArgs,
