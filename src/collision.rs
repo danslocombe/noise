@@ -78,58 +78,26 @@ impl BoundingBox {
     }
 }
 
-
-/*
- * Macro for running an arbitrary statement once on a collision
- *
- * $id is the id of the testing bounding box
- * $test is the testing bounding box
- * $bbs is the vector of BBDescriptors to test against
- * $bb is an ident to give a positively testing block
- * f is the statement to run
- */
-macro_rules! call_once_on_col {
-    //  Make more general with owner_types
-    ($p : expr, $test : expr, $bbs : expr, $to_collide : expr, $pass_plats : expr,
-     $bb : ident, $f : stmt) => {
-        for descr in $bbs {
-            let (ref p, ref $bb) = *descr;
-            if p.id == $p.id {
-                continue;
-            }
-            if !$to_collide.contains(p.owner_type) {
-                continue;
-            }
-            //  Collide with a platform only if above and pass_plats set
-            if p.owner_type == BBO_PLATFORM &&
-                (($test.y + $test.h >= $bb.y + $bb.h) || $pass_plats) {
-                continue;
-            }
-            if $test.check_col($bb){
-                $f;
-                break;
-            }
-        }
-    }
-}
-
 const STEPHEIGHT: fphys = 8.5;
 
-pub fn does_collide(p: &BBProperties,
-                    bb: &BoundingBox,
-                    bbs: &[BBDescriptor],
-                    to_collide: BBOwnerType,
-                    pass_platforms: bool)
-                    -> Option<Collision> {
+pub struct ColArgs<'a> {
+    pub p: &'a BBProperties,
+    pub bbs: &'a [BBDescriptor],
+    pub to_collide: BBOwnerType,
+    pub pass_platforms: bool,
+}
+
+pub fn does_collide(args: &ColArgs, bb: &BoundingBox) -> Option<Collision> {
     let mut collision = None;
 
-    for descr in bbs {
+    for descr in args.bbs {
         let (ref other_p, ref other_bb) = *descr;
-        if other_p.id == p.id || !to_collide.contains(other_p.owner_type) {
+        if other_p.id == args.p.id ||
+           !args.to_collide.contains(other_p.owner_type) {
             continue;
         }
-        if p.owner_type == BBO_PLATFORM &&
-           ((bb.y + bb.h >= other_bb.y + other_bb.h) || pass_platforms) {
+        if other_p.owner_type.contains(BBO_PLATFORM) &&
+           ((bb.y + bb.h >= other_bb.y + other_bb.h) || args.pass_platforms) {
             continue;
         }
         if bb.check_col(other_bb) {
@@ -147,52 +115,30 @@ pub fn does_collide(p: &BBProperties,
     collision
 }
 
-pub fn does_collide_bool(p: &BBProperties,
-                         bb: &BoundingBox,
-                         bbs: &[BBDescriptor],
-                         to_collide: BBOwnerType,
-                         pass_platforms: bool)
-                         -> bool {
-    let mut col_flag = false;
-    call_once_on_col!(p,
-                      bb,
-                      bbs,
-                      to_collide,
-                      pass_platforms,
-                      unused,
-                      col_flag = true);
-    col_flag
+pub fn does_collide_bool(args: &ColArgs, bb: &BoundingBox) -> bool {
+    does_collide(args, bb).is_some()
 }
 
-pub fn resolve_col_base(p: &BBProperties,
-                        bbs: &[BBDescriptor],
+pub fn resolve_col_base(args: &ColArgs,
                         w: fphys,
                         h: fphys,
-                        collide_types: BBOwnerType,
                         on_ground: bool,
-                        pass_platforms: bool,
                         (xstart, ystart): Pos,
                         (xend, yend): Pos)
                         -> PosDelta {
     let pdelta_x = resolve_col_it(8,
-                                  p,
-                                  bbs,
+                                  args,
                                   w,
                                   h,
-                                  collide_types,
                                   on_ground,
-                                  pass_platforms,
                                   (xstart, ystart),
                                   (xend, ystart));
     let x = pdelta_x.x;
     let pdelta_y = resolve_col_it(8,
-                                  p,
-                                  bbs,
+                                  args,
                                   w,
                                   h,
-                                  collide_types,
                                   on_ground,
-                                  pass_platforms,
                                   (x, ystart + pdelta_x.dy),
                                   (x, yend + pdelta_x.dy));
     let y = pdelta_y.y;
@@ -213,38 +159,29 @@ pub struct PosDelta {
 }
 
 fn resolve_col_it(its: i32,
-                  p: &BBProperties,
-                  bbs: &[BBDescriptor],
+                  args: &ColArgs,
                   w: fphys,
                   h: fphys,
-                  collide_types: BBOwnerType,
                   on_ground: bool,
-                  pass_platforms: bool,
                   pos_start: Pos,
                   pos_end: Pos)
                   -> PosDelta {
     resolve_col_it_recurse(its - 1,
                            its,
-                           p,
-                           bbs,
+                           args,
                            w,
                            h,
-                           collide_types,
                            on_ground,
-                           pass_platforms,
                            pos_start,
                            pos_end)
 }
 
 fn resolve_col_it_recurse(its: i32,
                           its_total: i32,
-                          p: &BBProperties,
-                          bbs: &[BBDescriptor],
+                          args: &ColArgs,
                           w: fphys,
                           h: fphys,
-                          collide_types: BBOwnerType,
                           on_ground: bool,
-                          pass_platforms: bool,
                           (xstart, ystart): Pos,
                           (xend, yend): Pos)
                           -> PosDelta {
@@ -255,7 +192,7 @@ fn resolve_col_it_recurse(its: i32,
             w: w,
             h: h,
         };
-        if does_collide_bool(p, &bb_test, bbs, collide_types, pass_platforms) {
+        if does_collide_bool(args, &bb_test) {
             PosDelta {
                 x: xstart,
                 y: ystart,
@@ -280,7 +217,7 @@ fn resolve_col_it_recurse(its: i32,
             h: h,
         };
 
-        if does_collide_bool(p, &bb_test, bbs, collide_types, pass_platforms) {
+        if does_collide_bool(args, &bb_test) {
             let bb_test_step = BoundingBox {
                 x: bb_test.x,
                 y: bb_test.y - STEPHEIGHT,
@@ -288,20 +225,13 @@ fn resolve_col_it_recurse(its: i32,
                 h: bb_test.h,
             };
             if on_ground && (ystart - yend).abs() < EPSILON &&
-               !does_collide_bool(p,
-                                  &bb_test_step,
-                                  bbs,
-                                  collide_types,
-                                  pass_platforms) {
+               !does_collide_bool(args, &bb_test_step) {
                 resolve_col_it_recurse(its - 1,
                                        its_total,
-                                       p,
-                                       bbs,
+                                       args,
                                        w,
                                        h,
-                                       collide_types,
                                        on_ground,
-                                       pass_platforms,
                                        (xstart, ystart - STEPHEIGHT),
                                        (xend, yend - STEPHEIGHT))
 
@@ -320,13 +250,10 @@ fn resolve_col_it_recurse(its: i32,
         } else {
             resolve_col_it_recurse(its - 1,
                                    its_total,
-                                   p,
-                                   bbs,
+                                   args,
                                    w,
                                    h,
-                                   collide_types,
                                    on_ground,
-                                   pass_platforms,
                                    (xstart, ystart),
                                    (xend, yend))
         }

@@ -57,11 +57,8 @@ impl PlayerLogic {
 
 const ENEMY_DMG: fphys = 22.0;
 
-const ENEMY_BUMP_FORCE: fphys = 400.0;
-const ENEMY_SHOVE_FORCE: fphys = 800.0;
-
-const COLOR_NORMAL: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const COLOR_DASH: [f32; 4] = [0.3, 0.9, 0.9, 1.0];
+const ENEMY_BUMP_FORCE: fphys = 100.0;
+const ENEMY_SHOVE_FORCE: fphys = 200.0;
 
 const MAX_HEIGHT: fphys = 2500.0;
 
@@ -249,14 +246,10 @@ pub fn create(id: Id,
 
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_PLAYER);
-    let p = arc_mut(PhysDyn::new(props,
-                                 x,
-                                 y,
-                                 1.0,
-                                 maxspeed,
-                                 width,
-                                 height,
-                                 g.clone()));
+    let mut phys =
+        PhysDyn::new(props, x, y, 1.0, maxspeed, width, height, g.clone());
+    phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
+    let p = arc_mut(phys);
 
     let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));
 

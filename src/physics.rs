@@ -211,27 +211,26 @@ impl Physical for PhysDyn {
         };
 
         //  Collision Resolution
-        if let Some(collision) = does_collide(&self.p,
-                                              &bb_test,
-                                              bbs,
-                                              BBO_ALL,
-                                              self.pass_platforms) {
-
-            metabuffer.issue(MetaCommand::MessageObject(self.p.id,
-                                                        ObjMessage::MCollision(collision.clone())));
+        let col_args = ColArgs {
+            p: &self.p,
+            bbs: bbs,
+            to_collide: BBO_ALL,
+            pass_platforms: self.pass_platforms,
+        };
+        let resolve_args =
+            ColArgs { to_collide: self.collide_with, ..col_args };
+        if let Some(collision) = does_collide(&col_args, &bb_test) {
+            metabuffer.mess_obj(self.p.id,ObjMessage::MCollision(collision.clone()));
 
             let collision_flip =
                 collision.flip_new(self.p.id, self.p.owner_type);
-            metabuffer.issue(MetaCommand::MessageObject(collision.other_id,
-                                                        ObjMessage::MCollision(collision_flip)));
+            metabuffer.mess_obj(collision.other_id,
+                                ObjMessage::MCollision(collision_flip));
 
-            let pos_delta = resolve_col_base(&self.p,
-                                             bbs,
+            let pos_delta = resolve_col_base(&resolve_args,
                                              self.bb.w,
                                              self.bb.h,
-                                             self.collide_with,
                                              self.on_ground,
-                                             self.pass_platforms,
                                              (self.bb.x, self.bb.y),
                                              (bb_test.x, bb_test.y));
             bb_test.x = pos_delta.x;
@@ -244,16 +243,8 @@ impl Physical for PhysDyn {
         self.bb = bb_test;
 
         //  Test if on the ground
-        self.on_ground = does_collide_bool(&self.p,
-                                           &BoundingBox {
-                                               x: self.bb.x,
-                                               y: self.bb.y + 1.0,
-                                               w: self.bb.w,
-                                               h: self.bb.h,
-                                           },
-                                           bbs,
-                                           self.collide_with,
-                                           self.pass_platforms);
+        let ground_bb = BoundingBox { y: self.bb.y + 1.0, ..self.bb };
+        self.on_ground = does_collide_bool(&resolve_args, &ground_bb);
 
         //  Reset forces
         self.xforce = 0.0;

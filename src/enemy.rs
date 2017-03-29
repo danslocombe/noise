@@ -211,7 +211,7 @@ pub fn create(id: Id,
                                 descr.width,
                                 descr.height,
                                 g.clone());
-    phys.collide_with = BBO_BLOCK;
+    phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);
 
     let weapon = Box::new(Bow {});

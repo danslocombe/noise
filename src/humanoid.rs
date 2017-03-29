@@ -132,8 +132,5 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
         }
     }
 
-    phys.collide_with = BBO_PLATFORM | BBO_BLOCK | BBO_ENEMY;
     phys.pass_platforms = yvel < 0.0 || input.contains(HI_FALL);
-    //self.grappling;
-    //phys.pass_platforms = input.contains(HI_FALL);
 }
