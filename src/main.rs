@@ -60,15 +60,21 @@ fn main() {
         .unwrap();
 
     println!("Loading shaders");
+    let color_frag = shaders::color_frag();
+    let color_vert = shaders::color_vert();
+
     let mut color_fss = Shaders::new();
-    color_fss.set(GLSL::V1_50, shaders::COLOR_FRAG);
+    color_fss.set(GLSL::V1_50, color_frag.as_str());
     let mut color_vss = Shaders::new();
-    color_vss.set(GLSL::V1_50, shaders::COLOR_VERT);
+    color_vss.set(GLSL::V1_50, color_vert.as_str());
+
+    let tex_frag = shaders::tex_frag();
+    let tex_vert = shaders::tex_vert();
 
     let mut tex_fss = Shaders::new();
-    tex_fss.set(GLSL::V1_50, shaders::TEX_FRAG);
+    tex_fss.set(GLSL::V1_50, tex_frag.as_str());
     let mut tex_vss = Shaders::new();
-    tex_vss.set(GLSL::V1_50, shaders::TEX_VERT);
+    tex_vss.set(GLSL::V1_50, tex_vert.as_str());
 
     let c = Colored::from_vs_fs(opengl.to_glsl(), &color_vss, &color_fss)
         .unwrap();

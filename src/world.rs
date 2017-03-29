@@ -1,4 +1,3 @@
-
 use collision::{BBDescriptor, BBProperties, BoundingBox};
 use game::{Id, TriggerId};
 use std::collections::HashMap;
