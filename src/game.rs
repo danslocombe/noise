@@ -40,6 +40,7 @@ pub type Force = (fphys, fphys);
 
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
+pub const MAX_HEIGHT: fphys = 2500.0;
 
 pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
@@ -370,8 +371,10 @@ pub fn game_loop(mut window: Window,
             Input::Render(r_args) => {
                 let dt = prev_time.elapsed().unwrap();
                 prev_time = SystemTime::now();
-                print!("fps {}\r",
-                       1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64);
+                print!("############################################\r");
+                print!("fps {:.3} game objs {}\r",
+                       1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64,
+                       game.objs.len());
 
                 game.view_follower.update(&game.world);
 

@@ -47,7 +47,7 @@ impl Logical for EnemyLogic {
         let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
         let dt = args.piston.dt as fphys;
 
-        if self.hp <= 0.0 {
+        if self.hp <= 0.0 || y > MAX_HEIGHT {
             args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
             return;
         }

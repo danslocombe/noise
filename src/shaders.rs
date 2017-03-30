@@ -109,7 +109,8 @@ impl NoisyShader {
             });
         });
 
-        self.color_morph = self.color_morph * Matrix4::from_angle_y(Rad(0.001));
+        self.color_morph = self.color_morph *
+                           Matrix4::from_angle_y(Rad(0.0001));
     }
 }
 
@@ -122,5 +123,9 @@ fn mat_to_opengl(m: Matrix4<f32>) -> [f32; 16] {
         rows2.iter().flat_map(|r| r.iter()).cloned().collect::<Vec<f32>>();
     let mut mat: [f32; 16] = Default::default();
     mat.copy_from_slice(rows3.deref());
+    //for i in 1..16 {
+    //print!("{} ", mat[i]);
+    //}
+    //print!("\r");
     mat
 }

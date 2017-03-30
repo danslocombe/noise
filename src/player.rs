@@ -60,8 +60,6 @@ const ENEMY_DMG: fphys = 22.0;
 const ENEMY_BUMP_FORCE: fphys = 100.0;
 const ENEMY_SHOVE_FORCE: fphys = 200.0;
 
-const MAX_HEIGHT: fphys = 2500.0;
-
 impl Logical for PlayerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
@@ -171,8 +169,13 @@ impl Logical for PlayerLogic {
                 d.reverse = true;
             }
         }
+        let input = if self.grappling {
+            self.input | HI_FALL
+        } else {
+            self.input
+        };
         humanoid_input(args,
-                       &self.input,
+                       &input,
                        &mut self.cds,
                        &self.descr.to_move_descr(),
                        self.physics.clone());
