@@ -1,7 +1,7 @@
 use descriptors::EnemyDescriptor;
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
-use game::fphys;
+use game::{Pos, fphys};
 use graphics::{image, polygon};
 use graphics::ImageSize;
 use graphics::Transformed;
@@ -24,8 +24,7 @@ pub enum EnemyDrawState {
 
 
 pub struct EnemyGphx {
-    pub x: fphys,
-    pub y: fphys,
+    pub pos : Pos,
     pub scale: fphys,
     pub speed: fphys,
     pub state: EnemyDrawState,
@@ -77,12 +76,12 @@ impl Drawable for EnemyGphx {
                 .trans(-vt.x, -vt.y);
             let transform = if self.reverse {
                 transform_base
-                .trans(self.x + self.scale*(texture.get_width() as fphys), self.y)
+                .trans(self.pos.0 + self.scale*(texture.get_width() as fphys), self.pos.1)
                 .scale(-self.scale, self.scale)
             }
             else {
                 transform_base
-                .trans(self.x, self.y)
+                .trans(self.pos.0, self.pos.1)
                 .scale(self.scale, self.scale)
             };
 
@@ -105,9 +104,8 @@ impl Drawable for EnemyGphx {
             image(texture, transform, gl);
         });
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        self.x = x;
-        self.y = y;
+    fn set_position(&mut self, p : Pos) {
+        self.pos = p;
     }
     fn set_color(&mut self, color: Color) {
         unimplemented!();

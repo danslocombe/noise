@@ -5,7 +5,7 @@ use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
 use descriptors::EnemyDescriptor;
 use draw::{GrphxNoDraw, GrphxRect};
 use enemy::create as enemy_create;
-use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, Id, fphys};
+use game::{Height, Width, Pos, BLOCKSIZE, ENEMY_GEN_P, GameObj, Id, fphys};
 use gen::{GhostBlock, GhostBlockType};
 use logic::DumbLogic;
 use physics::{PhysStatic, Physical};
@@ -15,32 +15,29 @@ use tools::arc_mut;
 use world::World;
 
 pub fn create_block(id: Id,
-                    x: fphys,
-                    y: fphys,
-                    length: fphys,
-                    height: fphys,
+                    pos : Pos,
+                    length: Width,
+                    height: Height,
                     world: &World)
                     -> GameObj {
     let g = arc_mut(GrphxRect {
-        x: x,
-        y: y,
+        pos  : pos,
         w: length,
-        h: height + 1500.0,
+        h: Height(height.0 + 1500.0),
         color: [1.0, 0.15, 0.15, 1.0],
     });
     let props = BBProperties {
         id: id,
         owner_type: BBO_BLOCK,
     };
-    let p = arc_mut(PhysStatic::new(props, x, y, length, height, world));
+    let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});
     GameObj::new(id, g, p, l)
 }
 
 pub fn create_platform(id: Id,
-                       x: fphys,
-                       y: fphys,
-                       width: fphys,
+                       pos : Pos,
+                       width: Width,
                        world: &World)
                        -> GameObj {
     let g = arc_mut(GrphxNoDraw {});
@@ -48,7 +45,7 @@ pub fn create_platform(id: Id,
         id: id,
         owner_type: BBO_PLATFORM,
     };
-    let p = arc_mut(PhysStatic::new(props, x, y, width, 10.0, world));
+    let p = arc_mut(PhysStatic::new(props, pos, width, Height(10.0), world));
     let l = arc_mut(DumbLogic {});
     GameObj::new(id, g, p, l)
 }

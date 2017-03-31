@@ -1,6 +1,6 @@
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
-use game::fphys;
+use game::{Pos, fphys};
 use gen::{GhostTile, GhostTileType, TileEdge};
 use graphics::Transformed;
 use graphics::image;
@@ -57,11 +57,11 @@ impl TileManager {
         let mut ret = Vec::new();
         let tile_y = y;
         let t1: &Texture = &self.pagoda_back01;
-        ret.push(Tile::new(x, tile_y, t1));
+        ret.push(Tile::new(Pos(x, tile_y), t1));
         let mut ix = x + TILE_W;
         while ix < x + length {
             let t: &Texture = &self.pagoda_back01;
-            ret.push(Tile::new(ix, tile_y, t));
+            ret.push(Tile::new(Pos(ix, tile_y), t));
             ix += TILE_W;
         }
         ret
@@ -86,7 +86,7 @@ impl TileManager {
                         }
                     }
                 };
-                Tile::new(ghost.x, ghost.y, texture)
+                Tile::new(Pos(ghost.x, ghost.y), texture)
             })
             .collect::<Vec<Tile>>()
     }
@@ -95,16 +95,14 @@ impl TileManager {
 #[derive(Clone)]
 pub struct Tile<'a> {
     pub texture: &'a Texture,
-    pub x: fphys,
-    pub y: fphys,
+    pub pos : Pos,
 }
 
 impl<'a> Tile<'a> {
-    fn new(x: fphys, y: fphys, texture: &'a Texture) -> Self {
+    fn new(pos : Pos, texture: &'a Texture) -> Self {
         Tile {
             texture: texture,
-            x: x,
-            y: y,
+            pos : pos,
         }
     }
 }
@@ -120,23 +118,25 @@ impl<'a> Drawable for Tile<'a> {
             args: &RenderArgs,
             ctx: &mut GlGraphics,
             vt: &ViewTransform) {
+        let Pos(x, y) = self.pos;
         ctx.draw(args.viewport(), |c, gl| {
             let transform = c.transform
                 .scale(vt.scale, vt.scale)
                 .trans(-vt.x, -vt.y)
-                .trans(self.x, self.y - TILE_H)
+                .trans(x, y - TILE_H)
                 .scale(TILE_BASESCALE, TILE_BASESCALE);
 
             image(self.texture, transform, gl);
         });
     }
-    fn set_position(&mut self, _: fphys, _: fphys) {
+    fn set_position(&mut self, _: Pos) {
         unimplemented!();
     }
     fn set_color(&mut self, color: Color) {}
     fn should_draw(&self, r: &Rectangle) -> bool {
-        (self.x + TILE_W > r.x && self.x < r.x + r.w) ||
-        (self.y + TILE_H > r.h && self.y < r.y + r.h)
+        let Pos(x, y) = self.pos;
+        (x + TILE_W > r.x && x < r.x + r.w) ||
+        (y + TILE_H > r.h && y < r.y + r.h)
 
     }
 }

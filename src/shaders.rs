@@ -3,7 +3,7 @@ extern crate cgmath;
 use self::cgmath::{Matrix4, One, Rad, Vector4};
 use self::gl::types::GLuint;
 
-use game::fphys;
+use game::{Vector, Pos, Vel, fphys};
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use std::fs::File;
@@ -34,10 +34,8 @@ pub fn tex_frag() -> String {
 pub struct NoisyShader {
     obj_id: Option<u32>,
     time: f32,
-    vel_x: fphys,
-    vel_y: fphys,
-    obj_prev_x: fphys,
-    obj_prev_y: fphys,
+    vel: Vel,
+    obj_prev: Pos,
     weight: fphys,
     uniform_time: ShaderUniform<SUFloat>,
     uniform_time_tex: ShaderUniform<SUFloat>,
@@ -65,10 +63,8 @@ impl NoisyShader {
         NoisyShader {
             obj_id: None,
             time: 0.0,
-            vel_x: 0.0,
-            vel_y: 0.0,
-            obj_prev_x: 0.0,
-            obj_prev_y: 0.0,
+            vel: Vel(0.0, 0.0),
+            obj_prev: Pos(0.0, 0.0),
             weight: 20.0,
             uniform_time: u_time,
             uniform_time_tex: u_time_tex,
@@ -91,14 +87,14 @@ impl NoisyShader {
     pub fn set_colored(&self, ctx: &mut GlGraphics) {
         ctx.use_program(self.colored_program);
         self.uniform_time.set(ctx, self.time);
-        self.uniform_vel.set(ctx, &[self.vel_x as f32, self.vel_y as f32]);
+        self.uniform_vel.set(ctx, &[self.vel.0 as f32, self.vel.1 as f32]);
 
         self.uniform_repl_colors.set(ctx, &mat_to_opengl(self.color_morph));
     }
     pub fn set_textured(&self, ctx: &mut GlGraphics) {
         ctx.use_program(self.textured_program);
         self.uniform_time_tex
-            .set(ctx, 1000.0 * self.time + self.obj_prev_x as f32);
+            .set(ctx, 1000.0 * self.time + self.obj_prev.0 as f32);
 
         self.uniform_repl_colors_tex.set(ctx, &mat_to_opengl(self.color_morph));
     }
@@ -113,12 +109,11 @@ impl NoisyShader {
 
         self.obj_id.map(|id| {
             world.get(id).map(|(_, bb)| {
-                let bb_xvel = bb.x - self.obj_prev_x;
-                let bb_yvel = bb.y - self.obj_prev_y;
-                self.vel_x = weight(self.vel_x, bb_xvel, self.weight);
-                self.vel_y = weight(self.vel_y, bb_yvel, self.weight);
-                self.obj_prev_x = bb.x;
-                self.obj_prev_y = bb.y;
+                let Vector(bb_xvel, bb_yvel) = bb.pos - self.obj_prev;
+                let vel_x = weight(self.vel.0, bb_xvel, self.weight);
+                let vel_y = weight(self.vel.1, bb_yvel, self.weight);
+                self.vel = Vel(vel_x, vel_y);
+                self.obj_prev = bb.pos;
             });
         });
 

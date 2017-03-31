@@ -60,14 +60,15 @@ pub fn from_json(path: &Path,
         let name = get_string("world", obj, "name")?;
         let x = get_float("world", obj, "x")?;
         let y = get_float("world", obj, "y")?;
-        let w = get_float("world", obj, "width")?;
-        let h = get_float("world", obj, "height")?;
+        let pos = Pos(x, y);
+        let w = Width(get_float("world", obj, "width")?);
+        let h = Height(get_float("world", obj, "height")?);
         let id = world.generate_id();
         match name.as_str() {
             "player" => {
                 let p_phys = player_phys.clone();
                 let mut p = p_phys.lock().unwrap();
-                p.set_position(x, y);
+                p.set_position(Pos(x, y));
             }
             "enemy" | "blue_enemy" | "red_enemy" => {
                 let faction = get_number("world", obj, "allegiance")? as u32;
@@ -81,15 +82,15 @@ pub fn from_json(path: &Path,
                 let descr = enemy_descriptors.get(&descriptor_name)
                     .ok_or(descr_err)?
                     .clone();
-                let e = enemy_create(id, x, y, descr, &world, faction);
+                let e = enemy_create(id, pos, descr, &world, faction);
                 gobjs.push(e);
             }
             "ground" => {
-                let b = create_block(id, x, y, w, h, &world);
+                let b = create_block(id, pos, Width(32.0), Height(32.0), &world);
                 gobjs.push(b);
             }
             "pagoda_block" => {
-                let e = create_platform(id, x, y, w, &world);
+                let e = create_platform(id, pos, w, &world);
                 let mut borders = BORDER_NONE;
                 if get_bool("pagoda_block", obj, "border_left")? {
                     borders |= BORDER_LEFT;
@@ -97,11 +98,11 @@ pub fn from_json(path: &Path,
                 if get_bool("pagoda_block", obj, "border_right")? {
                     borders |= BORDER_RIGHT;
                 }
-                gtiles.extend(pagoda_platform_tiles(x, y, borders, w));
+                gtiles.extend(pagoda_platform_tiles(pos, borders, w));
                 gobjs.push(e);
             }
             "pagoda_ground" => {
-                let e = create_block(id, x, y, w, 32.0, &world);
+                let e = create_block(id, pos, w, Height(32.0), &world);
                 let mut borders = BORDER_NONE;
                 if get_bool("pagoda_ground", obj, "border_left")? {
                     borders |= BORDER_LEFT;
@@ -109,17 +110,18 @@ pub fn from_json(path: &Path,
                 if get_bool("pagoda_ground", obj, "border_right")? {
                     borders |= BORDER_RIGHT;
                 }
-                gtiles.extend(pagoda_platform_tiles(x, y, borders, w));
+                gtiles.extend(pagoda_platform_tiles(pos, borders, w));
                 gobjs.push(e);
             }
             "crown" => {
-                let c = create_crown(id, x, y, &world);
+                let c = create_crown(id, pos, &world);
                 gobjs.push(c);
             }
             "trigger" => {
                 let trigger_id =
                     get_number("trigger", obj, "connect_target_id")? as Id;
-                let c = create_trigger(id, trigger_id, x, y, w, h, &world);
+                let c =
+                    create_trigger(id, trigger_id, pos, w, h, &world);
                 gobjs.push(c);
             }
             "dialogue" => {
@@ -132,7 +134,7 @@ pub fn from_json(path: &Path,
             }
             "tinge" => {
                 let yy = 1.8;
-                let c = create_tinge(id, yy, x, y, w, h, &world);
+                let c = create_tinge(id, yy, pos, w, h, &world);
                 gobjs.push(c);
             }
             _ => {

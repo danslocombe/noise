@@ -1,8 +1,7 @@
 use collision::*;
 use descriptors::GrappleDescriptor;
 use draw::{Drawable, Rectangle, ViewTransform};
-use game::{CommandBuffer, GameObj, Id, InputHandler, MetaCommand, ObjMessage,
-           fphys};
+use game::*;
 use logic::*;
 use opengl_graphics::GlGraphics;
 use physics::Physical;
@@ -30,9 +29,7 @@ impl GrappleHolster {
                   -> (Self, Arc<Mutex<Grapple>>) {
 
 
-        let grapple = arc_mut(Grapple::new(id,
-                                           0.0,
-                                           0.0,
+        let grapple = arc_mut(Grapple::new(id, Vel(0.0, 0.0),
                                            player_id,
                                            player,
                                            descr.clone(),
@@ -47,7 +44,7 @@ impl GrappleHolster {
          },
          grapple)
     }
-    fn vel_from_inputs(&self) -> (fphys, fphys) {
+    fn vel_from_inputs(&self) -> Vel {
         let mut x = 0.0;
         let mut y = 0.0;
         if self.input.contains(GI_LEFT) {
@@ -63,7 +60,7 @@ impl GrappleHolster {
             y += 1.0;
         }
         let (xn, yn) = normalise((x, y));
-        (xn * self.descr.extend_speed, yn * self.descr.extend_speed)
+        Vel(xn * self.descr.extend_speed, yn * self.descr.extend_speed)
     }
 }
 
@@ -89,8 +86,7 @@ impl Logical for GrappleHolster {
             match g.state {
                 GrappleState::None => {
                     if self.cd <= 0.0 && !self.input.is_empty() {
-                        let (vx, vy) = self.vel_from_inputs();
-                        g.shoot(vx, vy);
+                        g.shoot(self.vel_from_inputs());
                         self.cd = self.descr.cd;
                     }
                 }
@@ -98,8 +94,7 @@ impl Logical for GrappleHolster {
                     if self.input.is_empty() {
                         g.end_grapple();
                     } else {
-                        let (vx, vy) = self.vel_from_inputs();
-                        g.set_vel(vx, vy);
+                        g.set_vel(self.vel_from_inputs());
                     }
                 }
                 GrappleState::Locked(len) => {
@@ -178,12 +173,9 @@ enum GrappleState {
 pub struct Grapple {
     id: Id,
     state: GrappleState,
-    start_x: fphys,
-    start_y: fphys,
-    end_x: fphys,
-    end_y: fphys,
-    vel_x: fphys,
-    vel_y: fphys,
+    start : Pos,
+    end : Pos,
+    vel : Vel,
     retracting: bool,
     player_id: Id,
     descr: Rc<GrappleDescriptor>,
@@ -193,30 +185,24 @@ pub struct Grapple {
 
 impl Grapple {
     fn new(id: Id,
-           vel_x: fphys,
-           vel_y: fphys,
+           vel : Vel,
            player_id: Id,
            player: Arc<Mutex<Physical>>,
            descr: Rc<GrappleDescriptor>,
            draw: Arc<Mutex<GrappleDraw>>)
            -> Self {
-        let (init_x, init_y): (fphys, fphys);
+        let init : Pos;
         {
             let p = player.lock().unwrap();
-            let (x, y) = p.get_position();
-            init_x = x;
-            init_y = y;
+            init = p.get_position();
         }
         Grapple {
             id: id,
             player_id: player_id,
             state: GrappleState::None,
-            start_x: init_x,
-            start_y: init_y,
-            end_x: init_x,
-            end_y: init_y,
-            vel_x: vel_x,
-            vel_y: vel_y,
+            start : init,
+            end : init,
+            vel : vel,
             descr: descr,
             player: player,
             draw: draw,
@@ -224,22 +210,19 @@ impl Grapple {
         }
     }
 
-    fn shoot(&mut self, vel_x: fphys, vel_y: fphys) {
+    fn shoot(&mut self, v : Vel) {
         self.state = GrappleState::Out;
-        self.vel_x = vel_x;
-        self.vel_y = vel_y;
-        self.end_x = self.start_x;
-        self.end_y = self.start_y;
+        self.vel = v;
+        self.end = self.start;
         {
             let mut d = self.draw.lock().unwrap();
             d.drawing = true;
         }
     }
 
-    fn set_vel(&mut self, vel_x: fphys, vel_y: fphys) {
+    fn set_vel(&mut self, v : Vel) {
         if self.state == GrappleState::Out {
-            self.vel_x = vel_x;
-            self.vel_y = vel_y;
+            self.vel = v;
         }
     }
 
@@ -264,19 +247,20 @@ impl Physical for Grapple {
             GrappleState::Out => {
                 let dt = args.dt as fphys;
 
-                let end_x0 = self.end_x;
-                let end_y0 = self.end_y;
+                let Pos(end_x0, end_y0) = self.end;
 
-                self.end_x = end_x0 + self.vel_x * dt;
-                self.end_y = end_y0 + self.vel_y * dt;
-                let len_2 = (self.end_x - self.start_x).powi(2) +
-                            (self.end_y - self.start_y).powi(2);
+                self.end = self.end.update_by_vel(&self.vel, dt);
+
+                let Pos(start_x, start_y) = self.start;
+                let Pos(end_x, end_y) = self.end;
+
+                let len_2 = (end_x - start_x).powi(2) +
+                            (end_y - start_y).powi(2);
                 if len_2 > MAX_LENGTH_SQR {
                     self.state = GrappleState::None;
                     let mut d = self.draw.lock().unwrap();
                     d.drawing = false;
-                    self.end_x = self.start_x;
-                    self.end_y = self.start_y;
+                    self.end = self.start;
                 } else {
 
                     for bbprops in world.buffer() {
@@ -285,56 +269,51 @@ impl Physical for Grapple {
                            props.owner_type.contains(BBO_ENEMY) {
                             continue;
                         }
-                        line_collide(self.start_x,
-                                     self.start_y,
-                                     self.end_x,
-                                     self.end_y,
-                                     bb)
-                            .map(|(col_x, col_y)| {
+                        line_collide(&self.start, &self.end, bb)
+                            .map(|col| {
                                 metabuffer.issue(
                                     MetaCommand::MessageObject(self.player_id,
-                                        ObjMessage::MPlayerStartGrapple((col_x, col_y))));
-                                self.end_x = col_x;
-                                self.end_y = col_y;
+                                        ObjMessage::MPlayerStartGrapple(col)));
+                                self.end = col;
                                 self.state = GrappleState::Locked(len_2.sqrt());
                             });
                     }
 
                     let mut d = self.draw.lock().unwrap();
-                    d.end_x = self.end_x;
-                    d.end_y = self.end_y;
+                    d.end = self.end;
                 }
             }
             GrappleState::Locked(grapple_len) => {
                 {
                     let mut p = self.player.lock().unwrap();
-                    let (x, y) = p.get_position();
-                    let diff = ((x - self.end_x).powi(2) +
-                                (y - self.end_y).powi(2))
+                    let Pos(x, y) = p.get_position();
+                    let Pos(end_x, end_y) = self.end;
+                    let diff = ((x - end_x).powi(2) +
+                                (y - end_y).powi(2))
                         .sqrt() - grapple_len;
 
                     if diff > 0.0 {
-                        let angle = (self.end_y - y).atan2(self.end_x - x);
+                        let angle = (end_y - y).atan2(end_x - x);
 
                         //  Tension
 
                         let g_force_x = diff * self.descr.elast * angle.cos();
                         let g_force_y = diff * self.descr.elast * angle.sin();
 
-                        p.apply_force(g_force_x, g_force_y);
+                        p.apply_force(Force(g_force_x, g_force_y));
 
-                        let (p_vel_x, p_vel_y) = p.get_vel();
-                        let dot = p_vel_x * (self.end_x - x) +
-                                  p_vel_y * (self.end_y - y);
+                        let Vel(p_vel_x, p_vel_y) = p.get_vel();
+                        let dot = p_vel_x * (end_x - x) +
+                                  p_vel_y * (end_y - y);
 
-                        p.apply_force(-dot * self.descr.damp * angle.cos(),
-                                      -dot * self.descr.damp * angle.sin());
+                        p.apply_force(Force(-dot * self.descr.damp * angle.cos(),
+                                      -dot * self.descr.damp * angle.sin()));
 
                         if self.retracting {
-                            p.apply_force(self.descr.retract_force *
+                            p.apply_force(Force(self.descr.retract_force *
                                           angle.cos(),
                                           self.descr.retract_force *
-                                          angle.sin());
+                                          angle.sin()));
                         }
                     }
 
@@ -352,38 +331,38 @@ impl Physical for Grapple {
 
         {
             let p = self.player.lock().unwrap();
-            let (x, y) = p.get_position();
-            let (w, h) = p.get_width_height();
-            self.start_x = x + w / 2.0;
-            self.start_y = y + h / 2.0;
+            let Pos(x, y) = p.get_position();
+            let (Width(w), Height(h)) = p.get_width_height();
+            self.start = Pos(x + w / 2.0, y + h / 2.0);
         }
         {
             let mut d = self.draw.lock().unwrap();
-            d.start_x = self.start_x;
-            d.start_y = self.start_y;
+            d.start = self.start;
         }
     }
-    fn apply_force(&mut self, _: fphys, _: fphys) {
+    fn apply_force(&mut self,  _: Force) {
         //  Empty for now
     }
-    fn get_position(&self) -> (fphys, fphys) {
-        (self.end_x, self.end_y)
+    fn get_position(&self) -> Pos {
+        self.end.clone()
     }
-    fn get_vel(&self) -> (fphys, fphys) {
-        (self.vel_x, self.vel_y)
+    fn get_vel(&self) -> Vel {
+        self.vel.clone()
     }
     fn get_id(&self) -> Id {
         self.id
     }
-    fn set_position(&mut self, _: fphys, _: fphys) {
+    fn set_position(&mut self, _: Pos) {
         unimplemented!();
     }
-    fn set_velocity(&mut self, x: fphys, y: fphys) {
-        self.vel_x = x;
-        self.vel_y = y;
+    fn set_velocity(&mut self, v: Vel) {
+        self.vel = v;
     }
-    fn get_width_height(&self) -> (fphys, fphys) {
-        ((self.start_x - self.end_x).abs(), (self.start_y - self.end_y).abs())
+    fn get_width_height(&self) -> (Width, Height) {
+        let Pos(start_x, start_y) = self.start;
+        let Pos(end_x, end_y) = self.end;
+        (Width((start_x - end_x).abs()), 
+         Height((start_y - end_y).abs()))
     }
     fn destroy(&mut self, _: &World) {}
 }
@@ -416,14 +395,14 @@ bitflags! {
     }
 }
 
-fn cs_code(x: fphys,
-           y: fphys,
+fn cs_code(p : &Pos,
            x_min: fphys,
            x_max: fphys,
            y_min: fphys,
            y_max: fphys)
            -> CSFlags {
     let mut ret_code = CS_IN;
+    let Pos(x, y) = *p;
     if x < x_min {
         ret_code |= CS_LEFT;
     } else if x > x_max {
@@ -438,17 +417,17 @@ fn cs_code(x: fphys,
     ret_code
 }
 
-fn line_collide(mut start_x: fphys,
-                mut start_y: fphys,
-                mut end_x: fphys,
-                mut end_y: fphys,
-                bb: &BoundingBox)
-                -> Option<(fphys, fphys)> {
+fn line_collide(start : &Pos, end : &Pos, bb: &BoundingBox) -> Option<Pos> {
 
+    let Pos(mut start_x, mut start_y) = *start;
+    let Pos(mut end_x, mut end_y) = *end;
+    let Pos(bb_x, bb_y) = bb.pos;
+    let Width(bb_w) = bb.w;
+    let Height(bb_h) = bb.h;
     let mut start_code =
-        cs_code(start_x, start_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+        cs_code(start, bb_x, bb_x + bb_w, bb_y, bb_y + bb_h);
     let mut end_code =
-        cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+        cs_code(end, bb_x, bb_x + bb_w, bb_y, bb_y + bb_h);
 
     let mut x = start_x;
     let mut y = start_y;
@@ -456,7 +435,7 @@ fn line_collide(mut start_x: fphys,
     loop {
         if (start_code | end_code) == CS_IN {
             //  Trivially accept as both ends inside the block
-            return Some((start_x, start_y));
+            return Some(Pos(start_x, start_y));
         } else if !(start_code & end_code).is_empty() {
             //  Trivially reject as both on one side
             return None;
@@ -475,39 +454,38 @@ fn line_collide(mut start_x: fphys,
 
             if outside.contains(CS_UP) {
                 x = start_x +
-                    (end_x - start_x) * (bb.y + bb.h - start_y) /
+                    (end_x - start_x) * (bb_y + bb_h - start_y) /
                     (end_y - start_y);
-                y = bb.y + bb.h;
+                y = bb_y + bb_h;
             } else if outside.contains(CS_DOWN) {
                 x = start_x +
-                    (end_x - start_x) * (bb.y - start_y) / (end_y - start_y);
-                y = bb.y;
+                    (end_x - start_x) * (bb_y - start_y) / (end_y - start_y);
+                y = bb_y;
             } else if outside.contains(CS_RIGHT) {
-                x = bb.x + bb.w;
+                x = bb_x + bb_w;
                 y = start_y +
-                    (end_y - start_y) * (bb.x + bb.w - start_x) /
+                    (end_y - start_y) * (bb_x + bb_w - start_x) /
                     (end_x - start_x);
             } else if outside.contains(CS_LEFT) {
-                x = bb.x;
+                x = bb_x;
                 y = start_y +
-                    (end_y - start_y) * (bb.x - start_x) / (end_x - start_x);
+                    (end_y - start_y) * (bb_x - start_x) / (end_x - start_x);
             }
 
             //  Move outside point to clip and prepare for next pass
             if outside == start_code {
                 start_x = x;
                 start_y = y;
-                start_code = cs_code(start_x,
-                                     start_y,
-                                     bb.x,
-                                     bb.x + bb.w,
-                                     bb.y,
-                                     bb.y + bb.h);
+                start_code = cs_code(start,
+                                     bb_x,
+                                     bb_x + bb_w,
+                                     bb_y,
+                                     bb_y + bb_h);
             } else {
                 end_x = x;
                 end_y = y;
                 end_code =
-                    cs_code(end_x, end_y, bb.x, bb.x + bb.w, bb.y, bb.y + bb.h);
+                    cs_code(end, bb_x, bb_x + bb_w, bb_y, bb_y + bb_h);
             }
         }
     }
@@ -515,20 +493,16 @@ fn line_collide(mut start_x: fphys,
 
 pub struct GrappleDraw {
     pub drawing: bool,
-    pub start_x: fphys,
-    pub start_y: fphys,
-    pub end_x: fphys,
-    pub end_y: fphys,
+    pub start : Pos,
+    pub end : Pos,
 }
 
 impl GrappleDraw {
     pub fn new() -> Self {
         GrappleDraw {
-            start_x: 0.0,
-            start_y: 0.0,
+            start : Pos(0.0, 0.0),
+            end : Pos(0.0, 0.0),
             drawing: false,
-            end_x: 0.0,
-            end_y: 0.0,
         }
 
     }
@@ -541,7 +515,9 @@ impl Drawable for GrappleDraw {
             vt: &ViewTransform) {
         use graphics::*;
         if self.drawing {
-            let l = [self.start_x, self.start_y, self.end_x, self.end_y];
+            let Pos(start_x, start_y) = self.start;
+            let Pos(end_x, end_y) = self.end;
+            let l = [start_x, start_y, end_x, end_y];
             let color = [0.0, 0.0, 0.0, 1.0];
             ctx.draw(args.viewport(), |c, gl| {
                 let transform =
@@ -550,9 +526,8 @@ impl Drawable for GrappleDraw {
             });
         }
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        self.end_x = x;
-        self.end_y = y;
+    fn set_position(&mut self, p : Pos) {
+        self.end = p
     }
 
     fn set_color(&mut self, _: [f32; 4]) {}

@@ -3,7 +3,7 @@ extern crate gl;
 
 use self::gl::types::GLuint;
 use draw::*;
-use game::fphys;
+use game::{Pos, fphys};
 use graphics::character::CharacterCache;
 use graphics::text::Text;
 use opengl_graphics::GlGraphics;
@@ -133,7 +133,7 @@ impl Drawable for Overlay {
             });
         });
     }
-    fn set_position(&mut self, _: fphys, _: fphys) {
+    fn set_position(&mut self, _: Pos) {
         // TODO
     }
     fn set_color(&mut self, color: Color) {
