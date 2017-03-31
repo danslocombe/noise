@@ -55,7 +55,6 @@ impl Logical for PlayerColLogic {
         self.update.as_ref().map(|f| {
             self.phys.as_ref().map(|phys| { f(args, phys.clone()); });
         });
-
         for m in args.message_buffer.read_buffer() {
             if let ObjMessage::MCollision(c) = m {
                 if c.other_type.contains(BBO_PLAYER) {
@@ -178,4 +177,41 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
     }
     let l = arc_mut(logic);
     GameObj::new(id, g, p, l)
+}
+
+pub fn create_tinge(id: Id,
+                    y_target: fphys,
+                    x: fphys,
+                    y: fphys,
+                    width: fphys,
+                    height: fphys,
+                    world: &World)
+                    -> GameObj {
+    let g = arc_mut(GrphxNoDraw {});
+    let p = arc_mut(PhysNone { id: id });
+    let l = arc_mut(TingeLogic {
+        bb: BoundingBox {
+            x: x,
+            y: y,
+            w: width,
+            h: height,
+        },
+        y_target: y_target,
+    });
+    GameObj::new(id, g, p, l)
+}
+
+
+struct TingeLogic {
+    pub bb: BoundingBox,
+    pub y_target: fphys,
+}
+
+impl Logical for TingeLogic {
+    fn tick(&mut self, args: &LogicUpdateArgs) {
+        let player_bb = args.world.get(args.world.player_id());
+        player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
+            args.metabuffer.issue(MetaCommand::TingeY(self.y_target));
+        });
+    }
 }

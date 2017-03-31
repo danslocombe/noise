@@ -46,7 +46,11 @@ pub struct NoisyShader {
     uniform_vel: ShaderUniform<SUVec2>,
     colored_program: GLuint,
     textured_program: GLuint,
+
     color_morph: Matrix4<f32>,
+    color_morph_y_target: fphys,
+    color_reset_time: i32,
+    color_morph_y: fphys,
 }
 
 impl NoisyShader {
@@ -73,7 +77,11 @@ impl NoisyShader {
             uniform_repl_colors_tex: u_r_c,
             colored_program: c_program,
             textured_program: t_program,
+
             color_morph: Matrix4::one(),
+            color_morph_y_target: 0.0,
+            color_reset_time: 0,
+            color_morph_y: 0.0,
         }
     }
 
@@ -94,6 +102,11 @@ impl NoisyShader {
 
         self.uniform_repl_colors_tex.set(ctx, &mat_to_opengl(self.color_morph));
     }
+    pub fn set_color_morph_y_target(&mut self, y: fphys) {
+        self.color_morph_y_target = y;
+        self.color_reset_time = 10;
+    }
+
     pub fn update(&mut self, world: &World) {
 
         self.time += 0.001;
@@ -109,8 +122,16 @@ impl NoisyShader {
             });
         });
 
-        self.color_morph = self.color_morph *
-                           Matrix4::from_angle_y(Rad(0.0001));
+
+        self.color_reset_time -= 1;
+        if self.color_reset_time < 0 {
+            self.color_morph_y_target = 0.0;
+        }
+
+        self.color_morph_y +=
+            ((self.color_morph_y_target - self.color_morph_y) / 40.0);
+        self.color_morph = Matrix4::from_angle_y(Rad(self.color_morph_y as
+                                                     f32));
     }
 }
 
@@ -123,9 +144,5 @@ fn mat_to_opengl(m: Matrix4<f32>) -> [f32; 16] {
         rows2.iter().flat_map(|r| r.iter()).cloned().collect::<Vec<f32>>();
     let mut mat: [f32; 16] = Default::default();
     mat.copy_from_slice(rows3.deref());
-    //for i in 1..16 {
-    //print!("{} ", mat[i]);
-    //}
-    //print!("\r");
     mat
 }

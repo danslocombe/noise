@@ -90,6 +90,7 @@ pub enum MetaCommand {
     Dialogue(u32, String),
     CollectCrown,
     Trigger(TriggerId),
+    TingeY(fphys),
 }
 
 impl CommandBuffer<MetaCommand> {
@@ -319,6 +320,9 @@ pub fn game_loop(mut window: Window,
                                                 .issue(ObjMessage::MTrigger);
                                         });
                                 });
+                        }
+                        MetaCommand::TingeY(y_target) => {
+                            shader.set_color_morph_y_target(y_target);
                         }
                     }
                 }

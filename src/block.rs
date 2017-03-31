@@ -18,20 +18,21 @@ pub fn create_block(id: Id,
                     x: fphys,
                     y: fphys,
                     length: fphys,
+                    height: fphys,
                     world: &World)
                     -> GameObj {
     let g = arc_mut(GrphxRect {
         x: x,
         y: y,
         w: length,
-        h: 1500.0,
+        h: height + 1500.0,
         color: [1.0, 0.15, 0.15, 1.0],
     });
     let props = BBProperties {
         id: id,
         owner_type: BBO_BLOCK,
     };
-    let p = arc_mut(PhysStatic::new(props, x, y, length, BLOCKSIZE, world));
+    let p = arc_mut(PhysStatic::new(props, x, y, length, height, world));
     let l = arc_mut(DumbLogic {});
     GameObj::new(id, g, p, l)
 }

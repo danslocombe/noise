@@ -59,6 +59,7 @@ pub fn from_json(path: &str,
         let x = get_float("world", obj, "x")?;
         let y = get_float("world", obj, "y")?;
         let w = get_float("world", obj, "width")?;
+        let h = get_float("world", obj, "height")?;
         let id = world.generate_id();
         match name.as_str() {
             "player" => {
@@ -77,7 +78,7 @@ pub fn from_json(path: &str,
                 gobjs.push(e);
             }
             "ground" => {
-                let b = create_block(id, x, y, 32.0, &world);
+                let b = create_block(id, x, y, w, h, &world);
                 gobjs.push(b);
             }
             "pagoda_block" => {
@@ -93,7 +94,7 @@ pub fn from_json(path: &str,
                 gobjs.push(e);
             }
             "pagoda_ground" => {
-                let e = create_block(id, x, y, w, &world);
+                let e = create_block(id, x, y, w, 32.0, &world);
                 let mut borders = BORDER_NONE;
                 if get_bool("pagoda_ground", obj, "border_left")? {
                     borders |= BORDER_LEFT;
@@ -109,12 +110,9 @@ pub fn from_json(path: &str,
                 gobjs.push(c);
             }
             "trigger" => {
-                let width = get_float("trigger", obj, "width")?;
-                let height = get_float("trigger", obj, "height")?;
                 let trigger_id =
                     get_number("trigger", obj, "connect_target_id")? as Id;
-                let c =
-                    create_trigger(id, trigger_id, x, y, width, height, &world);
+                let c = create_trigger(id, trigger_id, x, y, w, h, &world);
                 gobjs.push(c);
             }
             "dialogue" => {
@@ -123,6 +121,11 @@ pub fn from_json(path: &str,
                                  TriggerId;
                 let c = create_dialogue(id, text, x, y, &world);
                 world.add_to_trigger_id_map(trigger_id, id);
+                gobjs.push(c);
+            }
+            "tinge" => {
+                let yy = 2.0;
+                let c = create_tinge(id, yy, x, y, w, h, &world);
                 gobjs.push(c);
             }
             _ => {
