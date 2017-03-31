@@ -1,6 +1,6 @@
 extern crate graphics;
 
-use game::fphys;
+use game::{Pos, fphys, Width, Height};
 use opengl_graphics::GlGraphics;
 use piston::input::*;
 use player::PlayerLogic;
@@ -32,11 +32,11 @@ impl Rectangle {
 
 pub trait Drawable {
     fn draw(&mut self,
-            args: &RenderArgs,
-            ctx: &mut GlGraphics,
-            vt: &ViewTransform);
-    fn set_position(&mut self, x: fphys, y: fphys);
-    fn set_color(&mut self, color: Color);
+            &RenderArgs,
+            &mut GlGraphics,
+            &ViewTransform);
+    fn set_position(&mut self, Pos);
+    fn set_color(&mut self, Color);
     fn should_draw(&self, &Rectangle) -> bool;
 }
 
@@ -50,13 +50,14 @@ pub struct GrphxNoDraw {}
 
 impl Drawable for GrphxNoDraw {
     fn draw(&mut self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
-    fn set_position(&mut self, _: fphys, _: fphys) {}
+    fn set_position(&mut self, _:Pos) {}
     fn set_color(&mut self, _: Color) {}
     fn should_draw(&self, _: &Rectangle) -> bool {
         false
     }
 }
 
+/*
 impl Drawable for GrphxContainer {
     fn draw(&mut self,
             args: &RenderArgs,
@@ -72,7 +73,7 @@ impl Drawable for GrphxContainer {
             d.draw(args, ctx, &vt_mod);
         }
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
+    fn set_position(&mut self, p: Pos) {
         self.x_offset = x;
         self.y_offset = y;
     }
@@ -90,12 +91,12 @@ impl Drawable for GrphxContainer {
         false
     }
 }
+*/
 
 pub struct GrphxRect {
-    pub x: fphys,
-    pub y: fphys,
-    pub w: fphys,
-    pub h: fphys,
+    pub pos : Pos,
+    pub w: Width,
+    pub h: Height,
     pub color: Color,
 }
 
@@ -149,15 +150,16 @@ impl ViewFollower {
     }
     pub fn update(&mut self, world: &World) {
         world.get(self.follow_id).map(|(_, bb)| {
-            let bb_xvel = bb.x - self.follow_prev_x;
-            if bb.x > self.x_max {
-                self.x_max = bb.x;
+            let Pos(bbx, bby) = bb.pos;
+            let bb_xvel = bbx - self.follow_prev_x;
+            if bbx > self.x_max {
+                self.x_max = bbx;
             }
 
             let offset = bb_xvel * self.offset_factor;
 
-            self.vt.x = weight(self.vt.x, bb.x + offset - 320.0, self.w);
-            self.vt.y = weight(self.vt.y, bb.y - 320.0, self.w);
+            self.vt.x = weight(self.vt.x, bbx + offset - 320.0, self.w);
+            self.vt.y = weight(self.vt.y, bby - 320.0, self.w);
 
             if self.enable_min_buffer &&
                self.vt.x < self.x_max - self.min_buffer {
@@ -167,8 +169,8 @@ impl ViewFollower {
                                    0.8 - bb_xvel.abs() * self.scale_mult,
                                    self.w_scale);
 
-            self.follow_prev_x = bb.x;
-            self.follow_prev_y = bb.y;
+            self.follow_prev_x = bbx;
+            self.follow_prev_y = bby;
         });
     }
 }
@@ -179,8 +181,10 @@ impl Drawable for GrphxRect {
             vt: &ViewTransform) {
         use graphics::*;
 
-        let r = [0.0, 0.0, self.w, self.h];
-        let (x, y) = (self.x as f64, self.y as f64);
+        let Width(w) = self.w;
+        let Height(h) = self.h;
+        let Pos(x, y) = self.pos;
+        let r = [0.0, 0.0, w, h];
 
         ctx.draw(args.viewport(), |c, gl| {
             let transform = c.transform
@@ -191,16 +195,18 @@ impl Drawable for GrphxRect {
             rectangle(self.color, r, transform, gl);
         });
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        self.x = x;
-        self.y = y;
+    fn set_position(&mut self, p: Pos) {
+        self.pos = p;
     }
     fn set_color(&mut self, color: Color) {
         self.color = color;
     }
     fn should_draw(&self, r: &Rectangle) -> bool {
-        (self.x + self.w > r.x && self.x < r.x + r.w) ||
-        (self.y + self.h > r.h && self.y < r.y + r.h)
+        let Pos(x, y) = self.pos;
+        let Width(w) = self.w;
+        let Height(h) = self.h;
+        (x + w > r.x && x < r.x + r.w) ||
+        (y + h > r.h && y < r.y + r.h)
 
     }
 }

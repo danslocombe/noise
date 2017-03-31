@@ -39,7 +39,7 @@ impl PlayerColLogic {
             owner_type: BBO_PLAYER_ENTITY,
         };
         let p =
-            arc_mut(PhysDyn::new(props, bb.x, bb.y, 1.0, 100.0, bb.w, bb.h, g));
+            arc_mut(PhysDyn::new(props, bb.pos, Mass(1.0), 100.0, bb.w, bb.h, g));
         let pl = PlayerColLogic {
             bb: bb,
             f: Arc::new(f),
@@ -81,18 +81,16 @@ impl Logical for TriggerLogic {
 
 pub fn create_trigger(id: Id,
                       trigger_id: Id,
-                      x: fphys,
-                      y: fphys,
-                      width: fphys,
-                      height: fphys,
+                      pos : Pos,
+                      width: Width,
+                      height: Height,
                       world: &World)
                       -> GameObj {
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(TriggerLogic {
         bb: BoundingBox {
-            x: x,
-            y: y,
+            pos : pos,
             w: width,
             h: height,
         },
@@ -134,13 +132,12 @@ pub fn create_dialogue(id: Id,
     GameObj::new(id, g, p, l)
 }
 
-pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
-    let w = 32.0;
-    let h = 32.0;
+pub fn create_crown(id: Id, pos : Pos, world: &World) -> GameObj {
+    let w = Width(32.0);
+    let h = Height(32.0);
     let c = [1.0, 1.0, 0.0, 1.0];
     let g = arc_mut(GrphxRect {
-        x: x,
-        y: y,
+        pos : pos,
         w: w,
         h: h,
         color: c,
@@ -153,23 +150,24 @@ pub fn create_crown(id: Id, x: fphys, y: fphys, world: &World) -> GameObj {
         });
     let crown_update = Box::new(|args: &LogicUpdateArgs,
                                  phys: Arc<Mutex<Physical>>| {
-        let (x, y) = phys.lock().unwrap().get_position();
-        let pos_player_bb = args.world.get(args.world.player_id());
-        pos_player_bb.map(|(_, player_bb)| {
-            let dist2 = (player_bb.x - x).powi(2) + (player_bb.y - y).powi(2);
-            if dist2 < 20000.0 {
+
+        let pos = phys.lock().unwrap().get_position();
+        let Pos(x, y) = pos;
+        let maybe_player_bb = args.world.get(args.world.player_id());
+
+        maybe_player_bb.map(|(_, player_bb)| {
+            if player_bb.pos.dist_2(&pos) < 20000.0 {
                 //  Move toward player
-                let (dir_x, dir_y) = normalise((player_bb.x - x,
-                                                player_bb.y - y));
+                let Vector(dir_x, dir_y) = (player_bb.pos - pos).normalise();
                 let force = 100.0;
                 args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              (dir_x * force,
+                                                              Force(dir_x * force,
                                                                dir_y * force)));
             }
         });
     });
 
-    let bb = BoundingBox::new(x, y, w, h);
+    let bb = BoundingBox::new(pos, w, h);
     let (logic, p) =
         PlayerColLogic::new_dyn(id, bb, crown_trigger, crown_update, g.clone());
     {

@@ -40,13 +40,13 @@ impl Wieldable for Bow {
         200.0
     }
     fn fire(&self, target: Pos, pos: Pos, args: &LogicUpdateArgs) {
-        let (tx, ty) = target;
-        let (px, py) = pos;
+        let Pos(tx, ty) = target;
+        let Pos(px, py) = pos;
         const fire_force: fphys = 500.0;
         let force = if tx < px {
-            (-fire_force, -fire_force)
+            Force(-fire_force, -fire_force)
         } else {
-            (fire_force, -fire_force)
+            Force(fire_force, -fire_force)
         };
         let arrow = create_arrow(args.world.generate_id(),
                                  args.id,
@@ -60,17 +60,14 @@ impl Wieldable for Bow {
 pub fn create_arrow(id: Id,
                     creator: Id,
                     force: Force,
-                    p: Pos,
+                    pos: Pos,
                     world: &World)
                     -> GameObj {
-    let (x, y) = p;
-    let (fx, fy) = force;
-    let w = 12.0;
-    let h = 12.0;
+    let w = Width(12.0);
+    let h = Height(12.0);
     let c = [0.0, 0.5, 0.0, 1.0];
     let g = arc_mut(GrphxRect {
-        x: x,
-        y: y,
+        pos : pos,
         w: w,
         h: h,
         color: c,
@@ -79,8 +76,8 @@ pub fn create_arrow(id: Id,
         id: id,
         owner_type: BBO_PLAYER_ENTITY,
     };
-    let mut phys = PhysDyn::new(props, x, y, 1.0, 100.0, w, h, g.clone());
-    phys.apply_force(fx, fy);
+    let mut phys = PhysDyn::new(props, pos, Mass(1.0), 100.0, w, h, g.clone());
+    phys.apply_force(force);
     phys.collide_with = BBO_BLOCK;
     let p = arc_mut(phys);
     let l = arc_mut(ArrowLogic { creator: creator });
@@ -104,6 +101,6 @@ impl Logical for ArrowLogic {
             }
         }
         args.metabuffer
-            .issue(MetaCommand::ApplyForce(args.id, (0.0, GRAVITY_DOWN)));
+            .issue(MetaCommand::ApplyForce(args.id, Force(0.0, GRAVITY_DOWN)));
     }
 }

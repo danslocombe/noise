@@ -72,7 +72,7 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
                       descr: &MovementDescriptor,
                       p: Arc<Mutex<PhysDyn>>) {
     let mut phys = p.lock().unwrap();
-    let (xvel, yvel) = phys.get_vel();
+    let Vel(xvel, yvel) = phys.get_vel();
     let xdir = if input.contains(HI_LEFT) { -1.0 } else { 0.0 } +
                if input.contains(HI_RIGHT) { 1.0 } else { 0.0 };
 
@@ -86,7 +86,7 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
             let ydir = 0.0 + (if input.contains(HI_FALL) { 1.0 } else { 0.0 }) -
                        (if input.contains(HI_JUMP) { 1.0 } else { 0.0 });
             args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                          (descr.dash_force *
+                                                          Force(descr.dash_force *
                                                            xdir,
                                                            descr.dash_force *
                                                            ydir)));
@@ -94,12 +94,12 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
 
         //  Run normally
         if xdir != 0.00 && xvel * xdir < descr.max_runspeed {
-            let force = if phys.on_ground {
+            let force_mag = if phys.on_ground {
                 descr.moveforce
             } else {
                 descr.moveforce * descr.moveforce_air_mult
             };
-            phys.apply_force(force * xdir, 0.0);
+            phys.apply_force(Force(force_mag * xdir, 0.0));
             //  Apply friction
         } else {
             let friction_percent = if phys.on_ground {
@@ -108,7 +108,7 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
                 descr.friction * descr.friction_air_mult
             };
             let friction = xvel * -1.0 * friction_percent;
-            phys.apply_force(friction, 0.0);
+            phys.apply_force(Force(friction, 0.0));
         }
 
         if cd.jump > 0.0 {
@@ -118,16 +118,16 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
         if phys.on_ground {
             //  Jump
             if cd.jump <= 0.0 && input.contains(HI_JUMP) {
-                phys.apply_force(0.0, -descr.jumpforce);
-                phys.set_velocity(xvel, 0.0);
+                phys.apply_force(Force(0.0, -descr.jumpforce));
+                phys.set_velocity(Vel(xvel, 0.0));
                 cd.jump = descr.jump_cd;
             }
         } else {
             //  Gravity
             if yvel < 0.0 {
-                phys.apply_force(0.0, GRAVITY_UP);
+                phys.apply_force(Force(0.0, GRAVITY_UP));
             } else {
-                phys.apply_force(0.0, GRAVITY_DOWN);
+                phys.apply_force(Force(0.0, GRAVITY_DOWN));
             }
         }
     }

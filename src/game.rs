@@ -8,6 +8,7 @@ extern crate rayon;
 use block::blocks_from_ghosts;
 use collision::Collision;
 use descriptors::*;
+use std::ops::{Add, Mul, Sub};
 
 use dialogue::{Dialogue, DialogueBuffer};
 use draw::{Drawable, ViewFollower, ViewTransform};
@@ -34,9 +35,20 @@ use world::World;
 
 pub type Id = u32;
 pub type TriggerId = u32;
-pub type Pos = (fphys, fphys);
-pub type Vel = (fphys, fphys);
-pub type Force = (fphys, fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Pos(pub fphys, pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Vel(pub fphys, pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Force(pub fphys, pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Accel(pub fphys, pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Mass(pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Width(pub fphys);
+#[derive(Debug, Copy, Clone)]
+pub struct Height(pub fphys);
 
 pub const BLOCKSIZE: fphys = 32.0;
 pub const ENEMY_GEN_P: fphys = 0.01;
@@ -76,7 +88,7 @@ impl GameObj {
 #[derive(Clone)]
 pub enum ObjMessage {
     MCollision(Collision),
-    MPlayerStartGrapple((fphys, fphys)),
+    MPlayerStartGrapple(Pos),
     MPlayerEndGrapple,
     MTrigger,
 }
@@ -176,7 +188,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     //  Create player
     let player_id = world.player_id();
     let (mut player_obj, mut player_logic) =
-        player_create(player_id, 800.0, -250.0, player_descriptor.clone());
+        player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone());
     let mut player_phys = player_obj.physics.clone();
 
     let grapple_descriptor: Rc<GrappleDescriptor> = load_descriptor("descriptors/grapple.json");
@@ -288,7 +300,7 @@ pub fn game_loop(mut window: Window,
                                         .issue(message);
                                 });
                         }
-                        MetaCommand::ApplyForce(id, (xf, yf)) => {
+                        MetaCommand::ApplyForce(id, f) => {
                             let _ = game.objs
                                 .binary_search_by(|o| o.id.cmp(&id))
                                 .map(|pos| {
@@ -296,7 +308,7 @@ pub fn game_loop(mut window: Window,
                                         .physics
                                         .lock()
                                         .unwrap();
-                                    phys.apply_force(xf, yf);
+                                    phys.apply_force(f);
                                 });
                         }
                         MetaCommand::Dialogue(p, t) => {
@@ -421,5 +433,76 @@ pub fn game_loop(mut window: Window,
             }
             _ => {}
         }
+    }
+}
+
+impl Add for Pos {
+    type Output = Vector;
+    fn add(self, other:Pos) -> Vector {
+        let Pos(x, y) = self;
+        let Pos(ox, oy) = other;
+        Vector(x + ox, y + oy)
+    }
+}
+impl Sub for Pos {
+    type Output = Vector;
+    fn sub(self, other:Pos) -> Vector {
+        let Pos(x, y) = self;
+        let Pos(ox, oy) = other;
+        Vector(x - ox, y - oy)
+    }
+}
+impl Mul<fphys> for Pos {
+    type Output = Pos;
+    fn mul(self, other:fphys) -> Pos {
+        let Pos(x, y) = self;
+        Pos(x * other, y * other)
+    }
+}
+impl Pos {
+    pub fn update_by_vel(&self, vel : &Vel, dt : fphys) -> Self {
+        let Pos(x, y) = *self;
+        let Vel(vel_x, vel_y) = *vel;
+        let new_x = x + dt * vel_x;
+        let new_y = y + dt * vel_y;
+        Pos(new_x, new_y)
+    }
+    pub fn dist_2(&self, other : &Self) -> fphys {
+        (self.0 - other.0).powi(2) + (self.1 - other.1).powi(2)
+    }
+}
+impl Vel {
+    pub fn update_by_accel(&self, accel : &Accel, dt : fphys) -> Vel {
+        let Vel(vel_x, vel_y) = *self;
+        let Accel(accel_x, accel_y) = *accel;
+        let new_x = vel_x + dt * vel_x;
+        let new_y = vel_y + dt * vel_y;
+        Vel(new_x, new_y)
+    }
+}
+impl Force {
+    pub fn get_accel(&self, mass : &Mass) -> Accel {
+        let Mass(m) = *mass;
+        Accel(self.0 / m, self.1 / m)
+    }
+}
+pub struct Vector(pub fphys, pub fphys);
+impl Vector {
+    pub fn normalise(&self) -> Vector {
+        let Vector(x, y) = *self;
+        let magnitude = (x.powi(2) + y.powi(2)).sqrt();
+        Vector(x / magnitude, y / magnitude)
+    }
+}
+impl Mul<fphys> for Width {
+    type Output = Width;
+    fn mul(self, other:fphys) -> Width {
+        Width(self.0 * other)
+    }
+}
+impl Mul<fphys> for Height {
+    type Output = Height;
+    fn mul(self, other:fphys) -> Height {
+        Height(self.0 * other)
     }
 }

@@ -1,7 +1,7 @@
 use descriptors::PlayerDescriptor;
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
-use game::fphys;
+use game::{Pos, fphys};
 use graphics::ImageSize;
 use graphics::Transformed;
 use graphics::image;
@@ -23,8 +23,7 @@ pub enum PlayerDrawState {
 }
 
 pub struct PlayerGphx {
-    pub x: fphys,
-    pub y: fphys,
+    pub pos : Pos,
     pub scale: fphys,
     pub speed: fphys,
     pub speed_mod: fphys,
@@ -65,10 +64,10 @@ impl Drawable for PlayerGphx {
             let w = self.scale * (texture.get_width() as fphys);
             let h = self.scale * (texture.get_height() as fphys);
             let transform = if self.reverse && self.angle == 0.0 {
-                transform_base.trans(self.x + w, self.y)
+                transform_base.trans(self.pos.0 + w, self.pos.1)
                     .scale(-self.scale, self.scale)
             } else {
-                transform_base.trans(self.x, self.y)
+                transform_base.trans(self.pos.0, self.pos.1)
                     .scale(self.scale, self.scale)
             };
 
@@ -80,9 +79,8 @@ impl Drawable for PlayerGphx {
             image(texture, transform_rot, gl);
         });
     }
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        self.x = x;
-        self.y = y;
+    fn set_position(&mut self, p : Pos) {
+        self.pos = p;
     }
     fn set_color(&mut self, color: Color) {
         unimplemented!();

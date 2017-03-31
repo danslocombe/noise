@@ -6,7 +6,7 @@ extern crate opengl_graphics;
 
 use collision::*;
 use draw::Drawable;
-use game::{CommandBuffer, Id, MetaCommand, ObjMessage, fphys};
+use game::{CommandBuffer, Id, Vel, Pos, Accel, Force, Mass, Width, Height, MetaCommand, ObjMessage, fphys};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
 use world::World;
@@ -16,13 +16,13 @@ pub trait Physical {
             args: &UpdateArgs,
             metabuffer: &CommandBuffer<MetaCommand>,
             world: &World);
-    fn apply_force(&mut self, xforce: fphys, yforce: fphys);
-    fn get_position(&self) -> (fphys, fphys);
-    fn get_width_height(&self) -> (fphys, fphys);
-    fn get_vel(&self) -> (fphys, fphys);
+    fn apply_force(&mut self, Force);
+    fn get_position(&self) -> Pos;
+    fn get_width_height(&self) -> (Width, Height);
+    fn get_vel(&self) -> Vel;
     fn get_id(&self) -> Id;
-    fn set_velocity(&mut self, x: fphys, y: fphys);
-    fn set_position(&mut self, x: fphys, y: fphys);
+    fn set_velocity(&mut self, Vel);
+    fn set_position(&mut self, Pos);
     fn destroy(&mut self, world: &World);
 }
 
@@ -35,43 +35,40 @@ impl Physical for PhysNone {
             metabuffer: &CommandBuffer<MetaCommand>,
             world: &World) {
     }
-    fn apply_force(&mut self, xforce: fphys, yforce: fphys) {}
-    fn get_position(&self) -> (fphys, fphys) {
-        (0.0, 0.0)
+    fn apply_force(&mut self, _ : Force) {}
+    fn get_position(&self) -> Pos {
+        Pos(0.0, 0.0)
     }
-    fn get_width_height(&self) -> (fphys, fphys) {
-        (0.0, 0.0)
+    fn get_width_height(&self) -> (Width, Height) {
+        (Width(0.0), Height(0.0))
     }
-    fn get_vel(&self) -> (fphys, fphys) {
-        (0.0, 0.0)
+    fn get_vel(&self) -> Vel {
+        Vel(0.0, 0.0)
     }
     fn get_id(&self) -> Id {
         self.id
     }
-    fn set_velocity(&mut self, x: fphys, y: fphys) {}
-    fn set_position(&mut self, x: fphys, y: fphys) {}
+    fn set_velocity(&mut self, _:Vel) {}
+    fn set_position(&mut self, _:Pos) {}
     fn destroy(&mut self, world: &World) {}
 }
 
 pub struct PhysStatic {
     pub p: BBProperties,
-    pub x: fphys,
-    pub y: fphys,
-    pub w: fphys,
-    pub h: fphys,
+    pub pos : Pos,
+    pub w: Width,
+    pub h: Height,
 }
 
 impl PhysStatic {
     pub fn new(p: BBProperties,
-               x: fphys,
-               y: fphys,
-               w: fphys,
-               h: fphys,
+               pos : Pos,
+               w: Width,
+               h: Height,
                world: &World)
                -> Self {
         let bb = BoundingBox {
-            x: x,
-            y: y,
+            pos : pos,
             w: w,
             h: h,
         };
@@ -79,8 +76,7 @@ impl PhysStatic {
 
         PhysStatic {
             p: p,
-            x: x,
-            y: y,
+            pos : pos,
             w: w,
             h: h,
         }
@@ -90,34 +86,29 @@ impl PhysStatic {
 
 pub struct PhysDyn {
     pub p: BBProperties,
-    pub mass: fphys,
+    pub mass: Mass,
     pub pass_platforms: bool,
     pub on_ground: bool,
     pub bb: BoundingBox,
     pub collide_with: BBOwnerType,
-    xvel: fphys,
-    yvel: fphys,
-    xaccel: fphys,
-    yaccel: fphys,
-    xforce: fphys,
-    yforce: fphys,
+    vel : Vel,
+    accel : Accel,
+    force : Force,
     maxspeed: fphys,
     draw: Arc<Mutex<Drawable>>,
 }
 
 impl PhysDyn {
     pub fn new(p: BBProperties,
-               x: fphys,
-               y: fphys,
-               mass: fphys,
+               pos : Pos,
+               mass: Mass,
                maxspeed: fphys,
-               width: fphys,
-               height: fphys,
+               width: Width,
+               height: Height,
                dr: Arc<Mutex<super::draw::Drawable>>)
                -> PhysDyn {
         let bb = BoundingBox {
-            x: x,
-            y: y,
+            pos : pos,
             w: width,
             h: height,
         };
@@ -125,12 +116,9 @@ impl PhysDyn {
         PhysDyn {
             p: p,
             mass: mass,
-            xvel: 0.0,
-            yvel: 0.0,
-            xaccel: 0.0,
-            yaccel: 0.0,
-            xforce: 0.0,
-            yforce: 0.0,
+            vel : Vel(0.0, 0.0),
+            accel : Accel(0.0, 0.0),
+            force : Force(0.0, 0.0),
             on_ground: false,
             pass_platforms: false,
             bb: bb,
@@ -148,26 +136,26 @@ impl Physical for PhysStatic {
             _: &World) {
         //  Do nothing
     }
-    fn apply_force(&mut self, _: fphys, _: fphys) {
+    fn apply_force(&mut self, _: Force) {
         //  Do nothing
     }
-    fn get_position(&self) -> (fphys, fphys) {
-        (self.x, self.y)
+    fn get_position(&self) -> Pos {
+        self.pos
     }
-    fn get_vel(&self) -> (fphys, fphys) {
-        (0.0, 0.0)
+    fn get_vel(&self) -> Vel {
+        Vel(0.0, 0.0)
     }
-    fn set_position(&mut self, _: fphys, _: fphys) {
+    fn set_position(&mut self, _:Pos) {
         //  TODO
     }
-    fn set_velocity(&mut self, _: fphys, _: fphys) {
+    fn set_velocity(&mut self, _: Vel) {
         //  Do nothing
     }
 
     fn get_id(&self) -> Id {
         self.p.id
     }
-    fn get_width_height(&self) -> (fphys, fphys) {
+    fn get_width_height(&self) -> (Width, Height) {
         (self.w, self.h)
     }
     fn destroy(&mut self, world: &World) {
@@ -188,24 +176,20 @@ impl Physical for PhysDyn {
 
         //  Newtonian equations
 
-        self.xaccel = self.xforce * self.mass;
-        self.yaccel = self.yforce * self.mass;
-
-        self.xvel += self.xaccel * dt;
-        self.yvel += self.yaccel * dt;
+        self.accel = self.force.get_accel(&self.mass);
+        self.vel.update_by_accel(&self.accel, dt);
 
         //	Cap maxspeed in any direction
-        let sqr_speed = self.xvel * self.xvel + self.yvel * self.yvel;
+        let Vel(xvel, yvel) = self.vel;
+        let sqr_speed = xvel * xvel + yvel * yvel;
         if sqr_speed > self.maxspeed * self.maxspeed {
-            let angle = self.yvel.atan2(self.xvel);
-            self.xvel = self.maxspeed * angle.cos();
-            self.yvel = self.maxspeed * angle.sin();
+            let angle = yvel.atan2(xvel);
+            self.vel = Vel(self.maxspeed * angle.cos(), self.maxspeed * angle.sin());
         }
 
         //  Create bounding box in new position to test against
         let mut bb_test = BoundingBox {
-            x: self.bb.x + self.xvel * dt,
-            y: self.bb.y + self.yvel * dt,
+            pos : self.bb.pos.update_by_vel(&self.vel, dt),
             w: self.bb.w,
             h: self.bb.h,
         };
@@ -231,58 +215,54 @@ impl Physical for PhysDyn {
                                              self.bb.w,
                                              self.bb.h,
                                              self.on_ground,
-                                             (self.bb.x, self.bb.y),
-                                             (bb_test.x, bb_test.y));
-            bb_test.x = pos_delta.x;
-            bb_test.y = pos_delta.y;
+                                             self.bb.pos,
+                                             bb_test.pos);
+            //bb_test.x = pos_delta.x;
+            //bb_test.y = pos_delta.y;
+            bb_test.pos = pos_delta.pos;
 
-            self.xvel = (pos_delta.dx) / dt;
-            self.yvel = (pos_delta.dy) / dt;
+            self.vel = Vel(pos_delta.dx / dt, pos_delta.dy / dt);
         }
 
         self.bb = bb_test;
 
         //  Test if on the ground
-        let ground_bb = BoundingBox { y: self.bb.y + 1.0, ..self.bb };
+        let ground_bb = BoundingBox { pos : Pos(self.bb.pos.0, self.bb.pos.1 + 1.0), ..self.bb };
         self.on_ground = does_collide_bool(&resolve_args, &ground_bb);
 
         //  Reset forces
-        self.xforce = 0.0;
-        self.yforce = 0.0;
+        self.force = Force(0.0, 0.0);
 
         //  Update draw position
         {
             let mut draw = self.draw.lock().unwrap();
-            draw.set_position(self.bb.x, self.bb.y);
+            draw.set_position(self.bb.pos);
         }
 
         //  Update world
         world.send(self.p.clone(), Some(self.bb.clone()));
     }
-    fn apply_force(&mut self, xforce: fphys, yforce: fphys) {
-        self.xforce += xforce;
-        self.yforce += yforce;
+    fn apply_force(&mut self, f : Force) {
+        self.force = Force(self.force.0 + f.0, self.force.1 + f.1);
     }
-    fn get_position(&self) -> (fphys, fphys) {
-        (self.bb.x, self.bb.y)
+    fn get_position(&self) -> Pos {
+        self.bb.pos
     }
-    fn get_vel(&self) -> (fphys, fphys) {
-        (self.xvel, self.yvel)
+    fn get_vel(&self) -> Vel {
+        self.vel
     }
     fn get_id(&self) -> Id {
         self.p.id
     }
-    fn get_width_height(&self) -> (fphys, fphys) {
+    fn get_width_height(&self) -> (Width, Height) {
         (self.bb.w, self.bb.h)
     }
 
-    fn set_position(&mut self, x: fphys, y: fphys) {
-        self.bb.x = x;
-        self.bb.y = y;
+    fn set_position(&mut self, p : Pos) {
+        self.bb.pos = p;
     }
-    fn set_velocity(&mut self, x: fphys, y: fphys) {
-        self.xvel = x;
-        self.yvel = y;
+    fn set_velocity(&mut self, v : Vel) {
+        self.vel = v;
     }
 
     fn destroy(&mut self, world: &World) {

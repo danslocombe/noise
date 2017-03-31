@@ -1,4 +1,4 @@
-use game::fphys;
+use game::*;
 use humanoid::*;
 use opengl_graphics::{Filter, Texture};
 use piston_window::TextureSettings;
@@ -26,8 +26,8 @@ pub struct PlayerDescriptor {
     pub dashing: Vec<Texture>,
     pub speed: fphys,
     pub scale: fphys,
-    pub width: fphys,
-    pub height: fphys,
+    pub width: Width,
+    pub height: Height,
 
     pub start_hp: fphys,
     pub friction: fphys,
@@ -140,8 +140,8 @@ impl Descriptor for PlayerDescriptor {
 
         let speed = get_float("player", &obj, "speed")?;
         let scale = get_float("player", &obj, "scale")?;
-        let width = get_float("player", &obj, "width")?;
-        let height = get_float("player", &obj, "height")?;
+        let width = Width(get_float("player", &obj, "width")?);
+        let height = Height(get_float("player", &obj, "height")?);
 
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
@@ -250,8 +250,8 @@ pub struct EnemyDescriptor {
     pub attacking: Vec<Texture>,
     pub speed: fphys,
     pub scale: fphys,
-    pub width: fphys,
-    pub height: fphys,
+    pub width: Width,
+    pub height: Height,
 
     pub weapon: Weapon,
 
@@ -293,8 +293,8 @@ impl Descriptor for EnemyDescriptor {
 
         let speed = get_float("enemy", &obj, "speed")?;
         let scale = get_float("enemy", &obj, "scale")?;
-        let width = get_float("enemy", &obj, "width")?;
-        let height = get_float("enemy", &obj, "height")?;
+        let width = Width(get_float("enemy", &obj, "width")?);
+        let height = Height(get_float("enemy", &obj, "height")?);
 
         let weapon_str = get_string("enemy", &obj, "weapon")?;
         let weapon = (match weapon_str.as_str() {

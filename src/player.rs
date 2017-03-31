@@ -25,7 +25,7 @@ pub struct PlayerLogic {
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
     grappling: bool,
-    grapple_target: Option<(fphys, fphys)>,
+    grapple_target: Option<Pos>,
     pub hp: fphys,
     pub hp_max: fphys,
 }
@@ -64,7 +64,7 @@ impl Logical for PlayerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
         let dt = args.piston.dt as fphys;
-        let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
 
         if self.hp < 0.0 || y > MAX_HEIGHT {
             args.metabuffer.issue(MetaCommand::RestartGame);
@@ -109,11 +109,9 @@ impl Logical for PlayerLogic {
                                                                    the face")));
                     force = ENEMY_BUMP_FORCE
                 }
-                let diff_x = c.other_bb.x - c.bb.x;
-                let diff_y = c.other_bb.y - c.bb.y;
-                let (nx, ny) = normalise((diff_x, diff_y));
+                let Vector(nx, ny) = (c.other_bb.pos - c.bb.pos).normalise();
                 args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              (-nx * force,
+                                                              Force(-nx * force,
                                                                -ny * force)));
             }
         }
@@ -226,8 +224,7 @@ impl InputHandler for PlayerLogic {
 }
 
 pub fn create(id: Id,
-              x: fphys,
-              y: fphys,
+              pos : Pos,
               descr: Rc<PlayerDescriptor>)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
 
@@ -235,8 +232,7 @@ pub fn create(id: Id,
     let height = descr.height * descr.scale;
     let maxspeed = descr.maxspeed;
     let graphics = PlayerGphx {
-        x: 0.0,
-        y: 0.0,
+        pos : pos,
         angle: 0.0,
         scale: descr.scale,
         speed: descr.speed,
@@ -250,7 +246,7 @@ pub fn create(id: Id,
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_PLAYER);
     let mut phys =
-        PhysDyn::new(props, x, y, 1.0, maxspeed, width, height, g.clone());
+        PhysDyn::new(props, pos, Mass(1.0), maxspeed, width, height, g.clone());
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);
 

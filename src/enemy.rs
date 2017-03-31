@@ -22,7 +22,7 @@ use world::*;
 enum EnemyState {
     EnemyIdle(Option<fphys>),
     EnemyAlert,
-    EnemyActive((fphys, fphys)),
+    EnemyActive(Pos),
 }
 
 struct EnemyLogic {
@@ -44,7 +44,7 @@ struct EnemyLogic {
 impl Logical for EnemyLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let ((x, y), (xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
         let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 || y > MAX_HEIGHT {
@@ -58,24 +58,21 @@ impl Logical for EnemyLogic {
         for c in &self.collision_buffer {
             if c.other_type.contains(BBO_PLAYER) ||
                c.other_type.contains(BBO_ENEMY) {
-                let diff_x = c.other_bb.x - c.bb.x;
-                let diff_y = c.other_bb.y - c.bb.y;
-                let (nx, ny) = normalise((diff_x, diff_y));
+                let diff = c.other_bb.pos - c.bb.pos;
+                let Vector(nx, ny) = diff.normalise();
                 let xf = -nx * self.descr.bounce_force;
                 let yf = -ny * self.descr.bounce_force;
                 args.metabuffer
-                    .issue(MetaCommand::ApplyForce(self.id, (xf, yf)));
+                    .issue(MetaCommand::ApplyForce(self.id, Force(xf, yf)));
             }
         }
 
         //  Find a target
-        let poss_target = get_target((x, y), self.faction, 1000.0, args.world);
+        let poss_target = get_target(Pos(x, y), self.faction, 1000.0, args.world);
         match poss_target {
             Some(target) => {
                 let (_, target_bb) = args.world.get(target).unwrap(); // TODO error handle here
-                let tx = target_bb.x;
-                let ty = target_bb.y;
-                self.state = EnemyActive((tx, ty));
+                self.state = EnemyActive(target_bb.pos);
             }
             None => {
                 self.state = EnemyIdle(None);
@@ -110,7 +107,7 @@ impl Logical for EnemyLogic {
                 }
             }
             EnemyAlert => HI_NONE,
-            EnemyActive((tx, ty)) => {
+            EnemyActive(Pos(tx, ty)) => {
                 let xdir = (tx - x).signum();
                 let mut ret = hi_from_xdir(xdir);
                 if (ty - y) < -30.0 {
@@ -123,7 +120,7 @@ impl Logical for EnemyLogic {
                 //  Weapon handling
                 if self.weapon_cd <= 0.0 {
                     self.weapon_cd = self.weapon.get_cd();
-                    self.weapon.fire((tx, ty), (x, y), args);
+                    self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
                 } else {
                     self.weapon_cd -= dt;
                 }
@@ -157,7 +154,7 @@ fn get_target(pos: Pos,
               max_dist: fphys,
               world: &World)
               -> Option<Id> {
-    let (x, y) = pos;
+    let Pos(x, y) = pos;
     let mut closest = max_dist.powi(2);
     let mut target = None;
     let filtered = world.fighter_buffer()
@@ -173,7 +170,8 @@ fn get_target(pos: Pos,
             continue;
         }
         let (_, test_bb) = world.get(fighter.id).unwrap();
-        let dist = (test_bb.x - x).powi(2) + (test_bb.y - y).powi(2);
+        let Pos(test_bb_x, test_bb_y) = test_bb.pos;
+        let dist = (test_bb_x - x).powi(2) + (test_bb_y - y).powi(2);
         if dist < closest {
             target = Some(fighter.id);
             closest = dist;
@@ -183,8 +181,7 @@ fn get_target(pos: Pos,
 }
 
 pub fn create(id: Id,
-              x: fphys,
-              y: fphys,
+              pos : Pos,
               descr: Rc<EnemyDescriptor>,
               world: &World,
               faction: Faction)
@@ -192,8 +189,7 @@ pub fn create(id: Id,
 
     world.add_fighter(id, faction);
     let graphics = EnemyGphx {
-        x: 0.0,
-        y: 0.0,
+        pos : pos,
         scale: descr.scale,
         speed: descr.speed,
         state: EnemyDrawState::Idle,
@@ -204,9 +200,8 @@ pub fn create(id: Id,
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_ENEMY);
     let mut phys = PhysDyn::new(props,
-                                x,
-                                y,
-                                1.0,
+                                pos,
+                                Mass(1.0),
                                 descr.maxspeed,
                                 descr.width,
                                 descr.height,

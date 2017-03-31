@@ -2,16 +2,16 @@ extern crate rand;
 
 use self::rand::{Rng, thread_rng};
 
-use game::fphys;
+use game::{Pos, Width, Height, fphys};
 use std::f64;
 use tile::{TILE_H, TILE_W, Tile, TileManager};
 
-const BLOCKWIDTH: fphys = 32.0;
-const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH * 2.0;
-const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH * 80.0;
-const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH * 6.0;
-const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH * 80.0;
-const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH * 14.0;
+const BLOCKWIDTH: Width = Width(32.0);
+const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH.0 * 2.0;
+const STRUCTURE_SPACING_MAX: fphys = BLOCKWIDTH.0 * 80.0;
+const STRUCTURE_LENGTH_MIN: fphys = BLOCKWIDTH.0 * 6.0;
+const STRUCTURE_LENGTH_MAX: fphys = BLOCKWIDTH.0 * 80.0;
+const STRUCTURE_PLATFORM_HEIGHT: fphys = BLOCKWIDTH.0 * 14.0;
 const MAX_HEIGHT: u32 = 12;
 
 //  Single perlin octave
@@ -39,9 +39,8 @@ pub enum GhostBlockType {
 }
 
 pub struct GhostBlock {
-    pub x: fphys,
-    pub y: fphys,
-    pub length: fphys,
+    pub pos : Pos,
+    pub length: Width,
     pub block_type: GhostBlockType,
 }
 
@@ -129,23 +128,22 @@ impl Gen {
                                        STRUCTURE_SPACING_MIN);
 
                 //  Floor of building
-                t.extend(pagoda_platform_tiles(self.generated_to,
-                                               self.last_block_y,
+                t.extend(pagoda_platform_tiles(Pos(self.generated_to,
+                                               self.last_block_y),
                                                BORDER_ALL,
-                                               length));
+                                               Width(length)));
                 r.push(GhostBlock {
-                    x: self.generated_to,
-                    y: self.last_block_y,
-                    length: length,
+                    pos : Pos(self.generated_to, self.last_block_y),
+                    length: Width(length),
                     block_type: GhostBlockType::Block,
                 });
 
                 //  Bulk of structure
                 let (tiles, platforms) =
-                    create_uniform_structure(self.generated_to,
+                    create_uniform_structure(Pos(self.generated_to,
                                              self.last_block_y -
-                                             STRUCTURE_PLATFORM_HEIGHT,
-                                             length);
+                                             STRUCTURE_PLATFORM_HEIGHT),
+                                             Width(length));
                 r.extend(platforms);
                 t.extend(tiles);
                 self.generated_to += length - self.blocksize;
@@ -157,8 +155,7 @@ impl Gen {
                         (next_perlin(&mut self.octaves) / STEPSIZE).floor();
                 self.last_block_y = y;
                 r.push(GhostBlock {
-                    x: self.generated_to,
-                    y: y,
+                    pos : Pos(self.generated_to, y),
                     length: BLOCKWIDTH,
                     block_type: GhostBlockType::Block,
                 });
@@ -168,12 +165,13 @@ impl Gen {
     }
 }
 
-pub fn pagoda_platform_tiles(x: fphys,
-                             y: fphys,
+pub fn pagoda_platform_tiles(pos : Pos,
                              tile_edge: Borders,
-                             length: fphys)
+                             width: Width)
                              -> Vec<GhostTile> {
     let mut ts = Vec::new();
+    let Pos(x, y) = pos;
+    let Width(length) = width;
     if tile_edge.contains(BORDER_LEFT) {
         ts.push(GhostTile::new(x,
                                y,
@@ -227,19 +225,18 @@ fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
 }
 
 
-fn create_uniform_structure(x: fphys,
-                            y: fphys,
-                            length: fphys)
+fn create_uniform_structure(pos : Pos,
+                            length: Width)
                             -> (Vec<GhostTile>, Vec<GhostBlock>) {
+    let Pos(x, y)  = pos;
     let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
     let mut platforms = Vec::new();
     let mut tiles = Vec::new();
     for i in 0..height {
         let iy = y - STRUCTURE_PLATFORM_HEIGHT * (i as fphys);
-        tiles.extend(pagoda_platform_tiles(x, iy, BORDER_ALL, length));
+        tiles.extend(pagoda_platform_tiles(Pos(x, iy), BORDER_ALL, length));
         platforms.push(GhostBlock {
-            x: x,
-            y: iy,
+            pos : Pos(x, iy),
             length: length,
             block_type: GhostBlockType::Platform,
         });
@@ -247,12 +244,12 @@ fn create_uniform_structure(x: fphys,
     (tiles, platforms)
 }
 
-fn create_structure(x: fphys,
-                    y: fphys,
-                    length: fphys,
+fn create_structure(pos : Pos,
+                    length: Width,
                     height: u32)
-                    -> Vec<(fphys, fphys, Option<fphys>)> {
-    let end = x + length;
+                    -> Vec<(Pos, Option<Width>)> {
+    let Pos(x, y) = pos;
+    let end = x + length.0;
     let mut created_next_floor = false;
     let mut ret = Vec::new();
     if height > MAX_HEIGHT {
@@ -261,16 +258,16 @@ fn create_structure(x: fphys,
 
     const UPPER_FLOOR_P: fphys = 0.38;
 
-    ret.push((x, y, Some(length)));
-    for i in 1..(length / BLOCKWIDTH).floor() as usize {
-        let ix = i as fphys * BLOCKWIDTH + x;
+    ret.push((pos, Some(length)));
+    for i in 1..(length.0 / BLOCKWIDTH.0).floor() as usize {
+        let ix = i as fphys * BLOCKWIDTH.0 + x;
 
-        if !created_next_floor && end - ix > length / 2.0 &&
+        if !created_next_floor && end - ix > length.0 / 2.0 &&
            (rand_gauss() < UPPER_FLOOR_P) {
-            ret.extend(create_structure(ix,
-                                        y - BLOCKWIDTH -
-                                        STRUCTURE_PLATFORM_HEIGHT,
-                                        2.0 * (end - ix) - length,
+            ret.extend(create_structure(Pos(ix,
+                                        y - BLOCKWIDTH.0 -
+                                        STRUCTURE_PLATFORM_HEIGHT),
+                                        Width(2.0 * (end - ix) - length.0),
                                         height + 1));
             created_next_floor = true;
         }

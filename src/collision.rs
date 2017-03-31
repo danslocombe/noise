@@ -1,4 +1,4 @@
-use game::{Id, Pos, Vel, fphys};
+use game::{Id, Pos, Vel, fphys, Width, Height};
 
 use std::f64::EPSILON;
 
@@ -54,17 +54,15 @@ impl BBProperties {
 
 #[derive(Clone)]
 pub struct BoundingBox {
-    pub x: fphys,
-    pub y: fphys,
-    pub w: fphys,
-    pub h: fphys,
+    pub pos : Pos,
+    pub w : Width,
+    pub h : Height,
 }
 
 impl BoundingBox {
-    pub fn new(x: fphys, y: fphys, w: fphys, h: fphys) -> Self {
+    pub fn new(p : Pos, w: Width, h: Height) -> Self {
         BoundingBox {
-            x: x,
-            y: y,
+            pos : p,
             w: w,
             h: h,
         }
@@ -73,8 +71,15 @@ impl BoundingBox {
 
 impl BoundingBox {
     pub fn check_col(&self, other: &BoundingBox) -> bool {
-        !(self.x + self.w <= other.x || self.x >= other.x + other.w ||
-          self.y + self.h <= other.y || self.y >= other.y + other.h)
+        //  Should implement traits on types so this isn't necessary
+        let Pos(x, y) = self.pos;
+        let Pos(ox, oy) = other.pos;
+        let Width(w) = self.w;
+        let Height(h) = self.h;
+        let Width(ow) = other.w;
+        let Height(oh) = other.h;
+        !(x + w <= ox || x >= ox + ow ||
+          y + h <= oy || y >= oy + oh)
     }
 }
 
@@ -96,8 +101,12 @@ pub fn does_collide(args: &ColArgs, bb: &BoundingBox) -> Option<Collision> {
            !args.to_collide.contains(other_p.owner_type) {
             continue;
         }
+        let Pos(_, y) = bb.pos;
+        let Pos(_, oy) = other_bb.pos;
+        let Height(h) = bb.h;
+        let Height(oh) = other_bb.h;
         if other_p.owner_type.contains(BBO_PLATFORM) &&
-           ((bb.y + bb.h >= other_bb.y + other_bb.h) || args.pass_platforms) {
+           ((y + h >= oy + oh) || args.pass_platforms) {
             continue;
         }
         if bb.check_col(other_bb) {
@@ -120,48 +129,50 @@ pub fn does_collide_bool(args: &ColArgs, bb: &BoundingBox) -> bool {
 }
 
 pub fn resolve_col_base(args: &ColArgs,
-                        w: fphys,
-                        h: fphys,
+                        w: Width,
+                        h: Height,
                         on_ground: bool,
-                        (xstart, ystart): Pos,
-                        (xend, yend): Pos)
+                        start: Pos,
+                        end: Pos)
                         -> PosDelta {
     let pdelta_x = resolve_col_it(8,
                                   args,
                                   w,
                                   h,
                                   on_ground,
-                                  (xstart, ystart),
-                                  (xend, ystart));
-    let x = pdelta_x.x;
+                                  start,
+                                  end);
+
+    let Pos(xstart, ystart) = start;
+    let Pos(xend, yend) = end;
+
+    let Pos(x, _) = pdelta_x.pos;
     let pdelta_y = resolve_col_it(8,
                                   args,
                                   w,
                                   h,
                                   on_ground,
-                                  (x, ystart + pdelta_x.dy),
-                                  (x, yend + pdelta_x.dy));
-    let y = pdelta_y.y;
+                                  Pos(x, ystart + pdelta_x.dy),
+                                  Pos(x, yend + pdelta_x.dy));
+    let Pos(_, y) = pdelta_y.pos;
 
     PosDelta {
-        x: x,
-        y: y,
+        pos : Pos(x, y),
         dx: pdelta_x.dx + pdelta_y.dx,
         dy: pdelta_x.dy + pdelta_y.dy,
     }
 }
 
 pub struct PosDelta {
-    pub x: fphys,
-    pub y: fphys,
+    pub pos : Pos,
     pub dx: fphys,
     pub dy: fphys,
 }
 
 fn resolve_col_it(its: i32,
                   args: &ColArgs,
-                  w: fphys,
-                  h: fphys,
+                  w: Width,
+                  h: Height,
                   on_ground: bool,
                   pos_start: Pos,
                   pos_end: Pos)
@@ -179,30 +190,29 @@ fn resolve_col_it(its: i32,
 fn resolve_col_it_recurse(its: i32,
                           its_total: i32,
                           args: &ColArgs,
-                          w: fphys,
-                          h: fphys,
+                          w: Width,
+                          h: Height,
                           on_ground: bool,
-                          (xstart, ystart): Pos,
-                          (xend, yend): Pos)
+                          start: Pos,
+                          end: Pos)
                           -> PosDelta {
+    let Pos(xstart, ystart) = start;
+    let Pos(xend, yend) = end;
     if its <= 0 {
         let bb_test = BoundingBox {
-            x: xend,
-            y: yend,
+            pos: end,
             w: w,
             h: h,
         };
         if does_collide_bool(args, &bb_test) {
             PosDelta {
-                x: xstart,
-                y: ystart,
+                pos : start,
                 dx: 0.0,
                 dy: 0.0,
             }
         } else {
             PosDelta {
-                x: xend,
-                y: yend,
+                pos : end,
                 dx: xend - xstart,
                 dy: yend - ystart,
             }
@@ -211,16 +221,16 @@ fn resolve_col_it_recurse(its: i32,
         let current_it = its_total - its;
         let prop = ((current_it) as fphys) / (its_total as fphys);
         let bb_test = BoundingBox {
-            x: xstart + (xend - xstart) * prop,
-            y: ystart + (yend - ystart) * prop,
+            pos : Pos(xstart + (xend - xstart) * prop,
+                      ystart + (yend - ystart) * prop),
             w: w,
             h: h,
         };
 
         if does_collide_bool(args, &bb_test) {
+            let Pos(bb_test_x, bb_test_y) = bb_test.pos;
             let bb_test_step = BoundingBox {
-                x: bb_test.x,
-                y: bb_test.y - STEPHEIGHT,
+                pos : Pos(bb_test_x, bb_test_y - STEPHEIGHT),
                 w: bb_test.w,
                 h: bb_test.h,
             };
@@ -232,8 +242,8 @@ fn resolve_col_it_recurse(its: i32,
                                        w,
                                        h,
                                        on_ground,
-                                       (xstart, ystart - STEPHEIGHT),
-                                       (xend, yend - STEPHEIGHT))
+                                       Pos(xstart, ystart - STEPHEIGHT),
+                                       Pos(xend, yend - STEPHEIGHT))
 
             } else {
                 let prop_prev = ((current_it - 1) as fphys) /
@@ -241,8 +251,7 @@ fn resolve_col_it_recurse(its: i32,
                 let prev_x: fphys = xstart + (xend - xstart) * prop_prev;
                 let prev_y: fphys = ystart + (yend - ystart) * prop_prev;
                 PosDelta {
-                    x: prev_x,
-                    y: prev_y,
+                    pos : Pos(prev_x, prev_y),
                     dx: prev_x - xstart,
                     dy: prev_y - ystart,
                 }
@@ -254,8 +263,8 @@ fn resolve_col_it_recurse(its: i32,
                                    w,
                                    h,
                                    on_ground,
-                                   (xstart, ystart),
-                                   (xend, yend))
+                                   Pos(xstart, ystart),
+                                   Pos(xend, yend))
         }
     }
 
