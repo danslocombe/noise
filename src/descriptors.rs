@@ -8,12 +8,13 @@ use rustc_serialize::json::Object;
 use std::fs::File;
 use std::io::{Error, ErrorKind};
 use std::io::Read;
+use std::path::Path;
 
 use std::rc::Rc;
 use weapons::*;
 
 pub trait Descriptor {
-    fn new(&str) -> Result<Rc<Self>, Error>;
+    fn new(&Path) -> Result<Rc<Self>, Error>;
     fn to_move_descr(&self) -> MovementDescriptor;
 }
 
@@ -104,10 +105,10 @@ pub fn load_from(ts: &TextureSettings,
     Ok(r)
 }
 
-pub fn load_json(dname: &str, json_path: &str) -> Result<Object, Error> {
+pub fn load_json(dname: &str, json_path: &Path) -> Result<Object, Error> {
     let mut f = (File::open(json_path)).map_err(|_| {
             error_simple(dname,
-                         format!("could not open json file {}", json_path)
+                         format!("could not open json file {:?}", json_path)
                              .as_str())
         })?;
     let mut s = String::new();
@@ -121,7 +122,7 @@ pub fn load_json(dname: &str, json_path: &str) -> Result<Object, Error> {
 }
 
 impl Descriptor for PlayerDescriptor {
-    fn new(json_path: &str) -> Result<Rc<Self>, Error> {
+    fn new(json_path: &Path) -> Result<Rc<Self>, Error> {
         let obj = load_json("player", json_path)?;
 
         let idle_frames = get_number("player", &obj, "idle_frames")?;
@@ -226,7 +227,7 @@ pub struct GrappleDescriptor {
 }
 
 impl Descriptor for GrappleDescriptor {
-    fn new(json_path: &str) -> Result<Rc<Self>, Error> {
+    fn new(json_path: &Path) -> Result<Rc<Self>, Error> {
         let obj = load_json("grapple", json_path)?;
         Ok(Rc::new(GrappleDescriptor {
             extend_speed: get_float("grapple", &obj, "extend_speed")?,
@@ -244,6 +245,8 @@ impl Descriptor for GrappleDescriptor {
 }
 
 pub struct EnemyDescriptor {
+    pub name: String,
+
     pub idle: Vec<Texture>,
     pub running: Vec<Texture>,
     pub jumping: Vec<Texture>,
@@ -278,7 +281,7 @@ pub struct EnemyDescriptor {
 }
 
 impl Descriptor for EnemyDescriptor {
-    fn new(json_path: &str) -> Result<Rc<Self>, Error> {
+    fn new(json_path: &Path) -> Result<Rc<Self>, Error> {
         let obj = load_json("enemy", json_path)?;
 
         let idle_frames = get_number("enemy", &obj, "idle_frames")?;
@@ -326,6 +329,7 @@ impl Descriptor for EnemyDescriptor {
                                   attacking_path.as_str())?;
 
         Ok(Rc::new(EnemyDescriptor {
+            name: get_string("enemy", &obj, "name")?,
             speed: speed,
             scale: scale,
             width: width,

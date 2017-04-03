@@ -1,23 +1,24 @@
 {
+  "name": "base_faction0",
   "idle_frames":1,
-  "idle_path":"sprites/enemy/idle",
+  "idle_path":"sprites/enemy/faction0/base",
 
   "running_frames":1,
-  "running_path":"sprites/enemy/run",
+  "running_path":"sprites/enemy/faction0/base",
 
   "jumping_frames":1,
-  "jumping_path":"sprites/enemy/jump",
+  "jumping_path":"sprites/enemy/faction0/base",
 
   "attacking_frames":1,
-  "attacking_path":"sprites/enemy/dash",
+  "attacking_path":"sprites/enemy/faction0/base",
 
   "weapon":"melee",
 
   "speed":15,
-  "scale":6,
+  "scale":4,
 
-  "width":48,
-  "height":48,
+  "width":128,
+  "height":128,
 
   "friction":0.7,
   "friction_air_mult":0.35,

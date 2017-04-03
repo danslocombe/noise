@@ -7,10 +7,12 @@ use game::*;
 use gen::*;
 use rustc_serialize::json::{Array, Object};
 use rustc_serialize::json::Json;
+use std::collections::HashMap;
 
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::{Error, ErrorKind};
 use std::io::Read;
+use std::path::Path;
 use std::rc::Rc;
 use world::World;
 
@@ -35,10 +37,10 @@ fn get_bool(dname: &str, obj: &Object, field: &str) -> Result<bool, Error> {
                             format!("'{}' is not a boolean", field).as_str()))
 }
 
-pub fn from_json(path: &str,
+pub fn from_json(path: &Path,
                  player: GameObj,
                  grapple: GameObj,
-                 enemy_descr: Rc<EnemyDescriptor>,
+                 enemy_descriptors: &HashMap<String, Rc<EnemyDescriptor>>,
                  world: &mut World)
                  -> Result<(Vec<GameObj>, Vec<GhostTile>), Error> {
     let mut gobjs = Vec::new();
@@ -69,12 +71,17 @@ pub fn from_json(path: &str,
             }
             "enemy" | "blue_enemy" | "red_enemy" => {
                 let faction = get_number("world", obj, "allegiance")? as u32;
-                let e = enemy_create(id,
-                                     x,
-                                     y,
-                                     enemy_descr.clone(),
-                                     &world,
-                                     faction);
+                let descriptor_name =
+                    get_string("world", obj, "descriptor")?.to_string();
+                let descr_err = error_simple("world",
+                                             format!("Could not find enemy \
+                                                      descriptor {}",
+                                                     &descriptor_name)
+                                                 .as_str());
+                let descr = enemy_descriptors.get(&descriptor_name)
+                    .ok_or(descr_err)?
+                    .clone();
+                let e = enemy_create(id, x, y, descr, &world, faction);
                 gobjs.push(e);
             }
             "ground" => {
@@ -124,7 +131,7 @@ pub fn from_json(path: &str,
                 gobjs.push(c);
             }
             "tinge" => {
-                let yy = 2.0;
+                let yy = 1.8;
                 let c = create_tinge(id, yy, x, y, w, h, &world);
                 gobjs.push(c);
             }
@@ -134,4 +141,15 @@ pub fn from_json(path: &str,
         }
     }
     Ok((gobjs, gtiles))
+}
+
+pub fn load_enemy_descriptors
+    (path: &Path)
+     -> Result<HashMap<String, Rc<EnemyDescriptor>>, Error> {
+    let mut map = HashMap::new();
+    for file in fs::read_dir(path)? {
+        let descr = EnemyDescriptor::new(file.unwrap().path().as_path())?;
+        map.insert(descr.name.clone(), descr);
+    }
+    Ok(map)
 }

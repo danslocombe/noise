@@ -16,7 +16,7 @@ use gen::Gen;
 use gen::GhostTile;
 use glutin_window::GlutinWindow as Window;
 use grapple::create as grapple_create;
-use load_world::from_json;
+use load_world::*;
 use logic::*;
 use opengl_graphics::GlGraphics;
 use overlay::*;
@@ -25,6 +25,8 @@ use piston::event_loop::*;
 use piston::input::*;
 use player::create as player_create;
 use shaders::NoisyShader;
+use std::collections::HashMap;
+use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
@@ -127,12 +129,12 @@ pub trait InputHandler {
     fn release(&mut self, button: Button);
 }
 
-fn load_descriptor<T: Descriptor>(json_path: &str) -> Rc<T> {
+fn load_descriptor<T: Descriptor>(json_path: &Path) -> Rc<T> {
     let pd_r = T::new(json_path);
     match pd_r {
         Ok(s) => s,
         Err(e) => {
-            println!("Error loading player descriptor!");
+            println!("Error loading descriptor!");
             println!("{:?}", e.get_ref());
             println!("Crashing... :(");
             panic!();
@@ -152,7 +154,7 @@ struct Noise<'a> {
     pub input_handlers: Vec<Arc<Mutex<InputHandler>>>,
     pub player_descriptor: Rc<PlayerDescriptor>,
     pub grapple_descriptor: Rc<GrappleDescriptor>,
-    pub enemy_descriptor: Rc<EnemyDescriptor>,
+    pub enemy_descriptors: HashMap<String, Rc<EnemyDescriptor>>,
     pub view_follower: ViewFollower,
     pub metabuffer: CommandBuffer<MetaCommand>,
     pub objs: Vec<GameObj>,
@@ -172,7 +174,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     //  Initialise set of input handlers
     let mut input_handlers = Vec::new();
 
-    let player_descriptor: Rc<PlayerDescriptor> = load_descriptor("descriptors/player.json");
+    let player_descriptor: Rc<PlayerDescriptor> = load_descriptor(Path::new("descriptors/player.json"));
 
     //  Create player
     let player_id = world.player_id();
@@ -180,7 +182,8 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
         player_create(player_id, 800.0, -250.0, player_descriptor.clone());
     let mut player_phys = player_obj.physics.clone();
 
-    let grapple_descriptor: Rc<GrappleDescriptor> = load_descriptor("descriptors/grapple.json");
+    let grapple_descriptor: Rc<GrappleDescriptor> =
+        load_descriptor(Path::new("descriptors/grapple.json"));
     let mut grapple_id = world.generate_id();
     let (mut grapple_obj, mut grapple_input_handler) =
         grapple_create(grapple_id,
@@ -188,13 +191,13 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
                        player_id,
                        player_obj.physics.clone());
 
-    let enemy_descriptor: Rc<EnemyDescriptor> = load_descriptor("descriptors/enemy.json");
-
+    let mut enemy_descriptors =
+        load_enemy_descriptors(Path::new("descriptors/enemy")).unwrap();
     //  Load from json
-    let mut poss_objs = from_json("worlds/testworld.json",
+    let mut poss_objs = from_json(Path::new("worlds/testworld.json"),
                                   player_obj,
                                   grapple_obj,
-                                  enemy_descriptor.clone(),
+                                  &enemy_descriptors,
                                   &mut world);
 
     let (mut objs, mut ghost_tiles) = poss_objs.unwrap();
@@ -228,7 +231,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
         input_handlers: input_handlers,
         player_descriptor: player_descriptor,
         grapple_descriptor: grapple_descriptor,
-        enemy_descriptor: enemy_descriptor,
+        enemy_descriptors: enemy_descriptors,
         view_follower: view_follower,
         tile_manager: tile_manager,
         dialogue_buffer: dialogue_buffer,

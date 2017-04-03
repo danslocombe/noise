@@ -1,0 +1,41 @@
+{
+  "name":"base_faction1",
+  "idle_frames":1,
+  "idle_path":"sprites/enemy/faction1/base",
+
+  "running_frames":1,
+  "running_path":"sprites/enemy/faction1/base",
+
+  "jumping_frames":1,
+  "jumping_path":"sprites/enemy/faction1/base",
+
+  "attacking_frames":1,
+  "attacking_path":"sprites/enemy/faction1/base",
+
+  "weapon":"melee",
+
+  "speed":15,
+  "scale":4,
+
+  "width":128,
+  "height":128,
+
+  "friction":0.7,
+  "friction_air_mult":0.35,
+  "moveforce":15,
+  "moveforce_air_mult":0.4,
+  "jumpforce":650,
+  "max_runspeed":200,
+  "jump_cd":0.5,
+  "maxspeed":200,
+  "damage_cd":0.4,
+  "start_hp":100,
+  "bounce_force":120,
+  "idle_move_chance":0.009,
+  "idle_stop_chance":0.035,
+  "alert_dist":200,
+  "dash_duration":0.1,
+  "dash_cd":0.5,
+  "dash_invuln":0.3,
+  "dash_force":300
+}

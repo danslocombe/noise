@@ -129,7 +129,7 @@ impl NoisyShader {
         }
 
         self.color_morph_y +=
-            ((self.color_morph_y_target - self.color_morph_y) / 40.0);
+            ((self.color_morph_y_target - self.color_morph_y) / 400.0);
         self.color_morph = Matrix4::from_angle_y(Rad(self.color_morph_y as
                                                      f32));
     }
