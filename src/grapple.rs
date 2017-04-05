@@ -476,7 +476,7 @@ fn line_collide(start : &Pos, end : &Pos, bb: &BoundingBox) -> Option<Pos> {
             if outside == start_code {
                 start_x = x;
                 start_y = y;
-                start_code = cs_code(start,
+                start_code = cs_code(&Pos(start_x, start_y),
                                      bb_x,
                                      bb_x + bb_w,
                                      bb_y,
@@ -485,7 +485,7 @@ fn line_collide(start : &Pos, end : &Pos, bb: &BoundingBox) -> Option<Pos> {
                 end_x = x;
                 end_y = y;
                 end_code =
-                    cs_code(end, bb_x, bb_x + bb_w, bb_y, bb_y + bb_h);
+                    cs_code(&Pos(end_x, end_y), bb_x, bb_x + bb_w, bb_y, bb_y + bb_h);
             }
         }
     }

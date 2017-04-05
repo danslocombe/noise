@@ -482,15 +482,14 @@ impl Vel {
     pub fn update_by_accel(&self, accel : &Accel, dt : fphys) -> Vel {
         let Vel(vel_x, vel_y) = *self;
         let Accel(accel_x, accel_y) = *accel;
-        let new_x = vel_x + dt * vel_x;
-        let new_y = vel_y + dt * vel_y;
+        let new_x = vel_x + dt * accel_x;
+        let new_y = vel_y + dt * accel_y;
         Vel(new_x, new_y)
     }
 }
 impl Force {
     pub fn get_accel(&self, mass : &Mass) -> Accel {
-        let Mass(m) = *mass;
-        Accel(self.0 / m, self.1 / m)
+        Accel(self.0 / mass.0, self.1 / mass.0)
     }
 }
 pub struct Vector(pub fphys, pub fphys);

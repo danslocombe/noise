@@ -120,7 +120,7 @@ impl Logical for EnemyLogic {
                 //  Weapon handling
                 if self.weapon_cd <= 0.0 {
                     self.weapon_cd = self.weapon.get_cd();
-                    self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
+                    //self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
                 } else {
                     self.weapon_cd -= dt;
                 }

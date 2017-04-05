@@ -175,9 +175,8 @@ impl Physical for PhysDyn {
         let bbs = world.buffer();
 
         //  Newtonian equations
-
         self.accel = self.force.get_accel(&self.mass);
-        self.vel.update_by_accel(&self.accel, dt);
+        self.vel = self.vel.update_by_accel(&self.accel, dt);
 
         //	Cap maxspeed in any direction
         let Vel(xvel, yvel) = self.vel;
@@ -217,8 +216,6 @@ impl Physical for PhysDyn {
                                              self.on_ground,
                                              self.bb.pos,
                                              bb_test.pos);
-            //bb_test.x = pos_delta.x;
-            //bb_test.y = pos_delta.y;
             bb_test.pos = pos_delta.pos;
 
             self.vel = Vel(pos_delta.dx / dt, pos_delta.dy / dt);
