@@ -135,16 +135,16 @@ pub fn resolve_col_base(args: &ColArgs,
                         start: Pos,
                         end: Pos)
                         -> PosDelta {
+    let Pos(xstart, ystart) = start;
+    let Pos(xend, yend) = end;
+
     let pdelta_x = resolve_col_it(8,
                                   args,
                                   w,
                                   h,
                                   on_ground,
                                   start,
-                                  end);
-
-    let Pos(xstart, ystart) = start;
-    let Pos(xend, yend) = end;
+                                  Pos(xend, ystart));
 
     let Pos(x, _) = pdelta_x.pos;
     let pdelta_y = resolve_col_it(8,
