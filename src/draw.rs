@@ -1,6 +1,6 @@
 extern crate graphics;
 
-use game::{Pos, fphys, Width, Height};
+use game::{Height, Pos, Width, fphys};
 use opengl_graphics::GlGraphics;
 use piston::input::*;
 use player::PlayerLogic;
@@ -31,10 +31,7 @@ impl Rectangle {
 }
 
 pub trait Drawable {
-    fn draw(&mut self,
-            &RenderArgs,
-            &mut GlGraphics,
-            &ViewTransform);
+    fn draw(&mut self, &RenderArgs, &mut GlGraphics, &ViewTransform);
     fn set_position(&mut self, Pos);
     fn set_color(&mut self, Color);
     fn should_draw(&self, &Rectangle) -> bool;
@@ -50,7 +47,7 @@ pub struct GrphxNoDraw {}
 
 impl Drawable for GrphxNoDraw {
     fn draw(&mut self, _: &RenderArgs, _: &mut GlGraphics, _: &ViewTransform) {}
-    fn set_position(&mut self, _:Pos) {}
+    fn set_position(&mut self, _: Pos) {}
     fn set_color(&mut self, _: Color) {}
     fn should_draw(&self, _: &Rectangle) -> bool {
         false
@@ -94,7 +91,7 @@ impl Drawable for GrphxContainer {
 */
 
 pub struct GrphxRect {
-    pub pos : Pos,
+    pub pos: Pos,
     pub w: Width,
     pub h: Height,
     pub color: Color,
@@ -205,8 +202,7 @@ impl Drawable for GrphxRect {
         let Pos(x, y) = self.pos;
         let Width(w) = self.w;
         let Height(h) = self.h;
-        (x + w > r.x && x < r.x + r.w) ||
-        (y + h > r.h && y < r.y + r.h)
+        (x + w > r.x && x < r.x + r.w) || (y + h > r.h && y < r.y + r.h)
 
     }
 }

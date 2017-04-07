@@ -121,8 +121,7 @@ pub fn from_json(path: &Path,
             "trigger" => {
                 let trigger_id =
                     get_number("trigger", obj, "connect_target_id")? as Id;
-                let c =
-                    create_trigger(id, trigger_id, pos, w, h, &world);
+                let c = create_trigger(id, trigger_id, pos, w, h, &world);
                 gobjs.push(c);
             }
             "dialogue" => {

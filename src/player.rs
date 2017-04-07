@@ -64,7 +64,8 @@ impl Logical for PlayerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
         let dt = args.piston.dt as fphys;
-        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics
+            .clone());
 
         if self.hp < 0.0 || y > MAX_HEIGHT {
             args.metabuffer.issue(MetaCommand::RestartGame);
@@ -111,8 +112,10 @@ impl Logical for PlayerLogic {
                 }
                 let Vector(nx, ny) = (c.other_bb.pos - c.bb.pos).normalise();
                 args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              Force(-nx * force,
-                                                               -ny * force)));
+                                                              Force(-nx *
+                                                                    force,
+                                                                    -ny *
+                                                                    force)));
             }
         }
         //  Reset collisions
@@ -224,7 +227,7 @@ impl InputHandler for PlayerLogic {
 }
 
 pub fn create(id: Id,
-              pos : Pos,
+              pos: Pos,
               descr: Rc<PlayerDescriptor>)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
 
@@ -232,7 +235,7 @@ pub fn create(id: Id,
     let height = descr.height * descr.scale;
     let maxspeed = descr.maxspeed;
     let graphics = PlayerGphx {
-        pos : pos,
+        pos: pos,
         angle: 0.0,
         scale: descr.scale,
         speed: descr.speed,

@@ -85,11 +85,10 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
             cd.dash = descr.dash_cd;
             let ydir = 0.0 + (if input.contains(HI_FALL) { 1.0 } else { 0.0 }) -
                        (if input.contains(HI_JUMP) { 1.0 } else { 0.0 });
-            args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                          Force(descr.dash_force *
-                                                           xdir,
-                                                           descr.dash_force *
-                                                           ydir)));
+            args.metabuffer
+                .issue(MetaCommand::ApplyForce(args.id,
+                                               Force(descr.dash_force * xdir,
+                                                     descr.dash_force * ydir)));
         }
 
         //  Run normally

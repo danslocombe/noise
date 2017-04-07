@@ -2,7 +2,7 @@ extern crate rand;
 
 use self::rand::{Rng, thread_rng};
 
-use game::{Pos, Width, Height, fphys};
+use game::{Height, Pos, Width, fphys};
 use std::f64;
 use tile::{TILE_H, TILE_W, Tile, TileManager};
 
@@ -39,7 +39,7 @@ pub enum GhostBlockType {
 }
 
 pub struct GhostBlock {
-    pub pos : Pos,
+    pub pos: Pos,
     pub length: Width,
     pub block_type: GhostBlockType,
 }
@@ -129,11 +129,11 @@ impl Gen {
 
                 //  Floor of building
                 t.extend(pagoda_platform_tiles(Pos(self.generated_to,
-                                               self.last_block_y),
+                                                   self.last_block_y),
                                                BORDER_ALL,
                                                Width(length)));
                 r.push(GhostBlock {
-                    pos : Pos(self.generated_to, self.last_block_y),
+                    pos: Pos(self.generated_to, self.last_block_y),
                     length: Width(length),
                     block_type: GhostBlockType::Block,
                 });
@@ -141,8 +141,8 @@ impl Gen {
                 //  Bulk of structure
                 let (tiles, platforms) =
                     create_uniform_structure(Pos(self.generated_to,
-                                             self.last_block_y -
-                                             STRUCTURE_PLATFORM_HEIGHT),
+                                                 self.last_block_y -
+                                                 STRUCTURE_PLATFORM_HEIGHT),
                                              Width(length));
                 r.extend(platforms);
                 t.extend(tiles);
@@ -155,7 +155,7 @@ impl Gen {
                         (next_perlin(&mut self.octaves) / STEPSIZE).floor();
                 self.last_block_y = y;
                 r.push(GhostBlock {
-                    pos : Pos(self.generated_to, y),
+                    pos: Pos(self.generated_to, y),
                     length: BLOCKWIDTH,
                     block_type: GhostBlockType::Block,
                 });
@@ -165,7 +165,7 @@ impl Gen {
     }
 }
 
-pub fn pagoda_platform_tiles(pos : Pos,
+pub fn pagoda_platform_tiles(pos: Pos,
                              tile_edge: Borders,
                              width: Width)
                              -> Vec<GhostTile> {
@@ -225,10 +225,10 @@ fn cosine_interpolate(a: i32, b: i32, x: f64) -> f64 {
 }
 
 
-fn create_uniform_structure(pos : Pos,
+fn create_uniform_structure(pos: Pos,
                             length: Width)
                             -> (Vec<GhostTile>, Vec<GhostBlock>) {
-    let Pos(x, y)  = pos;
+    let Pos(x, y) = pos;
     let height = (rand_gauss() * MAX_HEIGHT as fphys).floor() as usize;
     let mut platforms = Vec::new();
     let mut tiles = Vec::new();
@@ -236,7 +236,7 @@ fn create_uniform_structure(pos : Pos,
         let iy = y - STRUCTURE_PLATFORM_HEIGHT * (i as fphys);
         tiles.extend(pagoda_platform_tiles(Pos(x, iy), BORDER_ALL, length));
         platforms.push(GhostBlock {
-            pos : Pos(x, iy),
+            pos: Pos(x, iy),
             length: length,
             block_type: GhostBlockType::Platform,
         });
@@ -244,7 +244,7 @@ fn create_uniform_structure(pos : Pos,
     (tiles, platforms)
 }
 
-fn create_structure(pos : Pos,
+fn create_structure(pos: Pos,
                     length: Width,
                     height: u32)
                     -> Vec<(Pos, Option<Width>)> {
@@ -265,8 +265,8 @@ fn create_structure(pos : Pos,
         if !created_next_floor && end - ix > length.0 / 2.0 &&
            (rand_gauss() < UPPER_FLOOR_P) {
             ret.extend(create_structure(Pos(ix,
-                                        y - BLOCKWIDTH.0 -
-                                        STRUCTURE_PLATFORM_HEIGHT),
+                                            y - BLOCKWIDTH.0 -
+                                            STRUCTURE_PLATFORM_HEIGHT),
                                         Width(2.0 * (end - ix) - length.0),
                                         height + 1));
             created_next_floor = true;

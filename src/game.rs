@@ -8,7 +8,6 @@ extern crate rayon;
 use block::blocks_from_ghosts;
 use collision::Collision;
 use descriptors::*;
-use std::ops::{Add, Mul, Sub};
 
 use dialogue::{Dialogue, DialogueBuffer};
 use draw::{Drawable, ViewFollower, ViewTransform};
@@ -27,6 +26,7 @@ use piston::input::*;
 use player::create as player_create;
 use shaders::NoisyShader;
 use std::collections::HashMap;
+use std::ops::{Add, Mul, Sub};
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -445,7 +445,7 @@ pub fn game_loop(mut window: Window,
 
 impl Add for Pos {
     type Output = Vector;
-    fn add(self, other:Pos) -> Vector {
+    fn add(self, other: Pos) -> Vector {
         let Pos(x, y) = self;
         let Pos(ox, oy) = other;
         Vector(x + ox, y + oy)
@@ -453,7 +453,7 @@ impl Add for Pos {
 }
 impl Sub for Pos {
     type Output = Vector;
-    fn sub(self, other:Pos) -> Vector {
+    fn sub(self, other: Pos) -> Vector {
         let Pos(x, y) = self;
         let Pos(ox, oy) = other;
         Vector(x - ox, y - oy)
@@ -461,25 +461,25 @@ impl Sub for Pos {
 }
 impl Mul<fphys> for Pos {
     type Output = Pos;
-    fn mul(self, other:fphys) -> Pos {
+    fn mul(self, other: fphys) -> Pos {
         let Pos(x, y) = self;
         Pos(x * other, y * other)
     }
 }
 impl Pos {
-    pub fn update_by_vel(&self, vel : &Vel, dt : fphys) -> Self {
+    pub fn update_by_vel(&self, vel: &Vel, dt: fphys) -> Self {
         let Pos(x, y) = *self;
         let Vel(vel_x, vel_y) = *vel;
         let new_x = x + dt * vel_x;
         let new_y = y + dt * vel_y;
         Pos(new_x, new_y)
     }
-    pub fn dist_2(&self, other : &Self) -> fphys {
+    pub fn dist_2(&self, other: &Self) -> fphys {
         (self.0 - other.0).powi(2) + (self.1 - other.1).powi(2)
     }
 }
 impl Vel {
-    pub fn update_by_accel(&self, accel : &Accel, dt : fphys) -> Vel {
+    pub fn update_by_accel(&self, accel: &Accel, dt: fphys) -> Vel {
         let Vel(vel_x, vel_y) = *self;
         let Accel(accel_x, accel_y) = *accel;
         let new_x = vel_x + dt * accel_x;
@@ -488,7 +488,7 @@ impl Vel {
     }
 }
 impl Force {
-    pub fn get_accel(&self, mass : &Mass) -> Accel {
+    pub fn get_accel(&self, mass: &Mass) -> Accel {
         Accel(self.0 / mass.0, self.1 / mass.0)
     }
 }
@@ -502,13 +502,27 @@ impl Vector {
 }
 impl Mul<fphys> for Width {
     type Output = Width;
-    fn mul(self, other:fphys) -> Width {
+    fn mul(self, other: fphys) -> Width {
         Width(self.0 * other)
     }
 }
 impl Mul<fphys> for Height {
     type Output = Height;
-    fn mul(self, other:fphys) -> Height {
+    fn mul(self, other: fphys) -> Height {
         Height(self.0 * other)
+    }
+}
+
+impl Add for Width {
+    type Output = Width;
+    fn add(self, other: Width) -> Width {
+        Width(self.0 + other.0)
+    }
+}
+
+impl Add for Height {
+    type Output = Height;
+    fn add(self, other: Height) -> Height {
+        Height(self.0 + other.0)
     }
 }

@@ -44,7 +44,8 @@ struct EnemyLogic {
 impl Logical for EnemyLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics.clone());
+        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics
+            .clone());
         let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 || y > MAX_HEIGHT {
@@ -68,7 +69,8 @@ impl Logical for EnemyLogic {
         }
 
         //  Find a target
-        let poss_target = get_target(Pos(x, y), self.faction, 1000.0, args.world);
+        let poss_target =
+            get_target(Pos(x, y), self.faction, 1000.0, args.world);
         match poss_target {
             Some(target) => {
                 let (_, target_bb) = args.world.get(target).unwrap(); // TODO error handle here
@@ -181,7 +183,7 @@ fn get_target(pos: Pos,
 }
 
 pub fn create(id: Id,
-              pos : Pos,
+              pos: Pos,
               descr: Rc<EnemyDescriptor>,
               world: &World,
               faction: Faction)
@@ -189,7 +191,7 @@ pub fn create(id: Id,
 
     world.add_fighter(id, faction);
     let graphics = EnemyGphx {
-        pos : pos,
+        pos: pos,
         scale: descr.scale,
         speed: descr.speed,
         state: EnemyDrawState::Idle,

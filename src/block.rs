@@ -5,7 +5,7 @@ use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
 use descriptors::EnemyDescriptor;
 use draw::{GrphxNoDraw, GrphxRect};
 use enemy::create as enemy_create;
-use game::{Height, Width, Pos, BLOCKSIZE, ENEMY_GEN_P, GameObj, Id, fphys};
+use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, Height, Id, Pos, Width, fphys};
 use gen::{GhostBlock, GhostBlockType};
 use logic::DumbLogic;
 use physics::{PhysStatic, Physical};
@@ -15,15 +15,15 @@ use tools::arc_mut;
 use world::World;
 
 pub fn create_block(id: Id,
-                    pos : Pos,
+                    pos: Pos,
                     length: Width,
                     height: Height,
                     world: &World)
                     -> GameObj {
     let g = arc_mut(GrphxRect {
-        pos  : pos,
+        pos: pos,
         w: length,
-        h: Height(height.0 + 1500.0),
+        h: height + Height(1500.0),
         color: [1.0, 0.15, 0.15, 1.0],
     });
     let props = BBProperties {
@@ -36,7 +36,7 @@ pub fn create_block(id: Id,
 }
 
 pub fn create_platform(id: Id,
-                       pos : Pos,
+                       pos: Pos,
                        width: Width,
                        world: &World)
                        -> GameObj {

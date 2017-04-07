@@ -38,8 +38,13 @@ impl PlayerColLogic {
             id: id,
             owner_type: BBO_PLAYER_ENTITY,
         };
-        let p =
-            arc_mut(PhysDyn::new(props, bb.pos, Mass(1.0), 100.0, bb.w, bb.h, g));
+        let p = arc_mut(PhysDyn::new(props,
+                                     bb.pos,
+                                     Mass(1.0),
+                                     100.0,
+                                     bb.w,
+                                     bb.h,
+                                     g));
         let pl = PlayerColLogic {
             bb: bb,
             f: Arc::new(f),
@@ -80,7 +85,7 @@ impl Logical for TriggerLogic {
 
 pub fn create_trigger(id: Id,
                       trigger_id: Id,
-                      pos : Pos,
+                      pos: Pos,
                       width: Width,
                       height: Height,
                       world: &World)
@@ -89,7 +94,7 @@ pub fn create_trigger(id: Id,
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(TriggerLogic {
         bb: BoundingBox {
-            pos : pos,
+            pos: pos,
             w: width,
             h: height,
         },
@@ -131,12 +136,12 @@ pub fn create_dialogue(id: Id,
     GameObj::new(id, g, p, l)
 }
 
-pub fn create_crown(id: Id, pos : Pos, world: &World) -> GameObj {
+pub fn create_crown(id: Id, pos: Pos, world: &World) -> GameObj {
     let w = Width(32.0);
     let h = Height(32.0);
     let c = [1.0, 1.0, 0.0, 1.0];
     let g = arc_mut(GrphxRect {
-        pos : pos,
+        pos: pos,
         w: w,
         h: h,
         color: c,
@@ -160,8 +165,10 @@ pub fn create_crown(id: Id, pos : Pos, world: &World) -> GameObj {
                 let Vector(dir_x, dir_y) = (player_bb.pos - pos).normalise();
                 let force = 100.0;
                 args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              Force(dir_x * force,
-                                                               dir_y * force)));
+                                                              Force(dir_x *
+                                                                    force,
+                                                                    dir_y *
+                                                                    force)));
             }
         });
     });
@@ -179,7 +186,7 @@ pub fn create_crown(id: Id, pos : Pos, world: &World) -> GameObj {
 
 pub fn create_tinge(id: Id,
                     y_target: fphys,
-                    pos : Pos,
+                    pos: Pos,
                     width: Width,
                     height: Height,
                     world: &World)
@@ -188,7 +195,7 @@ pub fn create_tinge(id: Id,
     let p = arc_mut(PhysNone { id: id });
     let l = arc_mut(TingeLogic {
         bb: BoundingBox {
-            pos : pos,
+            pos: pos,
             w: width,
             h: height,
         },

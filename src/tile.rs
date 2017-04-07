@@ -95,14 +95,14 @@ impl TileManager {
 #[derive(Clone)]
 pub struct Tile<'a> {
     pub texture: &'a Texture,
-    pub pos : Pos,
+    pub pos: Pos,
 }
 
 impl<'a> Tile<'a> {
-    fn new(pos : Pos, texture: &'a Texture) -> Self {
+    fn new(pos: Pos, texture: &'a Texture) -> Self {
         Tile {
             texture: texture,
-            pos : pos,
+            pos: pos,
         }
     }
 }

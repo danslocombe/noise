@@ -3,7 +3,7 @@ extern crate cgmath;
 use self::cgmath::{Matrix4, One, Rad, Vector4};
 use self::gl::types::GLuint;
 
-use game::{Vector, Pos, Vel, fphys};
+use game::{Pos, Vector, Vel, fphys};
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use std::fs::File;
@@ -123,8 +123,8 @@ impl NoisyShader {
             self.color_morph_y_target = 0.0;
         }
 
-        self.color_morph_y +=
-            ((self.color_morph_y_target - self.color_morph_y) / 400.0);
+        self.color_morph_y += (self.color_morph_y_target - self.color_morph_y) /
+                              400.0;
         self.color_morph = Matrix4::from_angle_y(Rad(self.color_morph_y as
                                                      f32));
     }

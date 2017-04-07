@@ -23,7 +23,7 @@ pub enum PlayerDrawState {
 }
 
 pub struct PlayerGphx {
-    pub pos : Pos,
+    pub pos: Pos,
     pub scale: fphys,
     pub speed: fphys,
     pub speed_mod: fphys,
@@ -79,7 +79,7 @@ impl Drawable for PlayerGphx {
             image(texture, transform_rot, gl);
         });
     }
-    fn set_position(&mut self, p : Pos) {
+    fn set_position(&mut self, p: Pos) {
         self.pos = p;
     }
     fn set_color(&mut self, color: Color) {

@@ -67,7 +67,7 @@ pub fn create_arrow(id: Id,
     let h = Height(12.0);
     let c = [0.0, 0.5, 0.0, 1.0];
     let g = arc_mut(GrphxRect {
-        pos : pos,
+        pos: pos,
         w: w,
         h: h,
         color: c,

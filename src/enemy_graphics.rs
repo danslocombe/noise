@@ -24,7 +24,7 @@ pub enum EnemyDrawState {
 
 
 pub struct EnemyGphx {
-    pub pos : Pos,
+    pub pos: Pos,
     pub scale: fphys,
     pub speed: fphys,
     pub state: EnemyDrawState,
@@ -104,7 +104,7 @@ impl Drawable for EnemyGphx {
             image(texture, transform, gl);
         });
     }
-    fn set_position(&mut self, p : Pos) {
+    fn set_position(&mut self, p: Pos) {
         self.pos = p;
     }
     fn set_color(&mut self, color: Color) {
