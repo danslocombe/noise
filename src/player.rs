@@ -230,8 +230,14 @@ pub fn create(id: Id,
 
     let g = arc_mut(graphics);
     let props = BBProperties::new(id, BBO_PLAYER);
-    let mut phys =
-        PhysDyn::new(props, pos, Mass(1.0), maxspeed, width, height, g.clone());
+    let mut phys = PhysDyn::new(props,
+                                pos,
+                                Mass(1.0),
+                                maxspeed,
+                                width,
+                                height,
+                                true,
+                                g.clone());
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);
 

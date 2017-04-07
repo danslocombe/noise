@@ -92,6 +92,7 @@ pub struct PhysDyn {
     pub on_ground: bool,
     pub bb: BoundingBox,
     pub collide_with: BBOwnerType,
+    resolve_collisions: bool,
     vel: Vel,
     accel: Accel,
     force: Force,
@@ -106,6 +107,7 @@ impl PhysDyn {
                maxspeed: fphys,
                width: Width,
                height: Height,
+               resolve_collisions: bool,
                dr: Arc<Mutex<super::draw::Drawable>>)
                -> PhysDyn {
         let bb = BoundingBox {
@@ -125,6 +127,7 @@ impl PhysDyn {
             bb: bb,
             maxspeed: maxspeed,
             collide_with: BBO_ALL,
+            resolve_collisions: resolve_collisions,
             draw: dr,
         }
     }
@@ -212,17 +215,18 @@ impl Physical for PhysDyn {
             metabuffer.mess_obj(collision.other_id,
                                 ObjMessage::MCollision(collision_flip));
 
-            let pos_delta = resolve_col_base(&resolve_args,
-                                             self.bb.w,
-                                             self.bb.h,
-                                             self.on_ground,
-                                             self.bb.pos,
-                                             bb_test.pos);
-            bb_test.pos = pos_delta.pos;
+            if self.resolve_collisions {
+                let pos_delta = resolve_col_base(&resolve_args,
+                                                 self.bb.w,
+                                                 self.bb.h,
+                                                 self.on_ground,
+                                                 self.bb.pos,
+                                                 bb_test.pos);
+                bb_test.pos = pos_delta.pos;
 
-            self.vel = Vel(pos_delta.dx / dt, pos_delta.dy / dt);
+                self.vel = Vel(pos_delta.dx / dt, pos_delta.dy / dt);
+            }
         }
-
         self.bb = bb_test;
 
         //  Test if on the ground

@@ -37,6 +37,7 @@ struct EnemyLogic {
     faction: Faction,
     cds: Cooldowns,
     hp: fphys,
+    spawn_pos: Pos,
 }
 
 //  TODO code reuse from player
@@ -49,7 +50,9 @@ impl Logical for EnemyLogic {
         let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 || y > MAX_HEIGHT {
-            args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
+            //args.metabuffer.issue(MetaCommand::RemoveObject(self.id));
+            let mut ppp = self.physics.lock().unwrap();
+            ppp.set_position(self.spawn_pos);
             return;
         }
 
@@ -207,6 +210,7 @@ pub fn create(id: Id,
                                 descr.maxspeed,
                                 descr.width,
                                 descr.height,
+                                true,
                                 g.clone());
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);
@@ -214,6 +218,7 @@ pub fn create(id: Id,
     let weapon = Box::new(Bow {});
     let l = arc_mut(EnemyLogic {
         id: id,
+        spawn_pos: pos,
         weapon: weapon,
         weapon_cd: 0.0,
         faction: faction,

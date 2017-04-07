@@ -1,4 +1,4 @@
-use collision::{BBDescriptor, BBProperties, BoundingBox};
+use collision::*;
 use game::{Id, TriggerId};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -79,8 +79,11 @@ impl World {
             }
         }
         //  Buffer into list
-        self.buffer =
-            self.world.values().cloned().collect::<Vec<BBDescriptor>>();
+        self.buffer = self.world
+            .values()
+            .cloned()
+            .filter(|d: &BBDescriptor| !d.0.owner_type.contains(BBO_NOCOLLIDE))
+            .collect::<Vec<BBDescriptor>>();
 
         for (id, fighter) in self.fighter_receiver.try_iter() {
             match fighter {
