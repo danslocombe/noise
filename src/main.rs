@@ -44,8 +44,8 @@ mod humanoid;
 use game::game_loop;
 use shaders::NoisyShader;
 
-pub const SCREEN_WIDTH: u32 = 640;
-pub const SCREEN_HEIGHT: u32 = 480;
+pub const SCREEN_WIDTH: u32 = 800;
+pub const SCREEN_HEIGHT: u32 = 600;
 
 fn main() {
 
@@ -55,6 +55,10 @@ fn main() {
     // Create an Glutin window.
     let window = WindowSettings::new("noise", [SCREEN_WIDTH, SCREEN_HEIGHT])
         .opengl(opengl)
+        .exit_on_esc(true)
+        //.fullscreen(true)
+        .vsync(true)
+        .decorated(false)
         .exit_on_esc(true)
         .build()
         .unwrap();

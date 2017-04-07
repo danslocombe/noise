@@ -21,7 +21,6 @@ pub struct PlayerLogic {
     pub physics: Arc<Mutex<PhysDyn>>,
     input: HumanoidInput,
     cds: Cooldowns,
-    damage_cd: fphys,
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
     grappling: bool,
@@ -39,7 +38,6 @@ impl PlayerLogic {
         PlayerLogic {
             draw: draw,
             physics: physics,
-            damage_cd: 0.0,
             descr: descr.clone(),
             input: HI_NONE,
             collision_buffer: Vec::new(),
@@ -47,18 +45,13 @@ impl PlayerLogic {
             grapple_target: None,
             hp: descr.start_hp,
             hp_max: descr.start_hp,
-            cds: Cooldowns {
-                jump: 0.0,
-                dash: 0.0,
-            },
+            cds: Cooldowns::new(),
         }
     }
 }
 
 const ENEMY_DMG: fphys = 22.0;
-
-const ENEMY_BUMP_FORCE: fphys = 100.0;
-const ENEMY_SHOVE_FORCE: fphys = 200.0;
+const ENEMY_SHOVE_FORCE: fphys = 1500.0;
 
 impl Logical for PlayerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
@@ -95,35 +88,24 @@ impl Logical for PlayerLogic {
             if c.other_type.contains(BBO_ENEMY) {
 
                 let force: fphys;
-                if self.damage_cd <= 0.0 &&
-                   self.cds.dash < self.descr.dash_cd - self.descr.dash_invuln {
+                if self.cds.hit <= 0.0 {
                     //  Take damage
-                    self.damage_cd = self.descr.dash_cd;
+                    self.cds.hit = self.descr.damage_cd;
                     self.hp -= ENEMY_DMG;
                     args.metabuffer.issue(MetaCommand::Dialogue(7, String::from("I meant to do that")));
-                    force = ENEMY_SHOVE_FORCE
-                } else {
+                    force = ENEMY_SHOVE_FORCE;
+                    let Vector(nx, ny) = (c.other_bb.pos - c.bb.pos)
+                        .normalise();
+                    //println!("NY : {}", ny);
+                    let hit_force = Force(-nx * force, -ny * force);
                     args.metabuffer
-                        .issue(MetaCommand::Dialogue(6,
-                                                     String::from("I hit him \
-                                                                   right in \
-                                                                   the face")));
-                    force = ENEMY_BUMP_FORCE
+                        .issue(MetaCommand::ApplyForce(args.id, hit_force));
                 }
-                let Vector(nx, ny) = (c.other_bb.pos - c.bb.pos).normalise();
-                args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              Force(-nx *
-                                                                    force,
-                                                                    -ny *
-                                                                    force)));
             }
         }
         //  Reset collisions
         self.collision_buffer = Vec::new();
 
-        if self.damage_cd > 0.0 {
-            self.damage_cd -= dt;
-        }
         let mut on_ground = false;
         {
             let phys = self.physics.lock().unwrap();

@@ -275,6 +275,7 @@ pub fn game_loop(mut window: Window,
         match e {
             Input::Update(u_args) => {
                 time += u_args.dt;
+                //print!("FPS {:.3}\r", 1.0 / u_args.dt);
 
                 //  Update bounding box list
                 game.world.update();

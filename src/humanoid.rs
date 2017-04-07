@@ -64,6 +64,17 @@ pub struct MovementDescriptor {
 pub struct Cooldowns {
     pub jump: fphys,
     pub dash: fphys,
+    pub hit: fphys,
+}
+
+impl Cooldowns {
+    pub fn new() -> Self {
+        Cooldowns {
+            jump: 0.0,
+            dash: 0.0,
+            hit: 0.0,
+        }
+    }
 }
 
 pub fn humanoid_input(args: &LogicUpdateArgs,
@@ -76,6 +87,9 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
     let xdir = if input.contains(HI_LEFT) { -1.0 } else { 0.0 } +
                if input.contains(HI_RIGHT) { 1.0 } else { 0.0 };
 
+    if cd.hit > 0.0 {
+        cd.hit -= args.piston.dt;
+    }
     if cd.dash > 0.0 {
         cd.dash -= args.piston.dt;
     }

@@ -57,8 +57,8 @@ impl Logical for EnemyLogic {
 
         //  Handle collisions
         for c in &self.collision_buffer {
-            if c.other_type.contains(BBO_PLAYER) ||
-               c.other_type.contains(BBO_ENEMY) {
+            if c.other_type.contains(BBO_ENEMY) && self.cds.hit <= 0.0 {
+                self.cds.hit = self.descr.damage_cd;
                 let diff = c.other_bb.pos - c.bb.pos;
                 let Vector(nx, ny) = diff.normalise();
                 let xf = -nx * self.descr.bounce_force;
@@ -122,7 +122,7 @@ impl Logical for EnemyLogic {
                 //  Weapon handling
                 if self.weapon_cd <= 0.0 {
                     self.weapon_cd = self.weapon.get_cd();
-                    //self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
+                    self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
                 } else {
                     self.weapon_cd -= dt;
                 }
@@ -223,10 +223,7 @@ pub fn create(id: Id,
         descr: descr,
         draw: g.clone(),
         collision_buffer: Vec::new(),
-        cds: Cooldowns {
-            jump: 0.0,
-            dash: 0.0,
-        },
+        cds: Cooldowns::new(),
     });
 
     GameObj::new(id, g, p, l)
