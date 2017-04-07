@@ -401,15 +401,17 @@ pub fn game_loop(mut window: Window,
                 draw_background(&r_args, &mut ctx);
 
                 let viewport = r_args.viewport().rect;
-                let view_rect = &game.view_follower
-                    .vt
-                    .to_rectangle(2.0 * viewport[2] as fphys,
-                                  2.0 * viewport[3] as fphys);
+                let view_transform = &game.view_follower
+                    .get_transform(&r_args.viewport());
+                //let view_rect = &game.view_follower
+                //.get_transform(&r_args.viewport())
+                //.to_rectangle(2.0 * viewport[2] as fphys,
+                //2.0 * viewport[3] as fphys);
 
                 shader.set_textured(&mut ctx);
                 for tile in &mut game.tiles {
                     //if tile.should_draw(view_rect) {
-                    tile.draw(&r_args, &mut ctx, &game.view_follower.vt);
+                    tile.draw(&r_args, &mut ctx, &view_transform);
                     //}
                 }
 
@@ -419,13 +421,13 @@ pub fn game_loop(mut window: Window,
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
                     //if gphx.should_draw(view_rect) {
-                    gphx.draw(&r_args, &mut ctx, &game.view_follower.vt);
+                    gphx.draw(&r_args, &mut ctx, &view_transform);
                     //}
                 }
                 if game.overlay.dialogue_empty() {
                     game.overlay.set_dialogue(game.dialogue_buffer.get(time));
                 }
-                game.overlay.draw(&r_args, &mut ctx, &game.view_follower.vt);
+                game.overlay.draw(&r_args, &mut ctx, &view_transform);
             }
             Input::Press(i) => {
                 for input_handler in &game.input_handlers {

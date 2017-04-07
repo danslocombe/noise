@@ -1,6 +1,7 @@
 extern crate graphics;
 
 use game::{Height, Pos, Width, fphys};
+use graphics::Viewport;
 use opengl_graphics::GlGraphics;
 use piston::input::*;
 use player::PlayerLogic;
@@ -116,23 +117,32 @@ impl ViewTransform {
 }
 
 pub struct ViewFollower {
-    pub vt: ViewTransform,
-    pub follow_id: u32,
-    pub w: fphys,
-    pub w_scale: fphys,
-    pub offset_factor: fphys,
-    pub scale_mult: fphys,
-    pub follow_prev_x: fphys,
-    pub follow_prev_y: fphys,
-    pub x_max: fphys,
-    pub min_buffer: fphys,
-    pub enable_min_buffer: bool,
+    follow_id: u32,
+
+    x_offset: fphys,
+    y_offset: fphys,
+    scale: fphys,
+
+    w: fphys,
+    w_scale: fphys,
+
+    offset_factor: fphys,
+    scale_mult: fphys,
+
+    follow_prev_x: fphys,
+    follow_prev_y: fphys,
+
+    x_max: fphys,
+    min_buffer: fphys,
+    enable_min_buffer: bool,
 }
 
 impl ViewFollower {
     pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
         ViewFollower {
-            vt: vt,
+            x_offset: 0.0,
+            y_offset: 0.0,
+            scale: 1.0,
             follow_id: id,
             w: 20.0,
             w_scale: 200.0,
@@ -145,6 +155,15 @@ impl ViewFollower {
             min_buffer: 800.0,
         }
     }
+    pub fn get_transform(&self, viewport: &Viewport) -> ViewTransform {
+        let view_rect = viewport.rect;
+
+        ViewTransform {
+            x: self.x_offset - view_rect[2] as f64 / 2.0,
+            y: self.y_offset - view_rect[3] as f64 / 2.0,
+            scale: self.scale,
+        }
+    }
     pub fn update(&mut self, world: &World) {
         world.get(self.follow_id).map(|(_, bb)| {
             let Pos(bbx, bby) = bb.pos;
@@ -155,16 +174,16 @@ impl ViewFollower {
 
             let offset = bb_xvel * self.offset_factor;
 
-            self.vt.x = weight(self.vt.x, bbx + offset - 320.0, self.w);
-            self.vt.y = weight(self.vt.y, bby - 320.0, self.w);
+            self.x_offset = weight(self.x_offset, bbx + offset, self.w);
+            self.y_offset = weight(self.y_offset, bby, self.w);
 
             if self.enable_min_buffer &&
-               self.vt.x < self.x_max - self.min_buffer {
-                self.vt.x = self.x_max - self.min_buffer;
+               self.x_offset < self.x_max - self.min_buffer {
+                self.x_offset = self.x_max - self.min_buffer;
             }
-            self.vt.scale = weight(self.vt.scale,
-                                   0.8 - bb_xvel.abs() * self.scale_mult,
-                                   self.w_scale);
+            self.scale = weight(self.scale,
+                                0.8 - bb_xvel.abs() * self.scale_mult,
+                                self.w_scale);
 
             self.follow_prev_x = bbx;
             self.follow_prev_y = bby;
