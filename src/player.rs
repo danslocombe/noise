@@ -56,9 +56,10 @@ const ENEMY_SHOVE_FORCE: fphys = 1500.0;
 impl Logical for PlayerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
+        let phys_info = get_phys_info(self.physics.clone());
+        let Pos(x, y) = phys_info.pos;
+        let Vel(xvel, yvel) = phys_info.vel;
         let dt = args.piston.dt as fphys;
-        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics
-            .clone());
 
         if self.hp < 0.0 || y > MAX_HEIGHT {
             args.metabuffer.issue(MetaCommand::RestartGame);

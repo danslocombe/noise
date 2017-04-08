@@ -45,8 +45,9 @@ struct EnemyLogic {
 impl Logical for EnemyLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
 
-        let (Pos(x, y), Vel(xvel, yvel)) = pos_vel_from_phys(self.physics
-            .clone());
+        let phys_info = get_phys_info(self.physics.clone());
+        let Pos(x, y) = phys_info.pos;
+        let Vel(xvel, yvel) = phys_info.vel;
         let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 || y > MAX_HEIGHT {
@@ -125,7 +126,10 @@ impl Logical for EnemyLogic {
                 //  Weapon handling
                 if self.weapon_cd <= 0.0 {
                     self.weapon_cd = self.weapon.get_cd();
-                    self.weapon.fire(Pos(tx, ty), Pos(x, y), args);
+                    self.weapon.fire(Pos(tx, ty),
+                                     Pos(x + phys_info.w.0 / 2.0,
+                                         y + phys_info.h.0 / 2.0),
+                                     args);
                 } else {
                     self.weapon_cd -= dt;
                 }

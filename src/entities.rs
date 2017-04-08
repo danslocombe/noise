@@ -1,7 +1,7 @@
 use collision::*;
 use draw::*;
 use game::*;
-use humanoid::pos_vel_from_phys;
+use humanoid::*;
 use logic::*;
 use physics::*;
 use piston::input::*;

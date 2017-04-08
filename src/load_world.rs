@@ -86,8 +86,7 @@ pub fn from_json(path: &Path,
                 gobjs.push(e);
             }
             "ground" => {
-                let b =
-                    create_block(id, pos, w, h, &world);
+                let b = create_block(id, pos, w, h, &world);
                 gobjs.push(b);
             }
             "pagoda_block" => {

@@ -43,9 +43,22 @@ pub fn buffer_collisions(message_buffer: &CommandBuffer<ObjMessage>)
     ret
 }
 
-pub fn pos_vel_from_phys(p: Arc<Mutex<PhysDyn>>) -> (Pos, Vel) {
+pub struct PhysInfo {
+    pub pos: Pos,
+    pub vel: Vel,
+    pub w: Width,
+    pub h: Height,
+}
+
+pub fn get_phys_info(p: Arc<Mutex<PhysDyn>>) -> PhysInfo {
     let phys = p.lock().unwrap();
-    (phys.get_position(), phys.get_vel())
+    let (w, h) = phys.get_width_height();
+    PhysInfo {
+        pos: phys.get_position(),
+        vel: phys.get_vel(),
+        w: w,
+        h: h,
+    }
 }
 
 pub struct MovementDescriptor {
