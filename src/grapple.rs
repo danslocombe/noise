@@ -264,6 +264,7 @@ impl Physical for Grapple {
                     self.end = self.start;
                 } else {
 
+                    /* TODOTODO TODO TODO TODO
                     for bbprops in world.buffer() {
                         let (ref props, ref bb) = *bbprops;
                         if props.owner_type.contains(BBO_PLAYER) ||
@@ -278,6 +279,7 @@ impl Physical for Grapple {
                             self.state = GrappleState::Locked(len_2.sqrt());
                         });
                     }
+                    */
 
                     let mut d = self.draw.lock().unwrap();
                     d.end = self.end;

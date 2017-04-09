@@ -3,7 +3,7 @@ extern crate cgmath;
 use self::cgmath::{Matrix4, One, Rad, Vector4};
 use self::gl::types::GLuint;
 
-use game::{Pos, Vector, Vel, fphys};
+use game::{Id, Pos, Vector, Vel, fphys};
 use opengl_graphics::GlGraphics;
 use opengl_graphics::shader_uniforms::*;
 use std::fs::File;
@@ -32,7 +32,7 @@ pub fn tex_frag() -> String {
 }
 
 pub struct NoisyShader {
-    obj_id: Option<u32>,
+    obj_id: Option<Id>,
     time: f32,
     vel: Vel,
     obj_prev: Pos,
@@ -81,7 +81,7 @@ impl NoisyShader {
         }
     }
 
-    pub fn set_following(&mut self, obj_id: u32) {
+    pub fn set_following(&mut self, obj_id: Id) {
         self.obj_id = Some(obj_id);
     }
     pub fn set_colored(&self, ctx: &mut GlGraphics) {
@@ -108,12 +108,12 @@ impl NoisyShader {
         self.time += 0.001;
 
         self.obj_id.map(|id| {
-            world.get(id).map(|(_, bb)| {
-                let Vector(bb_xvel, bb_yvel) = bb.pos - self.obj_prev;
+            world.get_pos(id).map(|pos| {
+                let Vector(bb_xvel, bb_yvel) = pos - self.obj_prev;
                 let vel_x = weight(self.vel.0, bb_xvel, self.weight);
                 let vel_y = weight(self.vel.1, bb_yvel, self.weight);
                 self.vel = Vel(vel_x, vel_y);
-                self.obj_prev = bb.pos;
+                self.obj_prev = pos;
             });
         });
 

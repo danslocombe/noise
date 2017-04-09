@@ -23,7 +23,7 @@ impl Collision {
     }
 }
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct BBProperties {
     pub id: Id,
     pub owner_type: BBOwnerType,
@@ -53,7 +53,7 @@ impl BBProperties {
 }
 
 
-#[derive(Clone)]
+#[derive(Copy, Clone)]
 pub struct BoundingBox {
     pub pos: Pos,
     pub w: Width,

@@ -32,6 +32,7 @@ impl PlayerColLogic {
                bb: BoundingBox,
                f: Box<TriggerFn>,
                update_fn: Box<UpdateFn>,
+               world: &World,
                g: Arc<Mutex<Drawable>>)
                -> (Self, Arc<Mutex<PhysDyn>>) {
         let props = BBProperties {
@@ -45,6 +46,7 @@ impl PlayerColLogic {
                                      bb.w,
                                      bb.h,
                                      false,
+                                     world,
                                      g));
         let pl = PlayerColLogic {
             bb: bb,
@@ -77,10 +79,11 @@ struct TriggerLogic {
 
 impl Logical for TriggerLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
-        let player_bb = args.world.get(args.world.player_id());
-        player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            args.metabuffer.issue(MetaCommand::Trigger(args.id));
-        });
+        // TODO
+        //let player_bb = args.world.get_pos(args.world.player_id());
+        //player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
+        //args.metabuffer.issue(MetaCommand::Trigger(args.id));
+        //});
     }
 }
 
@@ -153,30 +156,33 @@ pub fn create_crown(id: Id, pos: Pos, world: &World) -> GameObj {
             args.metabuffer.issue(MetaCommand::CollectCrown);
             args.metabuffer.issue(MetaCommand::Dialogue(8, String::from("I am so good at this")));
         });
-    let crown_update = Box::new(|args: &LogicUpdateArgs,
-                                 phys: Arc<Mutex<Physical>>| {
+    let crown_update =
+        Box::new(|args: &LogicUpdateArgs, phys: Arc<Mutex<Physical>>| {
 
-        let pos = phys.lock().unwrap().get_position();
-        let Pos(x, y) = pos;
-        let maybe_player_bb = args.world.get(args.world.player_id());
+            let pos = phys.lock().unwrap().get_position();
+            let Pos(x, y) = pos;
+            let maybe_player_bb = args.world.get_pos(args.world.player_id());
 
-        maybe_player_bb.map(|(_, player_bb)| {
-            if player_bb.pos.dist_2(&pos) < 20000.0 {
-                //  Move toward player
-                let Vector(dir_x, dir_y) = (player_bb.pos - pos).normalise();
-                let force = 100.0;
-                args.metabuffer.issue(MetaCommand::ApplyForce(args.id,
-                                                              Force(dir_x *
-                                                                    force,
-                                                                    dir_y *
-                                                                    force)));
-            }
+            maybe_player_bb.map(|player_pos| {
+                if player_pos.dist_2(&pos) < 20000.0 {
+                    //  Move toward player
+                    let Vector(dir_x, dir_y) = (player_pos - pos).normalise();
+                    let force = 100.0;
+                    args.metabuffer
+                        .issue(MetaCommand::ApplyForce(args.id,
+                                                       Force(dir_x * force,
+                                                             dir_y * force)));
+                }
+            });
         });
-    });
 
     let bb = BoundingBox::new(pos, w, h);
-    let (logic, p) =
-        PlayerColLogic::new_dyn(id, bb, crown_trigger, crown_update, g.clone());
+    let (logic, p) = PlayerColLogic::new_dyn(id,
+                                             bb,
+                                             crown_trigger,
+                                             crown_update,
+                                             world,
+                                             g.clone());
     {
         let mut phys = p.lock().unwrap();
         phys.collide_with = BBO_BLOCK;
@@ -213,9 +219,10 @@ struct TingeLogic {
 
 impl Logical for TingeLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
-        let player_bb = args.world.get(args.world.player_id());
-        player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
-            args.metabuffer.issue(MetaCommand::TingeY(self.y_target));
-        });
+        //  TODO TODO
+        //let player_bb = args.world.get_pos(args.world.player_id());
+        //player_bb.map(|(_, pbb)| if self.bb.check_col(&pbb) {
+        //args.metabuffer.issue(MetaCommand::TingeY(self.y_target));
+        //});
     }
 }

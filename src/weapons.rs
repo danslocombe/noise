@@ -76,8 +76,15 @@ pub fn create_arrow(id: Id,
         id: id,
         owner_type: BBO_PLAYER_ENTITY | BBO_DAMAGE | BBO_NOCOLLIDE,
     };
-    let mut phys =
-        PhysDyn::new(props, pos, Mass(1.0), 100.0, w, h, true, g.clone());
+    let mut phys = PhysDyn::new(props,
+                                pos,
+                                Mass(1.0),
+                                100.0,
+                                w,
+                                h,
+                                true,
+                                world,
+                                g.clone());
     phys.apply_force(force);
     phys.collide_with = BBO_BLOCK;
     let p = arc_mut(phys);

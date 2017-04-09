@@ -12,6 +12,8 @@ extern crate bitflags;
 extern crate rustc_serialize;
 extern crate find_folder;
 extern crate rayon;
+extern crate nalgebra;
+extern crate ncollide;
 
 use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};

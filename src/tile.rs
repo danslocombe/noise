@@ -136,11 +136,8 @@ impl<'a> Drawable for Tile<'a> {
     fn should_draw(&self, r: &Rectangle) -> bool {
         let Pos(x, y) = self.pos;
         //(x + TILE_W > r.x && x < r.x + r.w) && true
-        x + TILE_W > r.x &&
-        x < r.x + 2.0 * r.w &&
-        y + TILE_H > r.y &&
-        y < r.y + 2.0 * r.h &&
-        true
+        x + TILE_W > r.x && x < r.x + 2.0 * r.w && y + TILE_H > r.y &&
+        y < r.y + 2.0 * r.h && true
         //(y + TILE_H > r.h && y < r.y + r.h)
 
     }

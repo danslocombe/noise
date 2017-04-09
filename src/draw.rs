@@ -1,6 +1,6 @@
 extern crate graphics;
 
-use game::{Height, Pos, Width, fphys};
+use game::{Height, Id, Pos, Width, fphys};
 use graphics::Viewport;
 use opengl_graphics::GlGraphics;
 use piston::input::*;
@@ -117,7 +117,7 @@ impl ViewTransform {
 }
 
 pub struct ViewFollower {
-    follow_id: u32,
+    follow_id: Id,
 
     x_offset: fphys,
     y_offset: fphys,
@@ -138,7 +138,7 @@ pub struct ViewFollower {
 }
 
 impl ViewFollower {
-    pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
+    pub fn new_defaults(vt: ViewTransform, id: Id) -> Self {
         ViewFollower {
             x_offset: 0.0,
             y_offset: 0.0,
@@ -167,8 +167,8 @@ impl ViewFollower {
         }
     }
     pub fn update(&mut self, world: &World) {
-        world.get(self.follow_id).map(|(_, bb)| {
-            let Pos(bbx, bby) = bb.pos;
+        world.get_pos(self.follow_id).map(|pos| {
+            let Pos(bbx, bby) = pos;
             let bb_xvel = bbx - self.follow_prev_x;
             if bbx > self.x_max {
                 self.x_max = bbx;
@@ -224,11 +224,8 @@ impl Drawable for GrphxRect {
         let Width(w) = self.w;
         let Height(h) = self.h;
         //(x + w > r.x && x < r.x + r.w) || (y + h > r.h && y < r.y + r.h)
-        x + w > r.x &&
-        x < r.x + 2.0 * r.w &&
-        y + h > r.y &&
-        y < r.y + 2.0 * r.h &&
-        true
+        x + w > r.x && x < r.x + 2.0 * r.w && y + h > r.y &&
+        y < r.y + 2.0 * r.h && true
 
     }
 }

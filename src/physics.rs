@@ -10,7 +10,7 @@ use game::{Accel, CommandBuffer, Force, Height, Id, Mass, MetaCommand,
            ObjMessage, Pos, Vel, Width, fphys};
 use piston::input::*;
 use std::sync::{Arc, Mutex};
-use world::World;
+use world::*;
 
 pub trait Physical {
     fn tick(&mut self,
@@ -73,7 +73,7 @@ impl PhysStatic {
             w: w,
             h: h,
         };
-        world.send(p.clone(), Some(bb));
+        world.send(WorldUpdate::update_create(p, bb));
 
         PhysStatic {
             p: p,
@@ -108,6 +108,7 @@ impl PhysDyn {
                width: Width,
                height: Height,
                resolve_collisions: bool,
+               world: &World,
                dr: Arc<Mutex<super::draw::Drawable>>)
                -> PhysDyn {
         let bb = BoundingBox {
@@ -115,6 +116,7 @@ impl PhysDyn {
             w: width,
             h: height,
         };
+        world.send(WorldUpdate::update_create(p, bb));
 
         PhysDyn {
             p: p,
@@ -163,7 +165,7 @@ impl Physical for PhysStatic {
         (self.w, self.h)
     }
     fn destroy(&mut self, world: &World) {
-        world.send(self.p.clone(), None);
+        world.send(WorldUpdate::update_destroy(self.p.clone()));
     }
 }
 
@@ -175,8 +177,14 @@ impl Physical for PhysDyn {
             metabuffer: &CommandBuffer<MetaCommand>,
             world: &World) {
         let dt = TIMESCALE * args.dt as fphys;
-
-        let bbs = world.buffer();
+        let poss_pos = world.get_pos(self.p.id);
+        let pos = match poss_pos {
+            Some(p) => p,
+            None => {
+                //println!("Skipping phys tick...");
+                return;
+            }
+        };
 
         //  Newtonian equations
         self.accel = self.force.get_accel(&self.mass);
@@ -191,50 +199,17 @@ impl Physical for PhysDyn {
                            self.maxspeed * angle.sin());
         }
 
-        //  Create bounding box in new position to test against
-        let mut bb_test = BoundingBox {
-            pos: self.bb.pos.update_by_vel(&self.vel, dt),
-            w: self.bb.w,
-            h: self.bb.h,
-        };
-
-        //  Collision Resolution
-        let col_args = ColArgs {
-            p: &self.p,
-            bbs: bbs,
-            to_collide: BBO_ALL,
-            pass_platforms: self.pass_platforms,
-        };
-        let resolve_args =
-            ColArgs { to_collide: self.collide_with, ..col_args };
-        if let Some(collision) = does_collide(&col_args, &bb_test) {
-            metabuffer.mess_obj(self.p.id,ObjMessage::MCollision(collision.clone()));
-
-            let collision_flip =
-                collision.flip_new(self.p.id, self.p.owner_type);
-            metabuffer.mess_obj(collision.other_id,
-                                ObjMessage::MCollision(collision_flip));
-
-            if self.resolve_collisions {
-                let pos_delta = resolve_col_base(&resolve_args,
-                                                 self.bb.w,
-                                                 self.bb.h,
-                                                 self.on_ground,
-                                                 self.bb.pos,
-                                                 bb_test.pos);
-                bb_test.pos = pos_delta.pos;
-
-                self.vel = Vel(pos_delta.dx / dt, pos_delta.dy / dt);
-            }
-        }
-        self.bb = bb_test;
+        let new_pos = pos.update_by_vel(&self.vel, dt);
 
         //  Test if on the ground
+         /*
         let ground_bb = BoundingBox {
             pos: Pos(self.bb.pos.0, self.bb.pos.1 + 1.0),
             ..self.bb
         };
-        self.on_ground = does_collide_bool(&resolve_args, &ground_bb);
+        */
+
+        //self.on_ground = does_collide_bool(&resolve_args, &ground_bb);
 
         //  Reset forces
         self.force = Force(0.0, 0.0);
@@ -242,11 +217,11 @@ impl Physical for PhysDyn {
         //  Update draw position
         {
             let mut draw = self.draw.lock().unwrap();
-            draw.set_position(self.bb.pos);
+            draw.set_position(new_pos);
         }
 
         //  Update world
-        world.send(self.p.clone(), Some(self.bb.clone()));
+        world.send(WorldUpdate::update_move(self.p.clone(), new_pos));
     }
     fn apply_force(&mut self, f: Force) {
         self.force = Force(self.force.0 + f.0, self.force.1 + f.1);
@@ -272,6 +247,6 @@ impl Physical for PhysDyn {
     }
 
     fn destroy(&mut self, world: &World) {
-        world.send(self.p.clone(), None);
+        world.send(WorldUpdate::update_destroy(self.p.clone()));
     }
 }

@@ -77,8 +77,8 @@ impl Logical for EnemyLogic {
             get_target(Pos(x, y), self.faction, 1000.0, args.world);
         match poss_target {
             Some(target) => {
-                let (_, target_bb) = args.world.get(target).unwrap(); // TODO error handle here
-                self.state = EnemyActive(target_bb.pos);
+                let target_pos = args.world.get_pos(target).unwrap(); // TODO error handle here
+                self.state = EnemyActive(target_pos);
             }
             None => {
                 self.state = EnemyIdle(None);
@@ -174,17 +174,14 @@ fn get_target(pos: Pos,
         });
 
     for fighter in filtered {
-        let world_details = world.get(fighter.id);
-        if world_details.is_none() {
-            continue;
-        }
-        let (_, test_bb) = world.get(fighter.id).unwrap();
-        let Pos(test_bb_x, test_bb_y) = test_bb.pos;
-        let dist = (test_bb_x - x).powi(2) + (test_bb_y - y).powi(2);
-        if dist < closest {
-            target = Some(fighter.id);
-            closest = dist;
-        }
+        world.get_pos(fighter.id).map(|pos| {
+            let Pos(test_bb_x, test_bb_y) = pos;
+            let dist = (test_bb_x - x).powi(2) + (test_bb_y - y).powi(2);
+            if dist < closest {
+                target = Some(fighter.id);
+                closest = dist;
+            }
+        });
     }
     target
 }
@@ -215,6 +212,7 @@ pub fn create(id: Id,
                                 descr.width,
                                 descr.height,
                                 true,
+                                world,
                                 g.clone());
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);

@@ -211,6 +211,7 @@ impl InputHandler for PlayerLogic {
 
 pub fn create(id: Id,
               pos: Pos,
+              world: &World,
               descr: Rc<PlayerDescriptor>)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
 
@@ -238,6 +239,7 @@ pub fn create(id: Id,
                                 width,
                                 height,
                                 true,
+                                world,
                                 g.clone());
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);

@@ -34,8 +34,8 @@ use std::time::SystemTime;
 use tile::{TILE_W, Tile, TileManager};
 use world::World;
 
-pub type Id = u32;
-pub type TriggerId = u32;
+pub type Id = usize;
+pub type TriggerId = usize;
 #[derive(Debug, Copy, Clone)]
 pub struct Pos(pub fphys, pub fphys);
 #[derive(Debug, Copy, Clone)]
@@ -190,7 +190,10 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     //  Create player
     let player_id = world.player_id();
     let (mut player_obj, mut player_logic) =
-        player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone());
+        player_create(player_id,
+                      Pos(800.0, -250.0),
+                      &world,
+                      player_descriptor.clone());
     let mut player_phys = player_obj.physics.clone();
 
     let grapple_descriptor: Rc<GrappleDescriptor> =
@@ -277,7 +280,7 @@ pub fn game_loop(mut window: Window,
                 //print!("FPS {:.3}\r", 1.0 / u_args.dt);
 
                 //  Update bounding box list
-                game.world.update();
+                game.world.update(u_args.dt);
 
                 let mut ids_remove: Vec<Id> = Vec::new();
                 let mut objects_add: Vec<GameObj> = Vec::new();
@@ -403,9 +406,8 @@ pub fn game_loop(mut window: Window,
                 let view_transform = &game.view_follower
                     .get_transform(&r_args.viewport());
                 let view_rect = &game.view_follower
-                .get_transform(&r_args.viewport())
-                .to_rectangle(viewport[2] as fphys,
-                viewport[3] as fphys);
+                    .get_transform(&r_args.viewport())
+                    .to_rectangle(viewport[2] as fphys, viewport[3] as fphys);
 
                 shader.set_textured(&mut ctx);
                 for tile in &mut game.tiles {
