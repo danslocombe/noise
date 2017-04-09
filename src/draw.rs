@@ -109,10 +109,10 @@ impl ViewTransform {
                         screen_width: fphys,
                         screen_height: fphys)
                         -> Rectangle {
-        Rectangle::new(self.x,
-                       self.y,
-                       self.scale * screen_width as fphys,
-                       self.scale * screen_height as fphys)
+        Rectangle::new(self.x - screen_width / 2.0,
+                       self.y - screen_height / 2.0,
+                       screen_width / self.scale,
+                       screen_height / self.scale)
     }
 }
 
@@ -157,7 +157,9 @@ impl ViewFollower {
     }
     pub fn get_transform(&self, viewport: &Viewport) -> ViewTransform {
         let view_rect = viewport.rect;
-
+        //println!("PLAYER X : {}", self.follow_prev_x);
+        //println!("WIDTG : {},  SCALE : {}", view_rect[2], self.scale);
+        //println!("SELF X : {} SELF WIDTH {}", self.x_offset - view_rect[2] as f64 / 2.0, view_rect[2] as f64 / self.scale);
         ViewTransform {
             x: self.x_offset - view_rect[2] as f64 / 2.0,
             y: self.y_offset - view_rect[3] as f64 / 2.0,
@@ -221,7 +223,12 @@ impl Drawable for GrphxRect {
         let Pos(x, y) = self.pos;
         let Width(w) = self.w;
         let Height(h) = self.h;
-        (x + w > r.x && x < r.x + r.w) || (y + h > r.h && y < r.y + r.h)
+        //(x + w > r.x && x < r.x + r.w) || (y + h > r.h && y < r.y + r.h)
+        x + w > r.x &&
+        x < r.x + 2.0 * r.w &&
+        y + h > r.y &&
+        y < r.y + 2.0 * r.h &&
+        true
 
     }
 }

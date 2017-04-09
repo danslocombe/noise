@@ -3,7 +3,6 @@ extern crate graphics;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate rand;
-extern crate rayon;
 
 use block::blocks_from_ghosts;
 use collision::Collision;
@@ -403,16 +402,16 @@ pub fn game_loop(mut window: Window,
                 let viewport = r_args.viewport().rect;
                 let view_transform = &game.view_follower
                     .get_transform(&r_args.viewport());
-                //let view_rect = &game.view_follower
-                //.get_transform(&r_args.viewport())
-                //.to_rectangle(2.0 * viewport[2] as fphys,
-                //2.0 * viewport[3] as fphys);
+                let view_rect = &game.view_follower
+                .get_transform(&r_args.viewport())
+                .to_rectangle(viewport[2] as fphys,
+                viewport[3] as fphys);
 
                 shader.set_textured(&mut ctx);
                 for tile in &mut game.tiles {
-                    //if tile.should_draw(view_rect) {
-                    tile.draw(&r_args, &mut ctx, &view_transform);
-                    //}
+                    if tile.should_draw(view_rect) {
+                        tile.draw(&r_args, &mut ctx, &view_transform);
+                    }
                 }
 
                 shader.set_colored(&mut ctx);
@@ -420,9 +419,9 @@ pub fn game_loop(mut window: Window,
                     //  Draw all objects
                     //  Currently no concept of depth
                     let mut gphx = o.draws.lock().unwrap();
-                    //if gphx.should_draw(view_rect) {
-                    gphx.draw(&r_args, &mut ctx, &view_transform);
-                    //}
+                    if gphx.should_draw(view_rect) {
+                        gphx.draw(&r_args, &mut ctx, &view_transform);
+                    }
                 }
                 if game.overlay.dialogue_empty() {
                     game.overlay.set_dialogue(game.dialogue_buffer.get(time));
