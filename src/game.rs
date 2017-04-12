@@ -9,7 +9,7 @@ use collision::Collision;
 use descriptors::*;
 
 use dialogue::{Dialogue, DialogueBuffer};
-use draw::{Drawable, ViewFollower, ViewTransform};
+use draw::*;
 use enemy::create as enemy_create;
 use gen::Gen;
 use gen::GhostTile;
@@ -166,7 +166,7 @@ struct Noise<'a> {
     pub player_descriptor: Rc<PlayerDescriptor>,
     pub grapple_descriptor: Rc<GrappleDescriptor>,
     pub enemy_descriptors: HashMap<String, Rc<EnemyDescriptor>>,
-    pub view_follower: ViewFollower,
+    pub editor: Editor,
     pub metabuffer: CommandBuffer<MetaCommand>,
     pub objs: Vec<GameObj>,
     pub overlay: Overlay,
@@ -224,6 +224,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
         scale: 1.0,
     };
     let mut view_follower = ViewFollower::new_defaults(vt, player_id);
+    let mut editor = Editor::new(vec![Box::new(view_follower)]);
     let mut overlay = Overlay::new(player_logic.clone());
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
@@ -243,7 +244,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
         player_descriptor: player_descriptor,
         grapple_descriptor: grapple_descriptor,
         enemy_descriptors: enemy_descriptors,
-        view_follower: view_follower,
+        editor: editor,
         tile_manager: tile_manager,
         dialogue_buffer: dialogue_buffer,
         objs: objs,
@@ -395,15 +396,15 @@ pub fn game_loop(mut window: Window,
                        1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64,
                        game.objs.len());
 
-                game.view_follower.update(&game.world);
+                game.editor.update(&r_args.viewport(), &game.world);
 
                 draw_background(&r_args, &mut ctx);
 
                 let viewport = r_args.viewport().rect;
-                let view_transform = &game.view_follower
-                    .get_transform(&r_args.viewport());
-                let view_rect = &game.view_follower
-                .get_transform(&r_args.viewport())
+                let view_transform = &game.editor
+                    .transform();
+                let view_rect = &game.editor
+                .transform()
                 .to_rectangle(viewport[2] as fphys,
                 viewport[3] as fphys);
 

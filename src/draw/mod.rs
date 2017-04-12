@@ -7,9 +7,10 @@ use piston::input::*;
 use player::PlayerLogic;
 use std::sync::{Arc, Mutex};
 use tools::weight;
-
 use world::World;
 
+pub mod camera;
+pub use self::camera::*;
 
 pub type Color = [f32; 4];
 
@@ -98,100 +99,6 @@ pub struct GrphxRect {
     pub color: Color,
 }
 
-pub struct ViewTransform {
-    pub x: fphys,
-    pub y: fphys,
-    pub scale: fphys,
-}
-
-impl ViewTransform {
-    pub fn to_rectangle(&self,
-                        screen_width: fphys,
-                        screen_height: fphys)
-                        -> Rectangle {
-        Rectangle::new(self.x - screen_width / 2.0,
-                       self.y - screen_height / 2.0,
-                       screen_width / self.scale,
-                       screen_height / self.scale)
-    }
-}
-
-pub struct ViewFollower {
-    follow_id: u32,
-
-    x_offset: fphys,
-    y_offset: fphys,
-    scale: fphys,
-
-    w: fphys,
-    w_scale: fphys,
-
-    offset_factor: fphys,
-    scale_mult: fphys,
-
-    follow_prev_x: fphys,
-    follow_prev_y: fphys,
-
-    x_max: fphys,
-    min_buffer: fphys,
-    enable_min_buffer: bool,
-}
-
-impl ViewFollower {
-    pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
-        ViewFollower {
-            x_offset: 0.0,
-            y_offset: 0.0,
-            scale: 1.0,
-            follow_id: id,
-            w: 20.0,
-            w_scale: 200.0,
-            offset_factor: 10.0,
-            scale_mult: 0.035,
-            follow_prev_x: 0.0,
-            follow_prev_y: 0.0,
-            enable_min_buffer: false,
-            x_max: 0.0,
-            min_buffer: 800.0,
-        }
-    }
-    pub fn get_transform(&self, viewport: &Viewport) -> ViewTransform {
-        let view_rect = viewport.rect;
-        //println!("PLAYER X : {}", self.follow_prev_x);
-        //println!("WIDTG : {},  SCALE : {}", view_rect[2], self.scale);
-        //println!("SELF X : {} SELF WIDTH {}", self.x_offset - view_rect[2] as f64 / 2.0, view_rect[2] as f64 / self.scale);
-        ViewTransform {
-            x: self.x_offset - view_rect[2] as f64 / 2.0,
-            y: self.y_offset - view_rect[3] as f64 / 2.0,
-            scale: self.scale,
-        }
-    }
-    pub fn update(&mut self, world: &World) {
-        world.get(self.follow_id).map(|(_, bb)| {
-            let Pos(bbx, bby) = bb.pos;
-            let bb_xvel = bbx - self.follow_prev_x;
-            if bbx > self.x_max {
-                self.x_max = bbx;
-            }
-
-            let offset = bb_xvel * self.offset_factor;
-
-            self.x_offset = weight(self.x_offset, bbx + offset, self.w);
-            self.y_offset = weight(self.y_offset, bby, self.w);
-
-            if self.enable_min_buffer &&
-               self.x_offset < self.x_max - self.min_buffer {
-                self.x_offset = self.x_max - self.min_buffer;
-            }
-            self.scale = weight(self.scale,
-                                0.8 - bb_xvel.abs() * self.scale_mult,
-                                self.w_scale);
-
-            self.follow_prev_x = bbx;
-            self.follow_prev_y = bby;
-        });
-    }
-}
 impl Drawable for GrphxRect {
     fn draw(&mut self,
             args: &RenderArgs,
