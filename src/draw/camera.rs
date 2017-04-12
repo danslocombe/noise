@@ -218,10 +218,9 @@ impl ViewTransform {
                         screen_width: fphys,
                         screen_height: fphys)
                         -> Rectangle {
-        Rectangle::new(self.x - screen_width / 2.0,
-                       self.y - screen_height / 2.0,
-                       screen_width / self.scale,
-                       screen_height / self.scale)
+        let w = screen_width / self.scale;
+        let h = screen_height / self.scale;
+        Rectangle::new(self.x - w / 2.0, self.y - h / 2.0, w, h)
     }
 }
 
