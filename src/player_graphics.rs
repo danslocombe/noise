@@ -64,18 +64,13 @@ impl Drawable for PlayerGphx {
             let w = self.scale * (texture.get_width() as fphys);
             let h = self.scale * (texture.get_height() as fphys);
             let transform = if self.reverse && self.angle == 0.0 {
-                transform_base.trans(self.pos.0 + w, self.pos.1)
-                    .scale(-self.scale, self.scale)
+                vt.transform(self.pos.0 + w, self.pos.1, -self.scale, self.scale, &c)
             } else {
-                transform_base.trans(self.pos.0, self.pos.1)
-                    .scale(self.scale, self.scale)
+                vt.transform(self.pos.0, self.pos.1, self.scale, self.scale, &c)
             };
 
             let transform_rot = transform//.trans(w / 2.0, h / 2.0)
                                          .rot_rad(self.angle);
-            //.trans(-w / 2.0, -h / 2.0);
-
-            //println!("\nANGLE {}", self.angle);
             image(texture, transform_rot, gl);
         });
     }

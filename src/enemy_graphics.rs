@@ -71,18 +71,11 @@ impl Drawable for EnemyGphx {
         let texture = get_index(self.frame, texture_vec, self.speed);
         ctx.draw(args.viewport(), |c, gl| {
 
-            let transform_base = c.transform
-                .scale(vt.scale, vt.scale)
-                .trans(-vt.x, -vt.y);
             let transform = if self.reverse {
-                transform_base
-                .trans(self.pos.0 + self.scale*(texture.get_width() as fphys), self.pos.1)
-                .scale(-self.scale, self.scale)
+                vt.transform(self.pos.0 + self.scale*(texture.get_width() as fphys), self.pos.1, -self.scale, self.scale, &c)
             }
             else {
-                transform_base
-                .trans(self.pos.0, self.pos.1)
-                .scale(self.scale, self.scale)
+                vt.transform(self.pos.0, self.pos.1, self.scale, self.scale, &c)
             };
 
             let cone_angle_base = if self.reverse {

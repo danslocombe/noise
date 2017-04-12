@@ -1,5 +1,6 @@
 use game::{Height, Pos, Width, fphys};
-use graphics::Viewport;
+use graphics::*;
+use piston_window::types::Matrix2d;
 use world::World;
 use tools::weight;
 use draw::Rectangle;
@@ -7,7 +8,7 @@ use std::cmp::Ordering;
 use std::collections::BinaryHeap;
 use std::f64::EPSILON;
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct CameraId(usize);
 
 #[derive(Clone, Copy, PartialOrd, Ord, PartialEq, Eq)]
@@ -18,6 +19,26 @@ pub struct ViewTransform {
     pub x: fphys,
     pub y: fphys,
     pub scale: fphys,
+}
+
+impl ViewTransform {
+    //  TODO cache this
+    pub fn transform(&self, x : f64, y : f64, xscale : f64, yscale : f64,  c : &Context) -> Matrix2d {
+        match c.viewport{
+            Some(v) => {
+                c.transform
+                    .trans(v.rect[2] as f64 / 2.0, v.rect[3] as f64 / 2.0)
+                    .scale(self.scale, self.scale)
+                    .trans(-self.x, 
+                           -self.y)
+                    .trans(x, y)
+                    .scale(xscale, yscale)
+            }
+            None => {
+                c.transform
+            }
+        }
+    }
 }
 
 pub trait Camera {
@@ -54,22 +75,35 @@ impl PartialOrd for IdCamera {
 pub struct Editor {
     cameras : BinaryHeap<IdCamera>,
     transform : ViewTransform,
+    current_id : CameraId,
+    base_width : fphys,
 }
 
 
 impl Editor {
     pub fn new(cameras : Vec<Box<Camera>>) -> Self {
-        let id_cameras = cameras.into_iter().enumerate()
+        let id_cameras : BinaryHeap<_> = cameras.into_iter().enumerate()
             .map(|(i, c)| IdCamera(CameraId(i), c)).collect();
+        let current_id = CameraId(id_cameras.len() + 1);
         Editor {
             cameras : id_cameras,
             transform : ViewTransform {x : 0.0, y : 0.0, scale : 1.0},
+            base_width : 800.0,
+            current_id : current_id,
         }
     }
     pub fn add_camera(&mut self, camera : Box<Camera>) -> CameraId {
-        CameraId(0)
+        let id = self.current_id;
+        self.current_id = CameraId(self.current_id.0 + 1);
+        let id_camera = IdCamera(id, camera);
+        self.cameras.push(id_camera);
+        id
     }
-    pub fn remove_camera(&mut self, id : CameraId) {
+    pub fn remove_camera(&mut self, target_id : CameraId) {
+        let cs = self.cameras.drain()
+                             .filter(|&IdCamera(id, _)| id != target_id)
+                             .collect::<BinaryHeap<_>>();
+        self.cameras = cs;
     }
     pub fn transform(&self) -> ViewTransform {
         self.transform
@@ -132,7 +166,7 @@ impl ViewFollower {
             follow_id: id,
             w: 20.0,
             w_scale: 200.0,
-            offset_factor: 10.0,
+            offset_factor: 00.0,
             scale_mult: 0.035,
             follow_prev_x: 0.0,
             follow_prev_y: 0.0,
@@ -144,10 +178,9 @@ impl Camera for ViewFollower {
         self.priority
     }
     fn transform(&self, viewport: &Viewport) -> ViewTransform {
-        let view_rect = viewport.rect;
         ViewTransform {
-            x: self.x_offset - view_rect[2] as f64 / 2.0,
-            y: self.y_offset - view_rect[3] as f64 / 2.0,
+            x: self.x_offset,
+            y: self.y_offset,
             scale: self.scale,
         }
     }

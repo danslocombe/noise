@@ -112,10 +112,7 @@ impl Drawable for GrphxRect {
         let r = [0.0, 0.0, w, h];
 
         ctx.draw(args.viewport(), |c, gl| {
-            let transform = c.transform
-                .scale(vt.scale, vt.scale)
-                .trans(x, y)
-                .trans(-vt.x, -vt.y);
+            let transform = vt.transform(x, y, 1.0, 1.0, &c);
 
             rectangle(self.color, r, transform, gl);
         });
