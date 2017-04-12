@@ -316,15 +316,6 @@ impl Physical for Grapple {
                                                 angle.sin()));
                         }
                     }
-
-                    if self.retracting && diff < self.descr.retract_epsilon {
-                        self.state = GrappleState::None;
-                        {
-                            let mut d = self.draw.lock().unwrap();
-                            d.drawing = false;
-                        }
-                    }
-
                 }
             }
         };
