@@ -1,5 +1,6 @@
 use game::{Height, Pos, Width, fphys};
-use graphics::Viewport;
+use graphics::*;
+use piston_window::types::Matrix2d;
 use world::World;
 use tools::weight;
 use draw::Rectangle;
@@ -18,6 +19,26 @@ pub struct ViewTransform {
     pub x: fphys,
     pub y: fphys,
     pub scale: fphys,
+}
+
+impl ViewTransform {
+    //  TODO cache this
+    pub fn transform(&self, x : f64, y : f64, xscale : f64, yscale : f64,  c : &Context) -> Matrix2d {
+        match c.viewport{
+            Some(v) => {
+                c.transform
+                    .trans(v.rect[2] as f64 / 2.0, v.rect[3] as f64 / 2.0)
+                    .scale(self.scale, self.scale)
+                    .trans(-self.x, 
+                           -self.y)
+                    .trans(x, y)
+                    .scale(xscale, yscale)
+            }
+            None => {
+                c.transform
+            }
+        }
+    }
 }
 
 pub trait Camera {
@@ -54,6 +75,7 @@ impl PartialOrd for IdCamera {
 pub struct Editor {
     cameras : BinaryHeap<IdCamera>,
     transform : ViewTransform,
+    base_width : fphys,
 }
 
 
@@ -64,6 +86,7 @@ impl Editor {
         Editor {
             cameras : id_cameras,
             transform : ViewTransform {x : 0.0, y : 0.0, scale : 1.0},
+            base_width : 800.0,
         }
     }
     pub fn add_camera(&mut self, camera : Box<Camera>) -> CameraId {
@@ -132,7 +155,7 @@ impl ViewFollower {
             follow_id: id,
             w: 20.0,
             w_scale: 200.0,
-            offset_factor: 10.0,
+            offset_factor: 00.0,
             scale_mult: 0.035,
             follow_prev_x: 0.0,
             follow_prev_y: 0.0,
@@ -144,10 +167,9 @@ impl Camera for ViewFollower {
         self.priority
     }
     fn transform(&self, viewport: &Viewport) -> ViewTransform {
-        let view_rect = viewport.rect;
         ViewTransform {
-            x: self.x_offset - view_rect[2] as f64 / 2.0,
-            y: self.y_offset - view_rect[3] as f64 / 2.0,
+            x: self.x_offset,
+            y: self.y_offset,
             scale: self.scale,
         }
     }

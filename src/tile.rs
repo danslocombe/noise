@@ -120,11 +120,7 @@ impl<'a> Drawable for Tile<'a> {
             vt: &ViewTransform) {
         let Pos(x, y) = self.pos;
         ctx.draw(args.viewport(), |c, gl| {
-            let transform = c.transform
-                .scale(vt.scale, vt.scale)
-                .trans(-vt.x, -vt.y)
-                .trans(x, y - TILE_H)
-                .scale(TILE_BASESCALE, TILE_BASESCALE);
+            let transform = vt.transform(x, y - TILE_H, TILE_BASESCALE, TILE_BASESCALE, &c);
 
             image(self.texture, transform, gl);
         });

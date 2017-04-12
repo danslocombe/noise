@@ -520,8 +520,7 @@ impl Drawable for GrappleDraw {
             let l = [start_x, start_y, end_x, end_y];
             let color = [0.0, 0.0, 0.0, 1.0];
             ctx.draw(args.viewport(), |c, gl| {
-                let transform =
-                    c.transform.scale(vt.scale, vt.scale).trans(-vt.x, -vt.y);
+                let transform = vt.transform(0.0, 0.0, 1.0, 1.0, &c);
                 line(color, 2.0, l, transform, gl);
             });
         }
