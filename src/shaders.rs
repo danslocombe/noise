@@ -77,7 +77,7 @@ impl NoisyShader {
             color_morph: Matrix4::one(),
             color_morph_y_target: 0.0,
             color_reset_time: 0,
-            color_morph_y: 0.0,
+            color_morph_y: 3.141 / 2.0,
         }
     }
 

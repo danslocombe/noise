@@ -132,7 +132,7 @@ pub fn from_json(path: &Path,
                 gobjs.push(c);
             }
             "tinge" => {
-                let yy = 1.8;
+                let yy = 3.141 / 2.0;
                 let c = create_tinge(id, yy, pos, w, h, &world);
                 gobjs.push(c);
             }
