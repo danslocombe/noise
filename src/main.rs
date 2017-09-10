@@ -67,6 +67,7 @@ fn main() {
     let color_frag = shaders::color_frag();
     let color_vert = shaders::color_vert();
 
+    // Load color shader glsl sources
     let mut color_fss = Shaders::new();
     color_fss.set(GLSL::V1_50, color_frag.as_str());
     let mut color_vss = Shaders::new();
@@ -75,11 +76,13 @@ fn main() {
     let tex_frag = shaders::tex_frag();
     let tex_vert = shaders::tex_vert();
 
+    // Load texture shader glsl sources
     let mut tex_fss = Shaders::new();
     tex_fss.set(GLSL::V1_50, tex_frag.as_str());
     let mut tex_vss = Shaders::new();
     tex_vss.set(GLSL::V1_50, tex_vert.as_str());
 
+    // Compile the shaders
     let c = Colored::from_vs_fs(opengl.to_glsl(), &color_vss, &color_fss)
         .unwrap();
     let t = Textured::from_vs_fs(opengl.to_glsl(), &tex_vss, &tex_fss).unwrap();
@@ -87,8 +90,10 @@ fn main() {
     let c_program = c.get_program();
     let t_program = t.get_program();
 
+    // Create an OpenGL context from new shaders
     let mut context = GlGraphics::from_colored_textured(c, t);
 
+    // Extract shader uniforms
     context.use_program(c_program);
     let uniform_time = context.get_uniform::<SUFloat>("time").unwrap();
     let uniform_vel = context.get_uniform::<SUVec2>("vel").unwrap();
@@ -99,6 +104,7 @@ fn main() {
     let uniform_replacement_colors_tex =
         context.get_uniform::<SUMat4x4>("replacement_colors").unwrap();
 
+    // Populate shader uniform container
     let shader = NoisyShader::new(uniform_time,
                                   uniform_time_tex,
                                   uniform_vel,
