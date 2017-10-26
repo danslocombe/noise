@@ -70,6 +70,7 @@ pub fn from_json(path: &Path,
                 let mut p = p_phys.lock().unwrap();
                 p.set_position(Pos(x, y));
             }
+            /*
             "enemy" | "blue_enemy" | "red_enemy" => {
                 let faction = get_number("world", obj, "allegiance")? as u32;
                 let descriptor_name =
@@ -85,6 +86,7 @@ pub fn from_json(path: &Path,
                 let e = enemy_create(id, pos, descr, &world, faction);
                 gobjs.push(e);
             }
+            */
             "ground" => {
                 let b = create_block(id, pos, w, h, &world);
                 gobjs.push(b);
