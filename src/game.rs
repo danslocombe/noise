@@ -61,6 +61,16 @@ pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 #[allow(non_camel_case_types)]
 pub type fphys = f64;
 
+// A GameObj is the main primative used in the engine
+//
+// Holds an id, and thread-safe references to mutable:
+//  Drawable object
+//  Physics object
+//  Logic object
+// Each controlling a certain aspect of the overall GameObj's behaviour
+//
+// The CommandBuffer contains the list of commands or messages sent to 
+// the object
 pub struct GameObj {
     pub id: Id,
     pub draws: Arc<Mutex<Drawable>>,
@@ -68,7 +78,6 @@ pub struct GameObj {
     pub logic: Arc<Mutex<Logical>>,
     pub message_buffer: CommandBuffer<ObjMessage>,
 }
-
 
 impl GameObj {
     pub fn new(id: Id,
@@ -86,6 +95,7 @@ impl GameObj {
     }
 }
 
+// Commands that can be sent to a GameObj
 #[derive(Clone)]
 pub enum ObjMessage {
     MCollision(Collision),
@@ -94,6 +104,8 @@ pub enum ObjMessage {
     MTrigger,
 }
 
+// Meta Commands
+// These are sent from individual objects back to the main controller
 pub enum MetaCommand {
     RestartGame,
     RemoveObject(Id),
@@ -104,12 +116,6 @@ pub enum MetaCommand {
     CollectCrown,
     Trigger(TriggerId),
     TingeY(fphys),
-}
-
-impl CommandBuffer<MetaCommand> {
-    pub fn mess_obj(&self, id: Id, msg: ObjMessage) {
-        self.issue(MetaCommand::MessageObject(id, msg));
-    }
 }
 
 pub struct CommandBuffer<A> {
@@ -135,11 +141,21 @@ impl<A> CommandBuffer<A> {
     }
 }
 
+impl CommandBuffer<MetaCommand> {
+    pub fn mess_obj(&self, id: Id, msg: ObjMessage) {
+        self.issue(MetaCommand::MessageObject(id, msg));
+    }
+}
+
+// Describe the necessery functionality for an control input handler
 pub trait InputHandler {
     fn press(&mut self, button: Button);
     fn release(&mut self, button: Button);
 }
 
+// Load a 'descriptor' from a json filename
+// These are used to change constants from outside of the engine
+// Eg. player jump height, etc
 fn load_descriptor<T: Descriptor>(json_path: &Path) -> Rc<T> {
     let pd_r = T::new(json_path);
     match pd_r {
@@ -159,6 +175,7 @@ struct PlayerInfo {
     pub player_phys: Arc<Mutex<Physical>>,
 }
 
+// Main game struct holding all information
 struct Noise<'a> {
     pub world: World,
     pub player_info: PlayerInfo,
@@ -270,7 +287,10 @@ pub fn game_loop(mut window: Window,
     shader.set_following(game.player_info.player_id);
 
     let mut events = Events::new(EventSettings::new());
+
+    // Start loop
     while let Some(e) = events.next(&mut window) {
+
         //  Get update from window and match against appropriate type
         match e {
             Input::Update(u_args) => {

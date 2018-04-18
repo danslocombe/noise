@@ -38,7 +38,7 @@ bitflags! {
         const BBO_ENEMY         = 0b00001000,   //  Belongs to enemy
         const BBO_DAMAGE        = 0b00010000,   //  Object causes damage
         const BBO_PLAYER_ENTITY = 0b00100000,   //  Object should be considered by player
-        const BBO_NOCOLLIDE      = 0b01000000,   //  Object should not be checked against for collisions
+        const BBO_NOCOLLIDE     = 0b01000000,   //  Object should not be checked against for collisions
         const BBO_ALL           = 0b11111111,
     }
 }

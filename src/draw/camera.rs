@@ -138,6 +138,38 @@ impl Editor {
     }
 }
 
+
+pub struct ViewStatic {
+    x : fphys,
+    y : fphys,
+    w : fphys,
+    h : fphys,
+    weight : fphys,
+    priority : CameraPriority,
+}
+
+impl Camera for ViewStatic {
+    fn transform(&self, viewport : &Viewport) -> ViewTransform {
+        let view_width = viewport.rect[2] as f64;
+        let scale = self.w / view_width;
+        ViewTransform {
+            x: self.x - self.w / 2.0,
+            y: self.y - self.h / 2.0,
+            scale: scale,
+        }
+    }
+    fn lerp_pos_weight(&self) -> fphys {
+        self.weight
+    }
+    fn lerp_scale_weight(&self) -> fphys {
+        self.weight
+    }
+    fn update(&mut self, _ : &World) {}
+    fn priority(&self) -> CameraPriority {
+        self.priority
+    }
+}
+
 pub struct ViewFollower {
     follow_id: u32,
     priority : CameraPriority,
@@ -155,6 +187,7 @@ pub struct ViewFollower {
     follow_prev_x: fphys,
     follow_prev_y: fphys,
 }
+
 
 impl ViewFollower {
     pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
