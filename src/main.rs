@@ -90,6 +90,7 @@ fn main() {
 
     let mut context = GlGraphics::from_colored_textured(c, t);
 
+    println!("Compiling shaders");
     context.use_program(c_program);
     let uniform_time = context.get_uniform::<SUFloat>("time").unwrap();
     let uniform_vel = context.get_uniform::<SUVec2>("vel").unwrap();

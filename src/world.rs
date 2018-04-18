@@ -28,7 +28,7 @@ struct IdGen {
 }
 
 #[derive(Clone)]
-struct Fighter {
+pub struct Fighter {
     pub id: Id,
     pub allegiance: Option<Faction>,
 }

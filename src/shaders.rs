@@ -70,14 +70,14 @@ impl NoisyShader {
             uniform_time_tex: u_time_tex,
             uniform_vel: u_vel,
             uniform_repl_colors: u_r_c,
-            uniform_repl_colors_tex: u_r_c,
+            uniform_repl_colors_tex: u_r_c_t,
             colored_program: c_program,
             textured_program: t_program,
 
             color_morph: Matrix4::one(),
             color_morph_y_target: 0.0,
             color_reset_time: 0,
-            color_morph_y: 0.0,
+            color_morph_y: 3.141 / 2.0,
         }
     }
 

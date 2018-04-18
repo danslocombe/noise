@@ -50,5 +50,4 @@ void main() {
     }
   }
   o_Color = vec4(color_palette(color.rgb), color.a);
-
 }
