@@ -64,7 +64,9 @@ pub enum TileEdge {
 pub enum GhostTileType {
     PagodaBack(TileEdge),
     PagodaRoof(TileEdge),
+    Decor(String),
 }
+
 
 pub struct GhostTile {
     pub x: fphys,
@@ -73,7 +75,7 @@ pub struct GhostTile {
 }
 
 impl GhostTile {
-    fn new(x: fphys, y: fphys, tile_type: GhostTileType) -> Self {
+    pub fn new(x: fphys, y: fphys, tile_type: GhostTileType) -> Self {
         GhostTile {
             x: x,
             y: y,

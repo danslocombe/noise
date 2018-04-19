@@ -8,6 +8,9 @@ use opengl_graphics::{Filter, GlGraphics};
 use opengl_graphics::Texture;
 use piston::input::*;
 use piston_window::TextureSettings;
+use std::collections::HashMap;
+use std::fs::{self, File};
+use std::path::Path;
 
 pub struct TileManager {
     pub pagoda_back_left: Texture,
@@ -17,6 +20,7 @@ pub struct TileManager {
     pub pagoda_roof_left: Texture,
     pub pagoda_roof_right: Texture,
     pub pagoda_roof: Texture,
+    pub decor: HashMap<String, Texture>,
 }
 
 impl TileManager {
@@ -38,6 +42,20 @@ impl TileManager {
             Texture::from_path_settings("sprites/roofR01.png", &ts)?;
         let pagoda_roof = Texture::from_path_settings("sprites/roof01.png",
                                                       &ts)?;
+
+        // Construct map of "decor" tiles from sprites in decor dir
+        let mut decor = HashMap::new();
+        let decor_path = Path::new("sprites/decor");
+        for file in fs::read_dir(decor_path).unwrap() {
+          let f = file.unwrap();
+          let texture = Texture::from_path_settings(f.path().as_path(), &ts)?;
+          let fp = f.path();
+          let os_filename = fp.file_name().unwrap();
+          let filename = os_filename.to_str().unwrap().to_owned();
+          println!("Found decor {}", filename);
+          decor.insert(filename, texture);
+        }
+
         println!("Done!");
         Ok(TileManager {
             pagoda_back_left: pagoda_back_left,
@@ -47,6 +65,7 @@ impl TileManager {
             pagoda_roof_left: pagoda_roof_left,
             pagoda_roof_right: pagoda_roof_right,
             pagoda_roof: pagoda_roof,
+            decor: decor,
         })
     }
     pub fn create_from_platform(&self,
@@ -85,6 +104,9 @@ impl TileManager {
                             TileEdge::Right => &self.pagoda_roof_right,
                         }
                     }
+                    GhostTileType::Decor(ref s) => {
+                      &(self.decor.get(&s.to_owned()).unwrap())
+                    }
                 };
                 Tile::new(Pos(ghost.x, ghost.y), texture)
             })
@@ -107,9 +129,9 @@ impl<'a> Tile<'a> {
     }
 }
 
-pub const TILE_BASESCALE: fphys = 8.0;
-pub const TILE_TEXW: fphys = 32.0;
-pub const TILE_TEXH: fphys = 28.0;
+pub const TILE_BASESCALE: fphys = 4.0;
+pub const TILE_TEXW: fphys = 64.0;
+pub const TILE_TEXH: fphys = 56.0;
 pub const TILE_W: fphys = TILE_TEXW * TILE_BASESCALE;
 pub const TILE_H: fphys = TILE_TEXH * TILE_BASESCALE;
 

@@ -510,6 +510,14 @@ impl Vel {
         Vel(new_x, new_y)
     }
 }
+impl Add for Vel {
+    type Output = Vel;
+    fn add(self, other: Vel) -> Vel {
+        let Vel(x, y) = self;
+        let Vel(ox, oy) = other;
+        Vel(x + ox, y + oy)
+    }
+}
 impl Force {
     pub fn get_accel(&self, mass: &Mass) -> Accel {
         Accel(self.0 / mass.0, self.1 / mass.0)

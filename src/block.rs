@@ -24,7 +24,8 @@ pub fn create_block(id: Id,
         pos: pos,
         w: length,
         h: height + Height(1500.0),
-        color: [1.0, 0.15, 0.15, 1.0],
+        //color: [1.0, 0.15, 0.15, 1.0],
+        color: [0.0, 0.0, 0.0, 1.0],
     });
     let props = BBProperties {
         id: id,

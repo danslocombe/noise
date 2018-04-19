@@ -17,6 +17,7 @@ pub struct GrappleHolster {
     input: GrappleInput,
     player_id: Id,
     descr: Rc<GrappleDescriptor>,
+    player: Arc<Mutex<Physical>>,
     cd: fphys,
 }
 
@@ -32,7 +33,7 @@ impl GrappleHolster {
         let grapple = arc_mut(Grapple::new(id,
                                            Vel(0.0, 0.0),
                                            player_id,
-                                           player,
+                                           player.clone(),
                                            descr.clone(),
                                            draw));
 
@@ -42,6 +43,7 @@ impl GrappleHolster {
              descr: descr,
              cd: 0.0,
              player_id: player_id,
+             player: player,
          },
          grapple)
     }
@@ -61,7 +63,12 @@ impl GrappleHolster {
             y += 1.0;
         }
         let (xn, yn) = normalise((x, y));
-        Vel(xn * self.descr.extend_speed, yn * self.descr.extend_speed)
+        let mut v = Vel(0.0, 0.0);
+        {
+          let p = self.player.lock().unwrap();
+          v = p.get_vel();
+        }
+        v + Vel(xn * self.descr.extend_speed, yn * self.descr.extend_speed)
     }
 }
 

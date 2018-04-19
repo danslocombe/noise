@@ -70,8 +70,8 @@ pub fn from_json(path: &Path,
                 let mut p = p_phys.lock().unwrap();
                 p.set_position(Pos(x, y));
             }
-            /*
             "enemy" | "blue_enemy" | "red_enemy" => {
+              /*
                 let faction = get_number("world", obj, "allegiance")? as u32;
                 let descriptor_name =
                     get_string("world", obj, "descriptor")?.to_string();
@@ -85,8 +85,8 @@ pub fn from_json(path: &Path,
                     .clone();
                 let e = enemy_create(id, pos, descr, &world, faction);
                 gobjs.push(e);
+                */
             }
-            */
             "ground" => {
                 let b = create_block(id, pos, w, h, &world);
                 gobjs.push(b);
@@ -114,6 +114,12 @@ pub fn from_json(path: &Path,
                 }
                 gtiles.extend(pagoda_platform_tiles(pos, borders, w));
                 gobjs.push(e);
+            }
+            "decor" => {
+              let sprite_name = get_string("decor", obj, "sprite")?;
+              let Pos(x, y) = pos;
+              let gtile = GhostTile::new(x, y, GhostTileType::Decor(sprite_name));
+              gtiles.push(gtile);
             }
             "crown" => {
                 let c = create_crown(id, pos, &world);

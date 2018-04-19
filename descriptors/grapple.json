@@ -1,8 +1,8 @@
 {
   "_comment":"Values for the grappling hook, feel free to play around with them",
   "extend_speed": 1500,
-  "retract_speed": 400,
-  "retract_force": 15,
+  "retract_speed": 600,
+  "retract_force": 20,
   "retract_epsilon": 15,
   "cd": 0.65,
   "elast": 0.25,
