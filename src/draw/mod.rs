@@ -56,7 +56,6 @@ impl Drawable for GrphxNoDraw {
     }
 }
 
-/*
 impl Drawable for GrphxContainer {
     fn draw(&mut self,
             args: &RenderArgs,
@@ -73,6 +72,7 @@ impl Drawable for GrphxContainer {
         }
     }
     fn set_position(&mut self, p: Pos) {
+        let Pos(x, y) = p;
         self.x_offset = x;
         self.y_offset = y;
     }
@@ -90,7 +90,6 @@ impl Drawable for GrphxContainer {
         false
     }
 }
-*/
 
 pub struct GrphxRect {
     pub pos: Pos,

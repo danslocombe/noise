@@ -31,7 +31,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::SystemTime;
-use tile::{TILE_W, Tile, TileManager};
+use tile::{Tile, TileManager};
 use world::World;
 
 pub type Id = u32;
