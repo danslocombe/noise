@@ -2,3 +2,6 @@ target
 *.swp
 *.ase
 Cargo.lock
+*.zip
+*.tmp
+*.exe
