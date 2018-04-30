@@ -39,7 +39,7 @@ impl PlayerLogic {
             draw: draw,
             physics: physics,
             descr: descr.clone(),
-            input: HI_NONE,
+            input: HumanoidInput::NONE,
             collision_buffer: Vec::new(),
             grappling: false,
             grapple_target: None,
@@ -88,7 +88,7 @@ impl Logical for PlayerLogic {
 
         //  Handle collisions from last tick
         for c in &self.collision_buffer {
-            if c.other_type.contains(BBO_ENEMY) {
+            if c.other_type.contains(BBOwnerType::ENEMY) {
 
                 let force: fphys;
                 if self.cds.hit <= 0.0 {
@@ -156,7 +156,7 @@ impl Logical for PlayerLogic {
             }
         }
         let input = if self.grappling {
-            self.input | HI_FALL
+            self.input | HumanoidInput::FALL
         } else {
             self.input
         };
@@ -172,19 +172,19 @@ impl InputHandler for PlayerLogic {
     fn press(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
-                self.input |= HI_JUMP;
+                self.input |= HumanoidInput::JUMP;
             }
             Button::Keyboard(Key::S) => {
-                self.input |= HI_FALL;
+                self.input |= HumanoidInput::FALL;
             }
             Button::Keyboard(Key::A) => {
-                self.input |= HI_LEFT;
+                self.input |= HumanoidInput::LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.input |= HI_RIGHT;
+                self.input |= HumanoidInput::RIGHT;
             }
             Button::Keyboard(Key::Space) => {
-                self.input |= HI_DASH;
+                self.input |= HumanoidInput::DASH;
             }
             _ => {}
         }
@@ -192,19 +192,19 @@ impl InputHandler for PlayerLogic {
     fn release(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::W) => {
-                self.input &= !HI_JUMP;
+                self.input &= !HumanoidInput::JUMP;
             }
             Button::Keyboard(Key::S) => {
-                self.input &= !HI_FALL;
+                self.input &= !HumanoidInput::FALL;
             }
             Button::Keyboard(Key::A) => {
-                self.input &= !HI_LEFT;
+                self.input &= !HumanoidInput::LEFT;
             }
             Button::Keyboard(Key::D) => {
-                self.input &= !HI_RIGHT;
+                self.input &= !HumanoidInput::RIGHT;
             }
             Button::Keyboard(Key::Space) => {
-                self.input &= !HI_DASH;
+                self.input &= !HumanoidInput::DASH;
             }
             _ => {}
         }
@@ -232,7 +232,7 @@ pub fn create(id: Id,
     };
 
     let g = arc_mut(graphics);
-    let props = BBProperties::new(id, BBO_PLAYER);
+    let props = BBProperties::new(id, BBOwnerType::PLAYER);
     let mut phys = PhysDyn::new(props,
                                 pos,
                                 Mass(1.0),
@@ -241,7 +241,7 @@ pub fn create(id: Id,
                                 height,
                                 true,
                                 g.clone());
-    phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
+    phys.collide_with = BBOwnerType::BLOCK | BBOwnerType::PLATFORM;
     let p = arc_mut(phys);
 
     let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));

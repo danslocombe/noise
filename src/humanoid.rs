@@ -12,23 +12,23 @@ pub const GRAVITY_UP: fphys = 9.8;
 pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
 
 bitflags! {
-    pub flags HumanoidInput : u16 {
-        const HI_NONE    = 0b00000000,
-        const HI_LEFT    = 0b00000001,
-        const HI_RIGHT   = 0b00000010,
-        const HI_FALL    = 0b00000100,
-        const HI_JUMP    = 0b00001000,
-        const HI_DASH    = 0b00010000,
+    pub struct HumanoidInput : u16 {
+        const NONE    = 0b00000000;
+        const LEFT    = 0b00000001;
+        const RIGHT   = 0b00000010;
+        const FALL    = 0b00000100;
+        const JUMP    = 0b00001000;
+        const DASH    = 0b00010000;
     }
 }
 
 pub fn hi_from_xdir(xdir: fphys) -> HumanoidInput {
     if xdir > 0.0 {
-        HI_RIGHT
+        HumanoidInput::RIGHT
     } else if xdir < 0.0 {
-        HI_LEFT
+        HumanoidInput::LEFT
     } else {
-        HI_NONE
+        HumanoidInput::NONE
     }
 }
 
@@ -97,8 +97,8 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
                       p: Arc<Mutex<PhysDyn>>) {
     let mut phys = p.lock().unwrap();
     let Vel(xvel, yvel) = phys.get_vel();
-    let xdir = if input.contains(HI_LEFT) { -1.0 } else { 0.0 } +
-               if input.contains(HI_RIGHT) { 1.0 } else { 0.0 };
+    let xdir = if input.contains(HumanoidInput::LEFT) { -1.0 } else { 0.0 } +
+               if input.contains(HumanoidInput::RIGHT) { 1.0 } else { 0.0 };
 
     if cd.hit > 0.0 {
         cd.hit -= args.piston.dt;
@@ -108,10 +108,10 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
     }
     if cd.dash < descr.dash_cd - descr.dash_duration {
         //  Begin dashing
-        if cd.dash <= 0.0 && input.contains(HI_DASH) {
+        if cd.dash <= 0.0 && input.contains(HumanoidInput::DASH) {
             cd.dash = descr.dash_cd;
-            let ydir = 0.0 + (if input.contains(HI_FALL) { 1.0 } else { 0.0 }) -
-                       (if input.contains(HI_JUMP) { 1.0 } else { 0.0 });
+            let ydir = 0.0 + (if input.contains(HumanoidInput::FALL) { 1.0 } else { 0.0 }) -
+                       (if input.contains(HumanoidInput::JUMP) { 1.0 } else { 0.0 });
             args.metabuffer
                 .issue(MetaCommand::ApplyForce(args.id,
                                                Force(descr.dash_force * xdir,
@@ -143,7 +143,7 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
 
         if phys.on_ground {
             //  Jump
-            if cd.jump <= 0.0 && input.contains(HI_JUMP) {
+            if cd.jump <= 0.0 && input.contains(HumanoidInput::JUMP) {
                 phys.apply_force(Force(0.0, -descr.jumpforce));
                 phys.set_velocity(Vel(xvel, 0.0));
                 cd.jump = descr.jump_cd;
@@ -158,5 +158,5 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
         }
     }
 
-    phys.pass_platforms = yvel < 0.0 || input.contains(HI_FALL);
+    phys.pass_platforms = yvel < 0.0 || input.contains(HumanoidInput::FALL);
 }

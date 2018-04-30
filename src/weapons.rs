@@ -74,12 +74,12 @@ pub fn create_arrow(id: Id,
     });
     let props = BBProperties {
         id: id,
-        owner_type: BBO_PLAYER_ENTITY | BBO_DAMAGE | BBO_NOCOLLIDE,
+        owner_type: BBOwnerType::PLAYER_ENTITY | BBOwnerType::DAMAGE | BBOwnerType::NOCOLLIDE,
     };
     let mut phys =
         PhysDyn::new(props, pos, Mass(1.0), 100.0, w, h, true, g.clone());
     phys.apply_force(force);
-    phys.collide_with = BBO_BLOCK;
+    phys.collide_with = BBOwnerType::BLOCK;
     let p = arc_mut(phys);
     let l = arc_mut(ArrowLogic { creator: creator });
     GameObj::new(id, g, p, l)
@@ -93,10 +93,10 @@ impl Logical for ArrowLogic {
     fn tick(&mut self, args: &LogicUpdateArgs) {
         for m in args.message_buffer.read_buffer() {
             if let ObjMessage::MCollision(c) = m {
-                if c.other_type.contains(BBO_PLAYER) ||
-                   c.other_type.contains(BBO_ENEMY) &&
+                if c.other_type.contains(BBOwnerType::PLAYER) ||
+                   c.other_type.contains(BBOwnerType::ENEMY) &&
                    c.other_id != self.creator ||
-                   c.other_type.contains(BBO_BLOCK) {
+                   c.other_type.contains(BBOwnerType::BLOCK) {
                     args.metabuffer.issue(MetaCommand::RemoveObject(args.id))
                 }
             }

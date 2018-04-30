@@ -30,16 +30,16 @@ pub struct BBProperties {
 }
 
 bitflags! {
-    pub flags BBOwnerType : u16 {
-        const BBO_NONE          = 0b00000000,
-        const BBO_PLATFORM      = 0b00000001,   //  Belongs to platform
-        const BBO_BLOCK         = 0b00000010,   //  Belongs to block
-        const BBO_PLAYER        = 0b00000100,   //  Belongs to player
-        const BBO_ENEMY         = 0b00001000,   //  Belongs to enemy
-        const BBO_DAMAGE        = 0b00010000,   //  Object causes damage
-        const BBO_PLAYER_ENTITY = 0b00100000,   //  Object should be considered by player
-        const BBO_NOCOLLIDE     = 0b01000000,   //  Object should not be checked against for collisions
-        const BBO_ALL           = 0b11111111,
+    pub struct BBOwnerType : u16 {
+        const NONE          = 0b00000000;
+        const PLATFORM      = 0b00000001;   //  Belongs to platform
+        const BLOCK         = 0b00000010;   //  Belongs to block
+        const PLAYER        = 0b00000100;   //  Belongs to player
+        const ENEMY         = 0b00001000;   //  Belongs to enemy
+        const DAMAGE        = 0b00010000;   //  Object causes damage
+        const PLAYER_ENTITY = 0b00100000;   //  Object should be considered by player
+        const NOCOLLIDE     = 0b01000000;   //  Object should not be checked against for collisions
+        const ALL           = 0b11111111;
     }
 }
 
@@ -105,7 +105,7 @@ pub fn does_collide(args: &ColArgs, bb: &BoundingBox) -> Option<Collision> {
         let Pos(_, oy) = other_bb.pos;
         let Height(h) = bb.h;
         let Height(oh) = other_bb.h;
-        if other_p.owner_type.contains(BBO_PLATFORM) &&
+        if other_p.owner_type.contains(BBOwnerType::PLATFORM) &&
            ((y + h >= oy + oh) || args.pass_platforms) {
             continue;
         }

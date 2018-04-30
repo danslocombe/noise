@@ -82,7 +82,7 @@ impl World {
         self.buffer = self.world
             .values()
             .cloned()
-            .filter(|d: &BBDescriptor| !d.0.owner_type.contains(BBO_NOCOLLIDE))
+            .filter(|d: &BBDescriptor| !d.0.owner_type.contains(BBOwnerType::NOCOLLIDE))
             .collect::<Vec<BBDescriptor>>();
 
         for (id, fighter) in self.fighter_receiver.try_iter() {

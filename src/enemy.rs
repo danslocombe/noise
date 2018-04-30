@@ -61,7 +61,7 @@ impl Logical for EnemyLogic {
 
         //  Handle collisions
         for c in &self.collision_buffer {
-            if c.other_type.contains(BBO_ENEMY) && self.cds.hit <= 0.0 {
+            if c.other_type.contains(BBOwnerType::ENEMY) && self.cds.hit <= 0.0 {
                 self.cds.hit = self.descr.damage_cd;
                 let diff = c.other_bb.pos - c.bb.pos;
                 let Vector(nx, ny) = diff.normalise();
@@ -108,19 +108,19 @@ impl Logical for EnemyLogic {
                             };
                             self.state = EnemyIdle(Some(xdir));
                         }
-                        HI_NONE
+                        HumanoidInput::NONE
                     }
                 }
             }
-            EnemyAlert => HI_NONE,
+            EnemyAlert => HumanoidInput::NONE,
             EnemyActive(Pos(tx, ty)) => {
                 let xdir = (tx - x).signum();
                 let mut ret = hi_from_xdir(xdir);
                 if (ty - y) < -30.0 {
-                    ret |= HI_JUMP;
+                    ret |= HumanoidInput::JUMP;
                 }
                 if (ty - y) > 30.0 {
-                    ret |= HI_FALL
+                    ret |= HumanoidInput::FALL
                 }
 
                 //  Weapon handling
@@ -207,7 +207,7 @@ pub fn create(id: Id,
         frame: 1.0,
     };
     let g = arc_mut(graphics);
-    let props = BBProperties::new(id, BBO_ENEMY);
+    let props = BBProperties::new(id, BBOwnerType::ENEMY);
     let mut phys = PhysDyn::new(props,
                                 pos,
                                 Mass(1.0),
@@ -216,7 +216,7 @@ pub fn create(id: Id,
                                 descr.height,
                                 true,
                                 g.clone());
-    phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
+    phys.collide_with = BBOwnerType::BLOCK | BBOwnerType::PLATFORM;
     let p = arc_mut(phys);
 
     let weapon = Box::new(Bow {});

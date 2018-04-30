@@ -293,7 +293,7 @@ pub fn game_loop(mut window: Window,
 
         //  Get update from window and match against appropriate type
         match e {
-            Input::Update(u_args) => {
+            Event::Loop(Loop::Update(u_args)) => {
                 time += u_args.dt;
                 //print!("FPS {:.3}\r", 1.0 / u_args.dt);
 
@@ -408,7 +408,7 @@ pub fn game_loop(mut window: Window,
                 shader.update(&game.world);
 
             }
-            Input::Render(r_args) => {
+            Event::Loop(Loop::Render(r_args)) => {
                 let dt = prev_time.elapsed().unwrap();
                 prev_time = SystemTime::now();
                 print!("############################################\r");
@@ -449,6 +449,7 @@ pub fn game_loop(mut window: Window,
                 }
                 game.overlay.draw(&r_args, &mut ctx, &view_transform);
             }
+            /*
             Input::Press(i) => {
                 for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
@@ -461,6 +462,7 @@ pub fn game_loop(mut window: Window,
                     ih.release(i);
                 }
             }
+            */
             _ => {}
         }
     }
