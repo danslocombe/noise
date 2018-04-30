@@ -13,6 +13,7 @@ use tools::weight;
 use world::World;
 
 fn string_from_file(filename: &str) -> String {
+    println!("Reading file {}", filename);
     let mut file = File::open(filename).unwrap();
     let mut string = String::new();
     file.read_to_string(&mut string).unwrap();
