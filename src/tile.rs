@@ -1,9 +1,10 @@
 use draw::{Color, Rectangle};
 use draw::{Drawable, ViewTransform};
-use game::{Pos, fphys};
+use game::{Height, Width, Pos, fphys};
 use gen::{GhostTile, GhostTileType, TileEdge};
 use graphics::Transformed;
 use graphics::image;
+use graphics::ImageSize;
 use opengl_graphics::{Filter, GlGraphics};
 use opengl_graphics::Texture;
 use piston::input::*;
@@ -76,12 +77,12 @@ impl TileManager {
         let mut ret = Vec::new();
         let tile_y = y;
         let t1: &Texture = &self.pagoda_back01;
-        ret.push(Tile::new(Pos(x, tile_y), t1));
-        let mut ix = x + TILE_W;
+        ret.push(Tile::new(Pos(x, tile_y), PAGODA_TEXW, PAGODA_TEXH, t1));
+        let mut ix = x + PAGODA_BLOCKW.0;
         while ix < x + length {
             let t: &Texture = &self.pagoda_back01;
-            ret.push(Tile::new(Pos(ix, tile_y), t));
-            ix += TILE_W;
+            ret.push(Tile::new(Pos(ix, tile_y), PAGODA_TEXW, PAGODA_TEXH, t));
+            ix += PAGODA_BLOCKW.0;
         }
         ret
     }
@@ -89,31 +90,35 @@ impl TileManager {
     pub fn propogate_ghosts(&self, ghosts: Vec<GhostTile>) -> Vec<Tile> {
         ghosts.iter()
             .map(|ghost| {
-                let texture: &Texture = match ghost.tile_type {
+                let (texture, w , h ) = match ghost.tile_type {
                     GhostTileType::PagodaBack(ref edge) => {
-                        match *edge {
+                        (match *edge {
                             TileEdge::Left => &self.pagoda_back_left,
                             TileEdge::Center => &self.pagoda_back01,
                             TileEdge::Right => &self.pagoda_back_right,
-                        }
+                        }, PAGODA_TEXW, PAGODA_TEXH)
                     }
                     GhostTileType::PagodaRoof(ref edge) => {
-                        match *edge {
+                        (match *edge {
                             TileEdge::Left => &self.pagoda_roof_left,
                             TileEdge::Center => &self.pagoda_roof,
                             TileEdge::Right => &self.pagoda_roof_right,
-                        }
+                        }, PAGODA_TEXW, PAGODA_TEXH)
                     }
                     GhostTileType::Decor(ref s) => {
                         match &(self.decor.get(&s.to_owned())) {
-                            Some(tex) => {tex},
+                            Some(tex) => {
+                                let w = Width(fphys::from(t.get_width() / 2));
+                                let h = Height(fphys::from(t.get_height() / 2));
+                                (tex, w, h)
+                            },
                             None => {
                                 panic!("Error could not find decor texture {}", s);
                             },
                         }
                     }
                 };
-                Tile::new(Pos(ghost.x, ghost.y), texture)
+                Tile::new(Pos(ghost.x, ghost.y), w, h,texture)
             })
             .collect::<Vec<Tile>>()
     }
@@ -123,22 +128,28 @@ impl TileManager {
 pub struct Tile<'a> {
     pub texture: &'a Texture,
     pub pos: Pos,
+    pub height : Height,
+    pub width: Width,
 }
 
 impl<'a> Tile<'a> {
-    fn new(pos: Pos, texture: &'a Texture) -> Self {
+    fn new(pos: Pos, texture_width : Width, texture_height : Height, texture: &'a Texture) -> Self {
         Tile {
             texture: texture,
             pos: pos,
+            width: texture_width * TILE_BASESCALE,
+            height: texture_height * TILE_BASESCALE,
         }
     }
 }
 
 pub const TILE_BASESCALE: fphys = 4.0;
-pub const TILE_TEXW: fphys = 64.0;
-pub const TILE_TEXH: fphys = 56.0;
-pub const TILE_W: fphys = TILE_TEXW * TILE_BASESCALE;
-pub const TILE_H: fphys = TILE_TEXH * TILE_BASESCALE;
+pub const PAGODA_TEXW_RAW: fphys = 64.0;
+pub const PAGODA_TEXH_RAW: fphys = 56.0;
+pub const PAGODA_TEXW: Width = Width(PAGODA_TEXW_RAW);
+pub const PAGODA_TEXH: Height = Height(PAGODA_TEXH_RAW);
+pub const PAGODA_BLOCKW: Width = Width(PAGODA_TEXW_RAW * TILE_BASESCALE);
+pub const PAGODA_BLOCKH: Height = Height(PAGODA_TEXH_RAW * TILE_BASESCALE);
 
 impl<'a> Drawable for Tile<'a> {
     fn draw(&mut self,
@@ -147,7 +158,8 @@ impl<'a> Drawable for Tile<'a> {
             vt: &ViewTransform) {
         let Pos(x, y) = self.pos;
         ctx.draw(args.viewport(), |c, gl| {
-            let transform = vt.transform(x, y - TILE_H, TILE_BASESCALE, TILE_BASESCALE, &c);
+            let Height(h) = self.height;
+            let transform = vt.transform(x, y - h, TILE_BASESCALE, TILE_BASESCALE, &c);
 
             image(self.texture, transform, gl);
         });
@@ -158,10 +170,12 @@ impl<'a> Drawable for Tile<'a> {
     fn set_color(&mut self, color: Color) {}
     fn should_draw(&self, r: &Rectangle) -> bool {
         let Pos(x, y) = self.pos;
+        let Width(w) = self.width;
+        let Height(h) = self.height;
         //(x + TILE_W > r.x && x < r.x + r.w) && true
-        x + TILE_W > r.x &&
+        x + w > r.x &&
         x < r.x + 2.0 * r.w &&
-        y + TILE_H > r.y &&
+        y + h > r.y &&
         y < r.y + 2.0 * r.h &&
         true
         //(y + TILE_H > r.h && y < r.y + r.h)

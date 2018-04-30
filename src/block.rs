@@ -3,7 +3,7 @@ use self::rand::{Rng, thread_rng};
 
 use collision::{BBOwnerType, BBProperties};
 use descriptors::EnemyDescriptor;
-use draw::{GrphxNoDraw, GrphxRect};
+use draw::{Drawable, GrphxNoDraw, GrphxRect, GrphxContainer};
 use enemy::create as enemy_create;
 use game::{BLOCKSIZE, ENEMY_GEN_P, GameObj, Height, Id, Pos, Width, fphys};
 use gen::{GhostBlock, GhostBlockType};
@@ -20,12 +20,31 @@ pub fn create_block(id: Id,
                     height: Height,
                     world: &World)
                     -> GameObj {
-    let g = arc_mut(GrphxRect {
-        pos: pos,
+    let strip_height = 4.0;
+    let Pos(x, y) = pos;
+    let posBack = Pos(x, y+strip_height);
+    let g_back = arc_mut(GrphxRect {
+        pos: posBack,
         w: length,
         h: height + Height(1500.0),
         //color: [1.0, 0.15, 0.15, 1.0],
-        color: [0.0, 0.0, 0.0, 1.0],
+        //color: [0.0, 0.0, 0.0, 1.0],
+        //color: [0.33, 0.33, 1.0, 1.0],
+        color: [0.5, 0.5, 1.0, 1.0],
+        //color: [1.0, 1.0, 1.0, 1.0],
+    });
+    let g_strip = arc_mut(GrphxRect {
+        pos: pos,
+        w: length,
+        h: Height(strip_height),
+        //color: [1.0, 0.15, 0.15, 1.0],
+        color: [1.0, 0.15, 0.15, 1.0],
+    });
+    let v : Vec<Arc<Mutex<Drawable>>>= vec![g_back, g_strip];
+    let g = arc_mut(GrphxContainer {
+      x_offset : 0.0,
+      y_offset : 0.0,
+      drawables: v,
     });
     let props = BBProperties {
         id: id,

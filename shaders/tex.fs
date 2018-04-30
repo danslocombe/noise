@@ -42,7 +42,9 @@ void main() {
       float seed_y = time_tex + floor(v_UV.y * NOISE_SCALE) / NOISE_SCALE;
       vec2 seed = vec2(seed_x, seed_y);
 
-      if (morph(seed) * 0.35 + 0.65 > c_sample.b) {
+      float morph_val = morph(seed) * 0.35 + 0.68;
+      float morph_val_pow = pow(morph_val, 0.80);
+      if (morph_val_pow > c_sample.b) {
         color.b = 1;
         color.g = 0.33;
         color.r = 0.33;

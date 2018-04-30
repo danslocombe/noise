@@ -4,7 +4,7 @@ use self::rand::{Rng, thread_rng};
 
 use game::{Height, Pos, Width, fphys};
 use std::f64;
-use tile::{TILE_H, TILE_W, Tile, TileManager};
+use tile::{PAGODA_BLOCKW, PAGODA_BLOCKH, Tile, TileManager};
 
 const BLOCKWIDTH: Width = Width(32.0);
 const STRUCTURE_SPACING_MIN: fphys = BLOCKWIDTH.0 * 2.0;
@@ -122,7 +122,7 @@ impl Gen {
                                      rand_gauss() *
                                      (STRUCTURE_LENGTH_MAX -
                                       STRUCTURE_LENGTH_MIN);
-                let length = (length_initial / TILE_W).round() * TILE_W;
+                let length = (length_initial / PAGODA_BLOCKW.0).round() * PAGODA_BLOCKW.0;
 
                 self.next_structure = STRUCTURE_SPACING_MIN +
                                       rand_gauss() *
@@ -178,29 +178,29 @@ pub fn pagoda_platform_tiles(pos: Pos,
         ts.push(GhostTile::new(x,
                                y,
                                GhostTileType::PagodaBack(TileEdge::Left)));
-        ts.push(GhostTile::new(x - TILE_W,
-                               y - TILE_H,
+        ts.push(GhostTile::new(x - PAGODA_BLOCKW.0,
+                               y - PAGODA_BLOCKH.0,
                                GhostTileType::PagodaRoof(TileEdge::Left)));
     } else {
         ts.push(GhostTile::new(x,
                                y,
                                GhostTileType::PagodaBack(TileEdge::Center)));
-        ts.push(GhostTile::new(x - TILE_W,
-                               y - TILE_H,
+        ts.push(GhostTile::new(x - PAGODA_BLOCKW.0,
+                               y - PAGODA_BLOCKH.0,
                                GhostTileType::PagodaRoof(TileEdge::Center)));
     }
     ts.push(GhostTile::new(x,
-                           y - TILE_H,
+                           y - PAGODA_BLOCKH.0,
                            GhostTileType::PagodaRoof(TileEdge::Center)));
-    let mut ix = x + TILE_W;
-    while ix < x + length - TILE_W {
+    let mut ix = x + PAGODA_BLOCKW.0;
+    while ix < x + length - PAGODA_BLOCKW.0 {
         ts.push(GhostTile::new(ix,
                                y,
                                GhostTileType::PagodaBack(TileEdge::Center)));
         ts.push(GhostTile::new(ix,
-                               y - TILE_H,
+                               y - PAGODA_BLOCKH.0,
                                GhostTileType::PagodaRoof(TileEdge::Center)));
-        ix += TILE_W;
+        ix += PAGODA_BLOCKW.0;
     }
     if tile_edge.contains(Border::RIGHT) {
         ts.push(GhostTile::new(ix,
@@ -208,11 +208,11 @@ pub fn pagoda_platform_tiles(pos: Pos,
                                GhostTileType::PagodaBack(TileEdge::Right)));
     }
     ts.push(GhostTile::new(ix,
-                           y - TILE_H,
+                           y - PAGODA_BLOCKH.0,
                            GhostTileType::PagodaRoof(TileEdge::Center)));
     if tile_edge.contains(Border::RIGHT) {
-        ts.push(GhostTile::new(ix + TILE_W,
-                               y - TILE_H,
+        ts.push(GhostTile::new(ix + PAGODA_BLOCKW.0,
+                               y - PAGODA_BLOCKH.0,
                                GhostTileType::PagodaRoof(TileEdge::Right)));
     }
     ts

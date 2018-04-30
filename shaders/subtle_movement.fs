@@ -25,8 +25,7 @@ float lig(vec4 c){
 #define GRAIN_SCALE 50
 #define GRAIN_MOVE 400
 #define SPEED_MIN 1
-#define MOD_AMMOUNT 0.15
-#define WHITE_TEST 0.8
+#define MOD_AMMOUNT 0.055
 
 #define NOISE_OTHER (1.0 / 100.0)
 
@@ -42,26 +41,8 @@ void main() {
     vec2 roundPos = vec2(floor((out_pos.y - out_pos.x * dir) 
                   * GRAIN_SCALE * sqrt(speed)), xmod + time);
 
-    o_Color = v_Color;//vec4(0.0, 0.0, 0.0, 1.0);
+    o_Color = vec4(0.0, 0.0, 0.0, 1.0);
 
-    if (v_Color.r > WHITE_TEST && v_Color.g > WHITE_TEST && v_Color.b > WHITE_TEST) {
-      if (v_Color.r > rand(roundPos)) {
-        //o_Color = vec4(0.0, 0.0, 0.0, v_Color.a);
-        //o_Color = vec4(1.0, 1.0, 1.0, v_Color.a);
-        o_Color = vec4(1.0, 0.8, 0.8, v_Color.a);
-        //o_Color.r = v_Color.r - MOD_AMMOUNT;
-        //o_Color.g = v_Color.g - MOD_AMMOUNT;
-        //o_Color.b = v_Color.b - MOD_AMMOUNT;
-        //o_Color.r = v_Color.r * NOISE_OTHER;
-        //o_Color.g = v_Color.g * NOISE_OTHER;
-        //o_Color.b = v_Color.b * NOISE_OTHER;
-      }
-      else {
-        //o_Color = vec4(0.0, 0.0, 0.0, v_Color.a);
-      }
-    }
-
-/*
     if (v_Color.r > rand(roundPos)) {
         //o_Color.r = 1.0;
         o_Color.r = v_Color.r + MOD_AMMOUNT;
@@ -84,7 +65,6 @@ void main() {
     if (v_Color.b > rand(roundPos)) {
         o_Color.b = v_Color.b; //+ MOD_AMMOUNT;
     }
-    */
 
     o_Color = vec4(color_palette(o_Color.rgb), o_Color.a);
 }

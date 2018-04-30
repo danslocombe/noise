@@ -44,8 +44,8 @@ mod humanoid;
 use game::game_loop;
 use shaders::NoisyShader;
 
-pub const SCREEN_WIDTH: u32 = 800;
-pub const SCREEN_HEIGHT: u32 = 600;
+pub const SCREEN_WIDTH: u32 = 960;
+pub const SCREEN_HEIGHT: u32 = 540;
 
 fn main() {
 
@@ -59,7 +59,7 @@ fn main() {
         //.fullscreen(true)
         .srgb(false)
         .vsync(true)
-        .decorated(false)
+        //.decorated(false)
         .exit_on_esc(true)
         .build()
         .unwrap();
