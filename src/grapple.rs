@@ -384,7 +384,7 @@ impl Physical for Grapple {
 
 bitflags! {
     struct CSFlags : u8 {
-        const IN    = 0b0001;
+        const IN    = 0b0000;
         const LEFT  = 0b0001;
         const RIGHT = 0b0010;
         const DOWN  = 0b0100;

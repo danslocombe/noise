@@ -449,20 +449,20 @@ pub fn game_loop(mut window: Window,
                 }
                 game.overlay.draw(&r_args, &mut ctx, &view_transform);
             }
-            /*
-            Input::Press(i) => {
+
+            Event::Input(Input::Button(b_args)) => {
                 for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
-                    ih.press(i);
+                    match (b_args.state) {
+                        ButtonState::Press => {
+                            ih.press(b_args.button);
+                        }
+                        ButtonState::Release => {
+                            ih.release(b_args.button);
+                        }
+                    }
                 }
             }
-            Input::Release(i) => {
-                for input_handler in &game.input_handlers {
-                    let mut ih = input_handler.lock().unwrap();
-                    ih.release(i);
-                }
-            }
-            */
             _ => {}
         }
     }

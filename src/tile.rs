@@ -106,10 +106,10 @@ impl TileManager {
                         }, PAGODA_TEXW, PAGODA_TEXH)
                     }
                     GhostTileType::Decor(ref s) => {
-                        match &(self.decor.get(&s.to_owned())) {
+                        match (self.decor.get(&s.to_owned())) {
                             Some(tex) => {
-                                let w = Width(fphys::from(t.get_width() / 2));
-                                let h = Height(fphys::from(t.get_height() / 2));
+                                let w = Width(fphys::from(tex.get_width() / 2));
+                                let h = Height(fphys::from(tex.get_height() / 2));
                                 (tex, w, h)
                             },
                             None => {
