@@ -30,17 +30,17 @@ pub struct BBProperties {
 }
 
 bitflags! {
-    pub flags BBOwnerType : u32 {
-        const NONE          = 0b0000000000000000,
-        const PLATFORM      = 0b0000000000000001,   //  Belongs to platform
-        const BLOCK         = 0b0000000000000010,   //  Belongs to block
-        const PLAYER        = 0b0000000000000100,   //  Belongs to player
-        const ENEMY         = 0b0000000000001000,   //  Belongs to enemy
-        const DAMAGE        = 0b0000000000010000,   //  Object causes damage
-        const PLAYER_ENTITY = 0b0000000000100000,   //  Object should be considered by player
-        const NOCOLLIDE     = 0b0000000001000000,   //  Object should not be checked against for collisions
-        const NOGRAPPLE     = 0b0000000010000000,   //  Grapple should ignore
-        const ALL           = 0b1111111111111111,
+    pub struct BBOwnerType : u32 {
+        const NONE          = 0b0000000000000000;
+        const PLATFORM      = 0b0000000000000001;   //  Belongs to platform
+        const BLOCK         = 0b0000000000000010;   //  Belongs to block
+        const PLAYER        = 0b0000000000000100;   //  Belongs to player
+        const ENEMY         = 0b0000000000001000;   //  Belongs to enemy
+        const DAMAGE        = 0b0000000000010000;   //  Object causes damage
+        const PLAYER_ENTITY = 0b0000000000100000;   //  Object should be considered by player
+        const NOCOLLIDE     = 0b0000000001000000;   //  Object should not be checked against for collisions
+        const NOGRAPPLE     = 0b0000000010000000;   //  Grapple should ignore
+        const ALL           = 0b1111111111111111;
     }
 }
 

@@ -470,6 +470,7 @@ pub fn game_loop(world_path : &Path,
     }
 }
 
+// Traits impls for basic types
 impl Add for Pos {
     type Output = Vector;
     fn add(self, other: Pos) -> Vector {

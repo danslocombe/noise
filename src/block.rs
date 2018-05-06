@@ -1,11 +1,7 @@
 extern crate rand;
 use self::rand::{Rng, thread_rng};
 
-<<<<<<< HEAD
-use collision::{BBO_BLOCK, BBO_PLATFORM, BBO_NOGRAPPLE, BBProperties};
-=======
 use collision::{BBOwnerType, BBProperties};
->>>>>>> 856190cb099a0e69552a71d3aa78ed5f6fece421
 use descriptors::EnemyDescriptor;
 use draw::{Drawable, GrphxNoDraw, GrphxRect, GrphxContainer};
 use enemy::create as enemy_create;
@@ -72,7 +68,7 @@ pub fn create_clip(id: Id,
     let g = arc_mut(GrphxNoDraw {});
     let props = BBProperties {
         id: id,
-        owner_type: BBO_BLOCK | BBO_NOGRAPPLE,
+        owner_type: BBOwnerType::BLOCK | BBOwnerType::NOGRAPPLE,
     };
     let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});

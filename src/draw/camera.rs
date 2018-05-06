@@ -22,7 +22,6 @@ pub struct ViewTransform {
 }
 
 impl ViewTransform {
-    //  TODO cache this
     pub fn transform(&self, x : f64, y : f64, xscale : f64, yscale : f64,  c : &Context) -> Matrix2d {
         match c.viewport{
             Some(v) => {

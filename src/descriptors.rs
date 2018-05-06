@@ -13,6 +13,10 @@ use std::path::Path;
 use std::rc::Rc;
 use weapons::*;
 
+/*
+ * Descriptors are used to specify constants about the game in simple json files
+ * see ./descriptors/player.json etc
+ */
 pub trait Descriptor {
     fn new(&Path) -> Result<Rc<Self>, Error>;
 }
@@ -94,6 +98,7 @@ pub fn get_string(dname: &str,
                             format!("'{}' is not a string", field).as_str()))?))
 }
 
+// Load texture
 pub fn load_from(ts: &TextureSettings,
                  dname: &str,
                  count: usize,
@@ -113,6 +118,7 @@ pub fn load_from(ts: &TextureSettings,
     Ok(r)
 }
 
+// Load json object
 pub fn load_json(dname: &str, json_path: &Path) -> Result<Object, Error> {
     let mut f = (File::open(json_path)).map_err(|_| {
             error_simple(dname,
