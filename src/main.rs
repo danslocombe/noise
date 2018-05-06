@@ -11,37 +11,65 @@ extern crate bitflags;
 extern crate rustc_serialize;
 extern crate find_folder;
 extern crate rayon;
+extern crate notify;
+#[macro_use]
+extern crate ketos;
+#[macro_use]
+extern crate ketos_derive;
 
-use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
 use opengl_graphics::shader_uniforms::*;
 use piston::window::WindowSettings;
 use std::env;
 use std::path::Path;
 
+#[allow(unused_imports)]
 mod block;
+#[allow(unused_imports)]
 mod collision;
+#[allow(unused_imports)]
 mod descriptors;
+#[allow(unused_imports)]
 mod draw;
+#[allow(unused_imports)]
 mod enemy;
+#[allow(unused_imports)]
 mod game;
+#[allow(unused_imports)]
 mod gen;
+#[allow(unused_imports)]
 mod grapple;
+#[allow(unused_imports)]
 mod logic;
+#[allow(unused_imports)]
 mod physics;
+#[allow(unused_imports)]
 mod player;
+#[allow(unused_imports)]
 mod player_graphics;
+#[allow(unused_imports)]
 mod shaders;
+#[allow(unused_imports)]
 mod tile;
+#[allow(unused_imports)]
 mod tools;
+#[allow(unused_imports)]
 mod world;
+#[allow(unused_imports)]
 mod dialogue;
+#[allow(unused_imports)]
 mod load_world;
+#[allow(unused_imports)]
 mod enemy_graphics;
+#[allow(unused_imports)]
 mod entities;
+#[allow(unused_imports)]
 mod overlay;
+#[allow(unused_imports)]
 mod weapons;
+#[allow(unused_imports)]
 mod humanoid;
+#[allow(unused_imports)]
 mod dynobj;
 
 use game::game_loop;

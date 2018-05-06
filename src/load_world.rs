@@ -5,6 +5,9 @@ use enemy::create as enemy_create;
 use entities::*;
 use game::*;
 use gen::*;
+use draw::GrphxNoDraw;
+use physics::PhysNone;
+use dynobj::{DynMap, DynLogic};
 use rustc_serialize::json::{Array, Object};
 use rustc_serialize::json::Json;
 use std::collections::HashMap;
@@ -15,6 +18,8 @@ use std::io::Read;
 use std::path::Path;
 use std::rc::Rc;
 use world::World;
+use std::sync::{Arc, Mutex};
+use tools::{arc_mut};
 
 
 fn get_array(dname: &str, obj: &Object, field: &str) -> Result<Array, Error> {
@@ -41,6 +46,7 @@ pub fn from_json(path: &Path,
                  player: GameObj,
                  grapple: GameObj,
                  _enemy_descriptors: &HashMap<String, Rc<EnemyDescriptor>>,
+                 dyn_map: Arc<Mutex<DynMap>>,
                  world: &mut World)
                  -> Result<(Vec<GameObj>, Vec<GhostTile>), Error> {
     let mut gobjs = Vec::new();
@@ -86,6 +92,15 @@ pub fn from_json(path: &Path,
                 let e = enemy_create(id, pos, descr, &world, faction);
                 gobjs.push(e);
                 */
+            }
+            "dyn" => {
+                let logic_name =
+                    get_string("world", obj, "script")?.to_string();
+                let dl = DynLogic::new(id, dyn_map.clone(), logic_name);
+                let ds = arc_mut(GrphxNoDraw {});
+                let phs = arc_mut(PhysNone {id: id});
+                let gobj = GameObj::new(id, ds, phs, arc_mut(dl));
+                gobjs.push(gobj);
             }
             "clip" => {
                 let b = create_clip(id, pos, w, h, &world);

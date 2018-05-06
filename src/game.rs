@@ -8,6 +8,7 @@ use block::blocks_from_ghosts;
 use collision::Collision;
 use descriptors::*;
 
+use notify::{DebouncedEvent};
 use dialogue::{Dialogue, DialogueBuffer};
 use draw::*;
 use enemy::create as enemy_create;
@@ -33,6 +34,8 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::SystemTime;
 use tile::{Tile, TileManager};
 use world::World;
+use dynobj::DynMap;
+use tools::{arc_mut};
 
 pub type Id = u32;
 pub type TriggerId = u32;
@@ -190,6 +193,7 @@ struct Noise<'a> {
     pub tile_manager: &'a TileManager,
     pub dialogue_buffer: DialogueBuffer,
     pub tiles: Vec<Tile<'a>>,
+    pub dyn_map: Arc<Mutex<DynMap>>,
 }
 
 fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> {
@@ -197,7 +201,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
     let world_descr = load_descriptor(Path::new("descriptors/world.json"));
     let mut world = World::new(world_descr);
 
-    let _tilesc<Tile> = Vec::new();
+    //let _tilesc<Tile> = Vec::new();
 
 
     //  Initialise set of input handlers
@@ -207,7 +211,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
 
     //  Create player
     let player_id = world.player_id();
-    let (player_obj, mut er_logic) =
+    let (player_obj, mut player_logic) =
         player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone(), world.descr.clone());
     let player_phys = player_obj.physics.clone();
 
@@ -222,11 +226,15 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
 
     let enemy_descriptors =
         load_enemy_descriptors(Path::new("descriptors/enemy")).unwrap();
+
+    let dyn_map = DynMap::construct();
+
     //  Load from json
     let poss_objs = from_json(world_path,
                                   player_obj,
                                   grapple_obj,
                                   &enemy_descriptors,
+                                  dyn_map.clone(),
                                   &mut world);
 
     let (objs, ghost_tiles) = poss_objs.unwrap();
@@ -269,6 +277,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
         metabuffer: metabuffer,
         tiles: tiles,
         overlay: overlay,
+        dyn_map: dyn_map,
     }
 }
 
@@ -409,14 +418,20 @@ pub fn game_loop(world_path : &Path,
                 //  Update shader
                 shader.update(&game.world);
 
+                //  Check for updates to scripts
+                {
+                    let mut dm = game.dyn_map.lock().unwrap();
+                    dm.update();
+                }
+
             }
             Event::Loop(Loop::Render(r_args)) => {
                 let dt = prev_time.elapsed().unwrap();
                 prev_time = SystemTime::now();
-                print!("############################################\r");
-                print!("fps {:.3} game objs {}\r",
-                       1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64,
-                       game.objs.len());
+                //print!("############################################\r");
+                //print!("fps {:.3} game objs {}\r",
+                       //1000.0 * 1000.0 * 1000.0 / ((dt.subsec_nanos())) as f64,
+                       //game.objs.len());
 
                 game.editor.update(&r_args.viewport(), &game.world);
 
