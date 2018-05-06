@@ -26,7 +26,7 @@ pub struct TileManager {
 
 impl TileManager {
     pub fn load() -> Result<Self, String> {
-        print!("Loading textures..");
+        print!("Loading tile textures..");
         let mut ts = TextureSettings::new();
         ts.set_mag(Filter::Nearest);
         let pagoda_back_left =
@@ -106,8 +106,16 @@ impl TileManager {
                         }, PAGODA_TEXW, PAGODA_TEXH)
                     }
                     GhostTileType::Decor(ref s) => {
-                      let t = self.decor.get(&s.to_owned()).unwrap();
-                      (t, Width(fphys::from(t.get_width())), Height(fphys::from(t.get_height())))
+                        match (self.decor.get(&s.to_owned())) {
+                            Some(tex) => {
+                                let w = Width(fphys::from(tex.get_width() / 2));
+                                let h = Height(fphys::from(tex.get_height() / 2));
+                                (tex, w, h)
+                            },
+                            None => {
+                                panic!("Error could not find decor texture {}", s);
+                            },
+                        }
                     }
                 };
                 Tile::new(Pos(ghost.x, ghost.y), w, h,texture)

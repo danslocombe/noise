@@ -73,6 +73,7 @@ fn main() {
         .opengl(opengl)
         .exit_on_esc(true)
         //.fullscreen(true)
+        .srgb(false)
         .vsync(true)
         .decorated(false)
         .exit_on_esc(true)

@@ -97,24 +97,24 @@ pub fn from_json(path: &Path,
             }
             "pagoda_block" => {
                 let e = create_platform(id, pos, w, &world);
-                let mut borders = BORDER_NONE;
+                let mut borders = Border::NONE;
                 if get_bool("pagoda_block", obj, "border_left")? {
-                    borders |= BORDER_LEFT;
+                    borders |= Border::LEFT;
                 }
                 if get_bool("pagoda_block", obj, "border_right")? {
-                    borders |= BORDER_RIGHT;
+                    borders |= Border::RIGHT;
                 }
                 gtiles.extend(pagoda_platform_tiles(pos, borders, w));
                 gobjs.push(e);
             }
             "pagoda_ground" => {
                 let e = create_block(id, pos, w, Height(32.0), &world);
-                let mut borders = BORDER_NONE;
+                let mut borders = Border::NONE;
                 if get_bool("pagoda_ground", obj, "border_left")? {
-                    borders |= BORDER_LEFT;
+                    borders |= Border::LEFT;
                 }
                 if get_bool("pagoda_ground", obj, "border_right")? {
-                    borders |= BORDER_RIGHT;
+                    borders |= Border::RIGHT;
                 }
                 gtiles.extend(pagoda_platform_tiles(pos, borders, w));
                 gobjs.push(e);

@@ -36,7 +36,7 @@ impl PlayerColLogic {
                -> (Self, Arc<Mutex<PhysDyn>>) {
         let props = BBProperties {
             id: id,
-            owner_type: BBO_PLAYER_ENTITY | BBO_NOCOLLIDE,
+            owner_type: BBOwnerType::PLAYER_ENTITY | BBOwnerType::NOCOLLIDE,
         };
         let p = arc_mut(PhysDyn::new(props,
                                      bb.pos,
@@ -63,7 +63,7 @@ impl Logical for PlayerColLogic {
         });
         for m in args.message_buffer.read_buffer() {
             if let ObjMessage::MCollision(c) = m {
-                if c.other_type.contains(BBO_PLAYER) {
+                if c.other_type.contains(BBOwnerType::PLAYER) {
                     (self.f)(args);
                 }
             }
@@ -179,7 +179,7 @@ pub fn create_crown(id: Id, pos: Pos, world: &World) -> GameObj {
         PlayerColLogic::new_dyn(id, bb, crown_trigger, crown_update, g.clone());
     {
         let mut phys = p.lock().unwrap();
-        phys.collide_with = BBO_BLOCK;
+        phys.collide_with = BBOwnerType::BLOCK;
     }
     let l = arc_mut(logic);
     GameObj::new(id, g, p, l)

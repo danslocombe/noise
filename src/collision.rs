@@ -31,16 +31,16 @@ pub struct BBProperties {
 
 bitflags! {
     pub flags BBOwnerType : u32 {
-        const BBO_NONE          = 0b0000000000000000,
-        const BBO_PLATFORM      = 0b0000000000000001,   //  Belongs to platform
-        const BBO_BLOCK         = 0b0000000000000010,   //  Belongs to block
-        const BBO_PLAYER        = 0b0000000000000100,   //  Belongs to player
-        const BBO_ENEMY         = 0b0000000000001000,   //  Belongs to enemy
-        const BBO_DAMAGE        = 0b0000000000010000,   //  Object causes damage
-        const BBO_PLAYER_ENTITY = 0b0000000000100000,   //  Object should be considered by player
-        const BBO_NOCOLLIDE     = 0b0000000001000000,   //  Object should not be checked against for collisions
-        const BBO_NOGRAPPLE     = 0b0000000010000000,   //  Grapple should ignore
-        const BBO_ALL           = 0b1111111111111111,
+        const NONE          = 0b0000000000000000,
+        const PLATFORM      = 0b0000000000000001,   //  Belongs to platform
+        const BLOCK         = 0b0000000000000010,   //  Belongs to block
+        const PLAYER        = 0b0000000000000100,   //  Belongs to player
+        const ENEMY         = 0b0000000000001000,   //  Belongs to enemy
+        const DAMAGE        = 0b0000000000010000,   //  Object causes damage
+        const PLAYER_ENTITY = 0b0000000000100000,   //  Object should be considered by player
+        const NOCOLLIDE     = 0b0000000001000000,   //  Object should not be checked against for collisions
+        const NOGRAPPLE     = 0b0000000010000000,   //  Grapple should ignore
+        const ALL           = 0b1111111111111111,
     }
 }
 
@@ -106,7 +106,7 @@ pub fn does_collide(args: &ColArgs, bb: &BoundingBox) -> Option<Collision> {
         let Pos(_, oy) = other_bb.pos;
         let Height(h) = bb.h;
         let Height(oh) = other_bb.h;
-        if other_p.owner_type.intersects(BBO_PLATFORM) &&
+        if other_p.owner_type.intersects(BBOwnerType::PLATFORM) &&
            ((y + h >= oy + oh) || args.pass_platforms) {
             continue;
         }

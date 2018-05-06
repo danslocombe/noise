@@ -39,7 +39,7 @@ impl GrappleHolster {
 
         (GrappleHolster {
              grapple: grapple.clone(),
-             input: GI_NONE,
+             input: GrappleInput::NONE,
              descr: descr,
              cd: 0.0,
              player_id: player_id,
@@ -50,16 +50,16 @@ impl GrappleHolster {
     fn vel_from_inputs(&self) -> Vel {
         let mut x = 0.0;
         let mut y = 0.0;
-        if self.input.contains(GI_LEFT) {
+        if self.input.contains(GrappleInput::LEFT) {
             x -= 1.0;
         }
-        if self.input.contains(GI_RIGHT) {
+        if self.input.contains(GrappleInput::RIGHT) {
             x += 1.0;
         }
-        if self.input.contains(GI_UP) {
+        if self.input.contains(GrappleInput::UP) {
             y -= 1.0;
         }
-        if self.input.contains(GI_DOWN) {
+        if self.input.contains(GrappleInput::DOWN) {
             y += 1.0;
         }
         let (xn, yn) = normalise((x, y));
@@ -73,13 +73,13 @@ impl GrappleHolster {
 }
 
 bitflags! {
-    flags GrappleInput : u16 {
-        const GI_NONE    = 0b00000000,
-        const GI_LEFT    = 0b00000001,
-        const GI_RIGHT   = 0b00000010,
-        const GI_DOWN    = 0b00000100,
-        const GI_UP      = 0b00001000,
-        const GI_RETRACT = 0b00010000,
+    struct GrappleInput : u16 {
+        const NONE    = 0b00000000;
+        const LEFT    = 0b00000001;
+        const RIGHT   = 0b00000010;
+        const DOWN    = 0b00000100;
+        const UP      = 0b00001000;
+        const RETRACT = 0b00010000;
     }
 }
 
@@ -111,7 +111,7 @@ impl Logical for GrappleHolster {
                             MetaCommand::MessageObject(self.player_id,
                                 ObjMessage::MPlayerEndGrapple));
                         g.end_grapple();
-                    } else if self.input.contains(GI_RETRACT) {
+                    } else if self.input.contains(GrappleInput::RETRACT) {
                         g.retracting = true;
                         let len_new = len - self.descr.retract_speed * dt;
                         if len_new < 0.0 {
@@ -132,19 +132,19 @@ impl InputHandler for GrappleHolster {
     fn press(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::Up) => {
-                self.input |= GI_UP;
+                self.input |= GrappleInput::UP;
             }
             Button::Keyboard(Key::Down) => {
-                self.input |= GI_DOWN;
+                self.input |= GrappleInput::DOWN;
             }
             Button::Keyboard(Key::Left) => {
-                self.input |= GI_LEFT;
+                self.input |= GrappleInput::LEFT;
             }
             Button::Keyboard(Key::Right) => {
-                self.input |= GI_RIGHT;
+                self.input |= GrappleInput::RIGHT;
             }
             Button::Keyboard(Key::LShift) => {
-                self.input |= GI_RETRACT;
+                self.input |= GrappleInput::RETRACT;
             }
             _ => {}
         }
@@ -152,19 +152,19 @@ impl InputHandler for GrappleHolster {
     fn release(&mut self, button: Button) {
         match button {
             Button::Keyboard(Key::Up) => {
-                self.input &= !GI_UP;
+                self.input &= !GrappleInput::UP;
             }
             Button::Keyboard(Key::Down) => {
-                self.input &= !GI_DOWN;
+                self.input &= !GrappleInput::DOWN;
             }
             Button::Keyboard(Key::Left) => {
-                self.input &= !GI_LEFT;
+                self.input &= !GrappleInput::LEFT;
             }
             Button::Keyboard(Key::Right) => {
-                self.input &= !GI_RIGHT;
+                self.input &= !GrappleInput::RIGHT;
             }
             Button::Keyboard(Key::LShift) => {
-                self.input &= !GI_RETRACT;
+                self.input &= !GrappleInput::RETRACT;
             }
             _ => {}
         }
@@ -273,9 +273,9 @@ impl Physical for Grapple {
 
                     for bbprops in world.buffer() {
                         let (ref props, ref bb) = *bbprops;
-                        if props.owner_type.contains(BBO_PLAYER) ||
-                           props.owner_type.contains(BBO_ENEMY) ||
-                           props.owner_type.contains(BBO_NOGRAPPLE) {
+                        if props.owner_type.contains(BBOwnerType::PLAYER) ||
+                           props.owner_type.contains(BBOwnerType::ENEMY) ||
+                           props.owner_type.contains(BBOwnerType::NOGRAPPLE) {
                             continue;
                         }
                         line_collide(&self.start, &self.end, bb).map(|col| {
@@ -384,12 +384,12 @@ impl Physical for Grapple {
 
 
 bitflags! {
-    flags CSFlags : u8 {
-        const CS_IN    = 0b0000,
-        const CS_LEFT  = 0b0001,
-        const CS_RIGHT = 0b0010,
-        const CS_DOWN  = 0b0100,
-        const CS_UP    = 0b1000,
+    struct CSFlags : u8 {
+        const IN    = 0b0000;
+        const LEFT  = 0b0001;
+        const RIGHT = 0b0010;
+        const DOWN  = 0b0100;
+        const UP    = 0b1000;
     }
 }
 
@@ -399,18 +399,18 @@ fn cs_code(p: &Pos,
            y_min: fphys,
            y_max: fphys)
            -> CSFlags {
-    let mut ret_code = CS_IN;
+    let mut ret_code = CSFlags::IN;
     let Pos(x, y) = *p;
     if x < x_min {
-        ret_code |= CS_LEFT;
+        ret_code |= CSFlags::LEFT;
     } else if x > x_max {
-        ret_code |= CS_RIGHT;
+        ret_code |= CSFlags::RIGHT;
     }
 
     if y < y_min {
-        ret_code |= CS_UP;
+        ret_code |= CSFlags::UP;
     } else if y > y_max {
-        ret_code |= CS_DOWN;
+        ret_code |= CSFlags::DOWN;
     }
     ret_code
 }
@@ -429,7 +429,7 @@ fn line_collide(start: &Pos, end: &Pos, bb: &BoundingBox) -> Option<Pos> {
     let mut y = start_y;
 
     loop {
-        if (start_code | end_code) == CS_IN {
+        if (start_code | end_code) == CSFlags::IN {
             //  Trivially accept as both ends inside the block
             return Some(Pos(start_x, start_y));
         } else if !(start_code & end_code).is_empty() {
@@ -448,21 +448,21 @@ fn line_collide(start: &Pos, end: &Pos, bb: &BoundingBox) -> Option<Pos> {
             //  y = y0 + slope (x - x0)
             //  x = x0 + (1/slope) (y - y0)
 
-            if outside.contains(CS_UP) {
+            if outside.contains(CSFlags::UP) {
                 x = start_x +
                     (end_x - start_x) * (bb_y + bb_h - start_y) /
                     (end_y - start_y);
                 y = bb_y + bb_h;
-            } else if outside.contains(CS_DOWN) {
+            } else if outside.contains(CSFlags::DOWN) {
                 x = start_x +
                     (end_x - start_x) * (bb_y - start_y) / (end_y - start_y);
                 y = bb_y;
-            } else if outside.contains(CS_RIGHT) {
+            } else if outside.contains(CSFlags::RIGHT) {
                 x = bb_x + bb_w;
                 y = start_y +
                     (end_y - start_y) * (bb_x + bb_w - start_x) /
                     (end_x - start_x);
-            } else if outside.contains(CS_LEFT) {
+            } else if outside.contains(CSFlags::LEFT) {
                 x = bb_x;
                 y = start_y +
                     (end_y - start_y) * (bb_x - start_x) / (end_x - start_x);

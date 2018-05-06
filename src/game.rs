@@ -295,7 +295,7 @@ pub fn game_loop(world_path : &Path,
 
         //  Get update from window and match against appropriate type
         match e {
-            Input::Update(u_args) => {
+            Event::Loop(Loop::Update(u_args)) => {
                 time += u_args.dt;
                 //print!("FPS {:.3}\r", 1.0 / u_args.dt);
 
@@ -410,7 +410,7 @@ pub fn game_loop(world_path : &Path,
                 shader.update(&game.world);
 
             }
-            Input::Render(r_args) => {
+            Event::Loop(Loop::Render(r_args)) => {
                 let dt = prev_time.elapsed().unwrap();
                 prev_time = SystemTime::now();
                 print!("############################################\r");
@@ -451,16 +451,18 @@ pub fn game_loop(world_path : &Path,
                 }
                 game.overlay.draw(&r_args, &mut ctx, &view_transform);
             }
-            Input::Press(i) => {
+
+            Event::Input(Input::Button(b_args)) => {
                 for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
-                    ih.press(i);
-                }
-            }
-            Input::Release(i) => {
-                for input_handler in &game.input_handlers {
-                    let mut ih = input_handler.lock().unwrap();
-                    ih.release(i);
+                    match (b_args.state) {
+                        ButtonState::Press => {
+                            ih.press(b_args.button);
+                        }
+                        ButtonState::Release => {
+                            ih.release(b_args.button);
+                        }
+                    }
                 }
             }
             _ => {}

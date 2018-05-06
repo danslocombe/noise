@@ -1,7 +1,11 @@
 extern crate rand;
 use self::rand::{Rng, thread_rng};
 
+<<<<<<< HEAD
 use collision::{BBO_BLOCK, BBO_PLATFORM, BBO_NOGRAPPLE, BBProperties};
+=======
+use collision::{BBOwnerType, BBProperties};
+>>>>>>> 856190cb099a0e69552a71d3aa78ed5f6fece421
 use descriptors::EnemyDescriptor;
 use draw::{Drawable, GrphxNoDraw, GrphxRect, GrphxContainer};
 use enemy::create as enemy_create;
@@ -52,7 +56,7 @@ pub fn create_block(id: Id,
     });
     let props = BBProperties {
         id: id,
-        owner_type: BBO_BLOCK,
+        owner_type: BBOwnerType::BLOCK,
     };
     let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});
@@ -83,7 +87,7 @@ pub fn create_platform(id: Id,
     let g = arc_mut(GrphxNoDraw {});
     let props = BBProperties {
         id: id,
-        owner_type: BBO_PLATFORM,
+        owner_type: BBOwnerType::PLATFORM,
     };
     let p = arc_mut(PhysStatic::new(props, pos, width, Height(10.0), world));
     let l = arc_mut(DumbLogic {});

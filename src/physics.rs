@@ -126,7 +126,7 @@ impl PhysDyn {
             pass_platforms: false,
             bb: bb,
             maxspeed: maxspeed,
-            collide_with: BBO_ALL,
+            collide_with: BBOwnerType::ALL,
             resolve_collisions: resolve_collisions,
             draw: dr,
         }
@@ -202,7 +202,7 @@ impl Physical for PhysDyn {
         let col_args = ColArgs {
             p: &self.p,
             bbs: bbs,
-            to_collide: BBO_ALL,
+            to_collide: BBOwnerType::ALL,
             pass_platforms: self.pass_platforms,
         };
         let resolve_args =

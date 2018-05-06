@@ -7,8 +7,10 @@ use game::{Pos, fphys};
 use graphics::character::CharacterCache;
 use graphics::text::Text;
 use opengl_graphics::GlGraphics;
-use opengl_graphics::glyph_cache::GlyphCache;
+use opengl_graphics::GlyphCache;
+use opengl_graphics::Filter;
 use opengl_graphics::shader_uniforms::*;
+use piston_window::TextureSettings;
 use piston::input::*;
 use player::PlayerLogic;
 use std::path::Path;
@@ -37,6 +39,8 @@ impl Overlay {
         const COLOR_BORDER: Color = [0.0, 0.0, 0.0, 1.0];
         let mut text = Text::new(24);
         text.color = [1.0, 1.0, 1.0, 1.0];
+        let mut ts = TextureSettings::new();
+        ts.set_mag(Filter::Nearest);
         Overlay {
             player: player,
             hpbar_h: 9.0,
@@ -48,7 +52,7 @@ impl Overlay {
             blackbar_percent: 0.15,
             char_size: 24,
             text: text,
-            char_cache: GlyphCache::new(Path::new("fonts/alterebro.ttf"))
+            char_cache: GlyphCache::new(Path::new("fonts/alterebro.ttf"), (), ts)
                 .unwrap(),
             dialogue: String::new(),
             dialogue_time_left: 1,
@@ -119,7 +123,7 @@ impl Drawable for Overlay {
                         self.dialogue_chars
                     };
                     let (t, _) = self.dialogue.as_str().split_at(dc);
-                    let text_width = self.char_cache.width(self.char_size, t);
+                    let text_width = self.char_cache.width(self.char_size, t).unwrap();
                     let transform_text = c.transform
                         .trans(0.5 * (vp.rect[2] as fphys) - text_width / 2.0,
                                (1.0 - 0.5 * self.blackbar_percent) *
