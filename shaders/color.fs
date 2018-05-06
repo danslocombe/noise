@@ -27,12 +27,14 @@ float lig(vec4 c){
 #define SPEED_MIN 1
 #define MOD_AMMOUNT 0.15
 #define WHITE_TEST 0.8
+//#define DIRYMOD 0.5
+#define DIRYMOD 1.0
 
 #define NOISE_OTHER (1.0 / 100.0)
 
 void main() {
 
-    float dir = sign(vel.x) * atan(-vel.y / 2.0, abs(vel.x));
+    float dir = sign(vel.x) * atan(-vel.y * DIRYMOD, abs(vel.x));
     float speed = sqrt(pow(vel.y, 2) + pow(vel.x, 2));
 
     if (speed < SPEED_MIN) {

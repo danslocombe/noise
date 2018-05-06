@@ -1,8 +1,10 @@
 use collision::*;
 use game::{Id, TriggerId};
+use std::rc::Rc;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{Receiver, Sender, channel};
+use descriptors::{WorldDescriptor};
 
 //  Listens for updates on its receiver then updates its representation of the world
 //
@@ -21,6 +23,7 @@ pub struct World {
     fighter_receiver: Receiver<FighterSendType>,
     fighter_buffer: Vec<Fighter>,
     trigger_id_map: HashMap<TriggerId, Id>,
+    pub descr: Rc<WorldDescriptor>,
 }
 
 struct IdGen {
@@ -39,7 +42,7 @@ type SendType = (BBProperties, Option<BoundingBox>);
 type FighterSendType = (Id, Option<Fighter>);
 
 impl World {
-    pub fn new() -> Self {
+    pub fn new(descr : Rc<WorldDescriptor>) -> Self {
         let (tx, rx): (Sender<SendType>, Receiver<SendType>) = channel();
         let (fighter_tx, fighter_rx) = channel();
         let world = HashMap::new();
@@ -55,6 +58,7 @@ impl World {
             player_id: 0,
             id_gen: Arc::new(Mutex::new(IdGen { current: 1 })),
             trigger_id_map: HashMap::new(),
+            descr: descr,
         }
     }
 

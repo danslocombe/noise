@@ -36,7 +36,7 @@
   "dash_invuln":0.3,
   "dash_force":300,
   "jump_cd":0.5,
-  "maxspeed":300,
+  "maxspeed":600,
   "damage_cd":0.4,
   "start_hp":200000
 }

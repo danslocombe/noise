@@ -1,0 +1,9 @@
+{
+  "_comment":"General world constants",
+
+  "gravity": 12.8,
+
+  "_comment_mult": "In order to make platforming feel responsive, when a creature is falling gravity is increased",
+  "gravity_down_mult":1.35
+
+}

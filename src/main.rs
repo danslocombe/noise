@@ -16,6 +16,8 @@ use glutin_window::GlutinWindow as Window;
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
 use opengl_graphics::shader_uniforms::*;
 use piston::window::WindowSettings;
+use std::env;
+use std::path::Path;
 
 mod block;
 mod collision;
@@ -46,8 +48,22 @@ use shaders::NoisyShader;
 
 pub const SCREEN_WIDTH: u32 = 960;
 pub const SCREEN_HEIGHT: u32 = 540;
+//pub const SCREEN_WIDTH: u32 = 1920;
+//pub const SCREEN_HEIGHT: u32 = 1080;
 
 fn main() {
+    let args : Vec<String> = env::args().collect();
+    
+    let world_filename = match args.len() {
+      2 => {
+          args[1].clone()
+      }
+      _ => {
+          "worlds/testworld.json".to_owned()
+      }
+    };
+    println!("Loading world \"{}\"", world_filename);
+    let world_path = Path::new(&world_filename);
 
     let opengl = OpenGL::V3_2;
     println!("Loading opengl");
@@ -58,7 +74,7 @@ fn main() {
         .exit_on_esc(true)
         //.fullscreen(true)
         .vsync(true)
-        //.decorated(false)
+        .decorated(false)
         .exit_on_esc(true)
         .build()
         .unwrap();
@@ -118,5 +134,5 @@ fn main() {
     println!("Loading fonts");
 
     println!("Starting");
-    game_loop(window, context, shader);
+    game_loop(world_path, window, context, shader);
 }

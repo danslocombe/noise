@@ -1,7 +1,7 @@
 extern crate rand;
 use self::rand::{Rng, thread_rng};
 
-use collision::{BBO_BLOCK, BBO_PLATFORM, BBProperties};
+use collision::{BBO_BLOCK, BBO_PLATFORM, BBO_NOGRAPPLE, BBProperties};
 use descriptors::EnemyDescriptor;
 use draw::{Drawable, GrphxNoDraw, GrphxRect, GrphxContainer};
 use enemy::create as enemy_create;
@@ -29,8 +29,12 @@ pub fn create_block(id: Id,
         h: height + Height(1500.0),
         //color: [1.0, 0.15, 0.15, 1.0],
         //color: [0.0, 0.0, 0.0, 1.0],
-        //color: [0.33, 0.33, 1.0, 1.0],
+        //color: [0.83, 1.0, 0.2, 1.0],
+        // BG Colour
         color: [0.5, 0.5, 1.0, 1.0],
+        // Red
+        //color: [1.0, 0.15, 0.15, 1.0],
+        // White
         //color: [1.0, 1.0, 1.0, 1.0],
     });
     let g_strip = arc_mut(GrphxRect {
@@ -49,6 +53,22 @@ pub fn create_block(id: Id,
     let props = BBProperties {
         id: id,
         owner_type: BBO_BLOCK,
+    };
+    let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
+    let l = arc_mut(DumbLogic {});
+    GameObj::new(id, g, p, l)
+}
+
+pub fn create_clip(id: Id,
+                    pos: Pos,
+                    length: Width,
+                    height: Height,
+                    world: &World)
+                    -> GameObj {
+    let g = arc_mut(GrphxNoDraw {});
+    let props = BBProperties {
+        id: id,
+        owner_type: BBO_BLOCK | BBO_NOGRAPPLE,
     };
     let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});

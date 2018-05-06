@@ -107,7 +107,7 @@ impl TileManager {
                     }
                     GhostTileType::Decor(ref s) => {
                       let t = self.decor.get(&s.to_owned()).unwrap();
-                      (t, Width(fphys::from(t.get_width() / 2)), Height(fphys::from(t.get_height() / 2)))
+                      (t, Width(fphys::from(t.get_width())), Height(fphys::from(t.get_height())))
                     }
                 };
                 Tile::new(Pos(ghost.x, ghost.y), w, h,texture)

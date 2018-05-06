@@ -23,6 +23,7 @@ pub struct PlayerLogic {
     cds: Cooldowns,
     collision_buffer: Vec<Collision>,
     descr: Rc<PlayerDescriptor>,
+    world_descr: Rc<WorldDescriptor>,
     grappling: bool,
     grapple_target: Option<Pos>,
     pub hp: fphys,
@@ -32,6 +33,7 @@ pub struct PlayerLogic {
 impl PlayerLogic {
     pub fn new(draw: Arc<Mutex<PlayerGphx>>,
                descr: Rc<PlayerDescriptor>,
+               world_descr: Rc<WorldDescriptor>,
                physics: Arc<Mutex<PhysDyn>>)
                -> PlayerLogic {
 
@@ -39,6 +41,7 @@ impl PlayerLogic {
             draw: draw,
             physics: physics,
             descr: descr.clone(),
+            world_descr: world_descr.clone(),
             input: HI_NONE,
             collision_buffer: Vec::new(),
             grappling: false,
@@ -163,7 +166,7 @@ impl Logical for PlayerLogic {
         humanoid_input(args,
                        &input,
                        &mut self.cds,
-                       &self.descr.to_move_descr(),
+                       &self.descr.to_move_descr(self.world_descr.clone()),
                        self.physics.clone());
     }
 }
@@ -213,7 +216,8 @@ impl InputHandler for PlayerLogic {
 
 pub fn create(id: Id,
               pos: Pos,
-              descr: Rc<PlayerDescriptor>)
+              descr: Rc<PlayerDescriptor>,
+              world_descr: Rc<WorldDescriptor>)
               -> (GameObj, Arc<Mutex<PlayerLogic>>) {
 
     let width = descr.width * descr.scale;
@@ -244,7 +248,7 @@ pub fn create(id: Id,
     phys.collide_with = BBO_BLOCK | BBO_PLATFORM;
     let p = arc_mut(phys);
 
-    let l = arc_mut(PlayerLogic::new(g.clone(), descr, p.clone()));
+    let l = arc_mut(PlayerLogic::new(g.clone(), descr, world_descr, p.clone()));
 
     (GameObj::new(id, g, p, l.clone()), l)
 }

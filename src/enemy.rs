@@ -3,7 +3,7 @@ extern crate rand;
 use self::EnemyState::*;
 use self::rand::{Rng, thread_rng};
 use collision::*;
-use descriptors::{Descriptor, EnemyDescriptor};
+use descriptors::{Descriptor, HumanoidDescriptor, EnemyDescriptor, WorldDescriptor};
 use draw::GrphxRect;
 use enemy_graphics::*;
 use game::*;
@@ -34,6 +34,7 @@ struct EnemyLogic {
     state: EnemyState,
     collision_buffer: Vec<Collision>,
     descr: Rc<EnemyDescriptor>,
+    world_descr: Rc<WorldDescriptor>,
     faction: Faction,
     cds: Cooldowns,
     hp: fphys,
@@ -153,7 +154,7 @@ impl Logical for EnemyLogic {
         humanoid_input(args,
                        &move_input,
                        &mut self.cds,
-                       &self.descr.to_move_descr(),
+                       &self.descr.to_move_descr(self.world_descr.clone()),
                        self.physics.clone());
     }
 }
@@ -233,6 +234,7 @@ pub fn create(id: Id,
         draw: g.clone(),
         collision_buffer: Vec::new(),
         cds: Cooldowns::new(),
+        world_descr: world.descr.clone(),
     });
 
     GameObj::new(id, g, p, l)

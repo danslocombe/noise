@@ -15,7 +15,15 @@ use weapons::*;
 
 pub trait Descriptor {
     fn new(&Path) -> Result<Rc<Self>, Error>;
-    fn to_move_descr(&self) -> MovementDescriptor;
+}
+
+pub trait HumanoidDescriptor : Descriptor {
+    fn to_move_descr(&self, world_descr: Rc<WorldDescriptor>) -> MovementDescriptor;
+}
+
+pub struct WorldDescriptor {
+    pub gravity_up: fphys,
+    pub gravity_down: fphys,
 }
 
 pub struct PlayerDescriptor {
@@ -121,6 +129,20 @@ pub fn load_json(dname: &str, json_path: &Path) -> Result<Object, Error> {
     Ok(o.clone())
 }
 
+impl Descriptor for WorldDescriptor {
+    fn new(json_path: &Path) -> Result<Rc<Self>, Error> {
+        let obj = load_json("world", json_path)?;
+
+        let gravity_base = get_float("world", &obj, "gravity")?;
+        let gravity_down_mult = get_float("world", &obj, "gravity_down_mult")?;
+
+        Ok(Rc::new(WorldDescriptor {
+          gravity_up: gravity_base,
+          gravity_down: gravity_base * gravity_down_mult,
+        }))
+    }
+}
+
 impl Descriptor for PlayerDescriptor {
     fn new(json_path: &Path) -> Result<Rc<Self>, Error> {
         let obj = load_json("player", json_path)?;
@@ -199,8 +221,10 @@ impl Descriptor for PlayerDescriptor {
             damage_cd: get_float("player", &obj, "damage_cd")?,
         }))
     }
+}
 
-    fn to_move_descr(&self) -> MovementDescriptor {
+impl HumanoidDescriptor for PlayerDescriptor {
+    fn to_move_descr(&self, world_descr: Rc<WorldDescriptor>) -> MovementDescriptor {
         MovementDescriptor {
             max_runspeed: self.max_runspeed,
             moveforce: self.moveforce,
@@ -212,6 +236,8 @@ impl Descriptor for PlayerDescriptor {
             dash_duration: self.dash_duration,
             dash_force: self.dash_force,
             jump_cd: self.jump_cd,
+            gravity_up: world_descr.gravity_up,
+            gravity_down: world_descr.gravity_down,
         }
     }
 }
@@ -238,9 +264,6 @@ impl Descriptor for GrappleDescriptor {
             elast: get_float("grapple", &obj, "elast")?,
             cd: get_float("grapple", &obj, "cd")?,
         }))
-    }
-    fn to_move_descr(&self) -> MovementDescriptor {
-        unimplemented!();
     }
 }
 
@@ -358,7 +381,9 @@ impl Descriptor for EnemyDescriptor {
             dash_force: get_float("enemy", &obj, "dash_force")?,
         }))
     }
-    fn to_move_descr(&self) -> MovementDescriptor {
+}
+impl HumanoidDescriptor for EnemyDescriptor {
+    fn to_move_descr(&self, world_descr: Rc<WorldDescriptor>) -> MovementDescriptor {
         MovementDescriptor {
             max_runspeed: self.max_runspeed,
             moveforce: self.moveforce,
@@ -370,6 +395,8 @@ impl Descriptor for EnemyDescriptor {
             dash_duration: self.dash_duration,
             dash_force: self.dash_force,
             jump_cd: self.jump_cd,
+            gravity_up: world_descr.gravity_up,
+            gravity_down: world_descr.gravity_down,
         }
     }
 }

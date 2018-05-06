@@ -274,7 +274,8 @@ impl Physical for Grapple {
                     for bbprops in world.buffer() {
                         let (ref props, ref bb) = *bbprops;
                         if props.owner_type.contains(BBO_PLAYER) ||
-                           props.owner_type.contains(BBO_ENEMY) {
+                           props.owner_type.contains(BBO_ENEMY) ||
+                           props.owner_type.contains(BBO_NOGRAPPLE) {
                             continue;
                         }
                         line_collide(&self.start, &self.end, bb).map(|col| {

@@ -192,9 +192,10 @@ struct Noise<'a> {
     pub tiles: Vec<Tile<'a>>,
 }
 
-fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
+fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> {
     //  Create new world
-    let mut world = World::new();
+    let world_descr = load_descriptor(Path::new("descriptors/world.json"));
+    let mut world = World::new(world_descr);
 
     let mut tiles: Vec<Tile> = Vec::new();
 
@@ -207,7 +208,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     //  Create player
     let player_id = world.player_id();
     let (mut player_obj, mut player_logic) =
-        player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone());
+        player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone(), world.descr.clone());
     let mut player_phys = player_obj.physics.clone();
 
     let grapple_descriptor: Rc<GrappleDescriptor> =
@@ -222,7 +223,7 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     let mut enemy_descriptors =
         load_enemy_descriptors(Path::new("descriptors/enemy")).unwrap();
     //  Load from json
-    let mut poss_objs = from_json(Path::new("worlds/testworld.json"),
+    let mut poss_objs = from_json(world_path,
                                   player_obj,
                                   grapple_obj,
                                   &enemy_descriptors,
@@ -271,12 +272,13 @@ fn init_game<'a>(tile_manager: &'a TileManager) -> Noise<'a> {
     }
 }
 
-pub fn game_loop(mut window: Window,
+pub fn game_loop(world_path : &Path,
+                 mut window: Window,
                  mut ctx: GlGraphics,
                  mut shader: NoisyShader) {
 
     let tile_manager = TileManager::load().unwrap();
-    let mut game = init_game(&tile_manager);
+    let mut game = init_game(world_path, &tile_manager);
 
     game.dialogue_buffer
         .add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
@@ -308,7 +310,7 @@ pub fn game_loop(mut window: Window,
                 for c in meta_commands {
                     match c {
                         MetaCommand::RestartGame => {
-                            game = init_game(&tile_manager);
+                            game = init_game(world_path, &tile_manager);
                         }
                         MetaCommand::RemoveObject(id) => {
                             ids_remove.push(id);

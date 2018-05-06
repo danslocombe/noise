@@ -87,6 +87,10 @@ pub fn from_json(path: &Path,
                 gobjs.push(e);
                 */
             }
+            "clip" => {
+                let b = create_clip(id, pos, w, h, &world);
+                gobjs.push(b);
+            }
             "ground" => {
                 let b = create_block(id, pos, w, h, &world);
                 gobjs.push(b);
@@ -141,6 +145,7 @@ pub fn from_json(path: &Path,
             }
             "tinge" => {
                 let yy = 3.141 / 2.0;
+                //let yy = get_float("tinge", obj, "y_angle")?;
                 let c = create_tinge(id, yy, pos, w, h, &world);
                 gobjs.push(c);
             }

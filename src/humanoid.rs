@@ -8,9 +8,6 @@ use logic::*;
 use physics::{PhysDyn, Physical};
 use std::sync::{Arc, Mutex};
 
-pub const GRAVITY_UP: fphys = 9.8;
-pub const GRAVITY_DOWN: fphys = GRAVITY_UP * 1.35;
-
 bitflags! {
     pub flags HumanoidInput : u16 {
         const HI_NONE    = 0b00000000,
@@ -72,6 +69,8 @@ pub struct MovementDescriptor {
     pub dash_duration: fphys,
     pub dash_force: fphys,
     pub jump_cd: fphys,
+    pub gravity_up: fphys,
+    pub gravity_down: fphys,
 }
 
 pub struct Cooldowns {
@@ -151,9 +150,9 @@ pub fn humanoid_input(args: &LogicUpdateArgs,
         } else {
             //  Gravity
             if yvel < 0.0 {
-                phys.apply_force(Force(0.0, GRAVITY_UP));
+                phys.apply_force(Force(0.0, descr.gravity_up));
             } else {
-                phys.apply_force(Force(0.0, GRAVITY_DOWN));
+                phys.apply_force(Force(0.0, descr.gravity_down));
             }
         }
     }
