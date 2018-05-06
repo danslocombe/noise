@@ -203,10 +203,6 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
 
     //let _tilesc<Tile> = Vec::new();
 
-
-    //  Initialise set of input handlers
-    let mut input_handlers = Vec::new();
-
     let player_descriptor: Rc<PlayerDescriptor> = load_descriptor(Path::new("descriptors/player.json"));
 
     //  Create player
@@ -237,7 +233,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
                                   dyn_map.clone(),
                                   &mut world);
 
-    let (objs, ghost_tiles) = poss_objs.unwrap();
+    let (objs, mut input_handlers, ghost_tiles) = poss_objs.unwrap();
     let tiles = tile_manager.propogate_ghosts(ghost_tiles);
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);

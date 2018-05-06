@@ -8,11 +8,12 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::path::Path;
 use logic::*;
-use game::Id;
+use game::{Id, InputHandler};
 use tools::{arc_mut};
-use std::thread;
+use std::{thread, char};
+use piston::input::*;
 
-use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value};
+use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value, Integer};
 
 pub struct DynMap {
     pub logic_map: HashMap<String, Interpreter>,
@@ -22,20 +23,37 @@ pub struct DynMap {
     rx : Receiver<DebouncedEvent>,
 }
 
-fn default_tick() -> Result<(), Error> {
-    Ok(())
+fn init_lisp() -> Result<Value, Error> {
+    Ok(Value::Unit)
+}
+fn id_lisp(x : Value) -> Result<Value, Error> {
+    Ok(x)
 }
 
-fn default_draw() -> Result<(), Error> {
-    Ok(())
+fn chr(x : u32) -> Result<char, Error> {
+    match char::from_u32(x) {
+        Some(y) => Ok(y),
+        None => Ok(' '),
+    }
 }
 
 fn default_scope() -> GlobalScope {
     let mut ds = GlobalScope::default("default");
-    ketos_fn!{ ds => "init" => fn default_tick() -> () }
-    ketos_fn!{ ds => "tick" => fn default_tick() -> () }
-    ketos_fn!{ ds => "draw" => fn default_draw() -> () }
+    ketos_fn!{ ds => "chr" => fn chr(x : u32) -> char }
+    //ketos_fn!{ ds => "init" => fn init_lisp() -> Value }
+    //ketos_fn!{ ds => "tick" => fn id_lisp<a>(x : a) -> a }
+    //ketos_fn!{ ds => "tick" => fn id_lisp(x : Value) -> Value }
+    //ketos_fn!{ ds => "press" => fn id_lisp(x : Value) -> Value }
+    //ketos_fn!{ ds => "release" => fn id_lisp(x : Value) -> Value }
+    //ketos_fn!{ ds => "draw" => fn id_lisp(x : Value) -> Value }
     ds
+}
+
+fn display_error(interp: &Interpreter, e: &Error) {
+    if let Some(trace) = interp.take_traceback() {
+        interp.display_trace(&trace);
+    }
+    interp.display_error(e);
 }
 
 fn new_interpreter(name : &str) -> Interpreter {
@@ -43,9 +61,18 @@ fn new_interpreter(name : &str) -> Interpreter {
     let interp = Builder::new()
         .scope(scope)
         .finish();
+    interp.run_code(r#"
+        (define init-state ())
+        (define (tick state) state)
+        (define (press state key) (do (println "KeyPress ~a" key) state))
+        (define (release state key) state)
+        (define (draw state) ())
+        "#, None).unwrap();
     match interp.run_file(Path::new(name)) {
         Ok(()) => (),
-        e => { println!("Compile error for {}:\n {:?}", name, e);
+        Err(e) => { 
+            println!("Compile error for {}", name); 
+            display_error(&interp, &e);
         }
     }
     interp
@@ -93,16 +120,29 @@ impl DynMap {
 
     }
 
-    pub fn tick(&mut self, name : &str, id: Id) {
+    pub fn run_event(&mut self, event : &str, arg : Option<Value>, name : &str, id: Id) {
         self.logic_map.entry(name.to_owned())
             .or_insert_with(|| new_interpreter(name));
         let interp = self.logic_map.get(name).unwrap();
 
         self.state_map.entry(id)
-            .or_insert_with(|| interp.call("state-init", vec![]).unwrap());
+            .or_insert_with(|| interp.get_value("state-init").unwrap());
         let state = self.state_map.get(&id).unwrap().clone();
 
-        let v = interp.call("tick", vec![state]).unwrap();
+        
+        let argvec = match arg {
+            Some(x) => vec![state, x],
+            None => vec![state],
+        };
+
+
+        let v = match interp.call(event, argvec) {
+            Ok(x) => x,
+            Err(e) => {
+                display_error(&interp, &e);
+                Value::Unit
+            }
+        };
 
         self.state_map.insert(id, v);
     }
@@ -128,7 +168,35 @@ impl Logical for DynLogic {
     fn tick(&mut self, _: &LogicUpdateArgs) {
         {
             let mut dm = self.dyn_map.lock().unwrap();
-            dm.tick(&self.logic_name, self.id);
+            dm.run_event("tick", None, &self.logic_name, self.id);
+        }
+    }
+}
+
+fn key_to_lisp(b : Button) -> Option<Value> {
+    match b {
+        Button::Keyboard(k) => {
+            Some(Value::Integer(Integer::from_i32(k.code())))
+        },
+        _ => None,
+    }
+}
+
+impl InputHandler for DynLogic {
+    fn press(&mut self, button: Button) {
+        {
+            let mut dm = self.dyn_map.lock().unwrap();
+            key_to_lisp(button).map(|arg| {
+                dm.run_event("press", Some(arg), &self.logic_name, self.id);
+            });
+        }
+    }
+    fn release(&mut self, button: Button) {
+        {
+            let mut dm = self.dyn_map.lock().unwrap();
+            key_to_lisp(button).map(|arg| {
+                dm.run_event("release", Some(arg), &self.logic_name, self.id);
+            });
         }
     }
 }

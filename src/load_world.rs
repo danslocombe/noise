@@ -48,9 +48,10 @@ pub fn from_json(path: &Path,
                  _enemy_descriptors: &HashMap<String, Rc<EnemyDescriptor>>,
                  dyn_map: Arc<Mutex<DynMap>>,
                  world: &mut World)
-                 -> Result<(Vec<GameObj>, Vec<GhostTile>), Error> {
+                 -> Result<(Vec<GameObj>, Vec<Arc<Mutex<InputHandler>>>, Vec<GhostTile>), Error> {
     let mut gobjs = Vec::new();
     let mut gtiles = Vec::new();
+    let mut input_handlers = Vec::new();
     let player_phys = player.physics.clone();
     gobjs.push(grapple);
     gobjs.push(player);
@@ -97,10 +98,12 @@ pub fn from_json(path: &Path,
                 let logic_name =
                     get_string("world", obj, "script")?.to_string();
                 let dl = DynLogic::new(id, dyn_map.clone(), logic_name);
+                let am_dl = arc_mut(dl);
                 let ds = arc_mut(GrphxNoDraw {});
                 let phs = arc_mut(PhysNone {id: id});
-                let gobj = GameObj::new(id, ds, phs, arc_mut(dl));
+                let gobj = GameObj::new(id, ds, phs, am_dl.clone());
                 gobjs.push(gobj);
+                input_handlers.push(am_dl as Arc<Mutex<InputHandler>>);
             }
             "clip" => {
                 let b = create_clip(id, pos, w, h, &world);
@@ -169,7 +172,7 @@ pub fn from_json(path: &Path,
             }
         }
     }
-    Ok((gobjs, gtiles))
+    Ok((gobjs, input_handlers, gtiles))
 }
 
 pub fn load_enemy_descriptors
