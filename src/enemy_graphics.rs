@@ -78,14 +78,14 @@ impl Drawable for EnemyGphx {
                 vt.transform(self.pos.0, self.pos.1, self.scale, self.scale, &c)
             };
 
-            let cone_angle_base = if self.reverse {
+            let _cone_angle_base = if self.reverse {
                 1.0 * PI
             }
             else {
                 2.0 * PI
             };
 
-            let cone_angle = 0.45;
+            let _cone_angle = 0.45;
 
             //  Draw view cone
             /*
@@ -100,7 +100,7 @@ impl Drawable for EnemyGphx {
     fn set_position(&mut self, p: Pos) {
         self.pos = p;
     }
-    fn set_color(&mut self, color: Color) {
+    fn set_color(&mut self, _color: Color) {
         unimplemented!();
     }
     fn should_draw(&self, _: &Rectangle) -> bool {

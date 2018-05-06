@@ -40,7 +40,7 @@ fn get_bool(dname: &str, obj: &Object, field: &str) -> Result<bool, Error> {
 pub fn from_json(path: &Path,
                  player: GameObj,
                  grapple: GameObj,
-                 enemy_descriptors: &HashMap<String, Rc<EnemyDescriptor>>,
+                 _enemy_descriptors: &HashMap<String, Rc<EnemyDescriptor>>,
                  world: &mut World)
                  -> Result<(Vec<GameObj>, Vec<GhostTile>), Error> {
     let mut gobjs = Vec::new();

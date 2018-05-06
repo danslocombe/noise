@@ -12,18 +12,21 @@ use descriptors::{WorldDescriptor};
 //  for collisions
 pub struct World {
     world: HashMap<Id, BBDescriptor>,
+    pub descr: Rc<WorldDescriptor>,
+
     receiver: Receiver<SendType>,
     sender: Sender<SendType>,
+
     //  For static generation of ids
     id_gen: Arc<Mutex<IdGen>>,
     player_id: Id,
     buffer: Vec<BBDescriptor>,
+
     fighters: HashMap<Id, Fighter>,
     fighter_sender: Sender<FighterSendType>,
     fighter_receiver: Receiver<FighterSendType>,
     fighter_buffer: Vec<Fighter>,
     trigger_id_map: HashMap<TriggerId, Id>,
-    pub descr: Rc<WorldDescriptor>,
 }
 
 struct IdGen {

@@ -136,7 +136,7 @@ pub fn resolve_col_base(args: &ColArgs,
                         start: Pos,
                         end: Pos)
                         -> PosDelta {
-    let Pos(xstart, ystart) = start;
+    let Pos(_xstart, ystart) = start;
     let Pos(xend, yend) = end;
 
     let pdelta_x =

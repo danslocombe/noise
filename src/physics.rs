@@ -32,9 +32,9 @@ pub struct PhysNone {
 }
 impl Physical for PhysNone {
     fn tick(&mut self,
-            args: &UpdateArgs,
-            metabuffer: &CommandBuffer<MetaCommand>,
-            world: &World) {
+            _args: &UpdateArgs,
+            _metabuffer: &CommandBuffer<MetaCommand>,
+            _world: &World) {
     }
     fn apply_force(&mut self, _: Force) {}
     fn get_position(&self) -> Pos {
@@ -51,7 +51,7 @@ impl Physical for PhysNone {
     }
     fn set_velocity(&mut self, _: Vel) {}
     fn set_position(&mut self, _: Pos) {}
-    fn destroy(&mut self, world: &World) {}
+    fn destroy(&mut self, _world: &World) {}
 }
 
 pub struct PhysStatic {

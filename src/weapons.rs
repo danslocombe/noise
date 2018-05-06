@@ -27,7 +27,7 @@ impl Wieldable for Melee {
     fn desired_distance(&self) -> fphys {
         0.0
     }
-    fn fire(&self, target: Pos, pos: Pos, args: &LogicUpdateArgs) {}
+    fn fire(&self, _target: Pos, _pos: Pos, _args: &LogicUpdateArgs) {}
 }
 
 pub struct Bow {}
@@ -40,8 +40,8 @@ impl Wieldable for Bow {
         200.0
     }
     fn fire(&self, target: Pos, pos: Pos, args: &LogicUpdateArgs) {
-        let Pos(tx, ty) = target;
-        let Pos(px, py) = pos;
+        let Pos(tx, _ty) = target;
+        let Pos(px, _py) = pos;
         const fire_force: fphys = 500.0;
         let force = if tx < px {
             Force(-fire_force, -fire_force)
@@ -61,7 +61,7 @@ pub fn create_arrow(id: Id,
                     creator: Id,
                     force: Force,
                     pos: Pos,
-                    world: &World)
+                    _world: &World)
                     -> GameObj {
     let w = Width(12.0);
     let h = Height(12.0);

@@ -57,12 +57,12 @@ impl Drawable for PlayerGphx {
         };
         let texture = get_index(self.frame, texture_vec, self.speed);
         ctx.draw(args.viewport(), |c, gl| {
-            let transform_base = c.transform
+            let _transform_base = c.transform
                 .scale(vt.scale, vt.scale)
                 .trans(-vt.x, -vt.y);
 
             let w = self.scale * (texture.get_width() as fphys);
-            let h = self.scale * (texture.get_height() as fphys);
+            let _h = self.scale * (texture.get_height() as fphys);
             let transform = if self.reverse && self.angle == 0.0 {
                 vt.transform(self.pos.0 + w, self.pos.1, -self.scale, self.scale, &c)
             } else {
@@ -77,7 +77,7 @@ impl Drawable for PlayerGphx {
     fn set_position(&mut self, p: Pos) {
         self.pos = p;
     }
-    fn set_color(&mut self, color: Color) {
+    fn set_color(&mut self, _color: Color) {
         unimplemented!();
     }
     fn should_draw(&self, _: &Rectangle) -> bool {

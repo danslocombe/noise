@@ -189,7 +189,7 @@ pub struct ViewFollower {
 
 
 impl ViewFollower {
-    pub fn new_defaults(vt: ViewTransform, id: u32) -> Self {
+    pub fn new_defaults(_vt: ViewTransform, id: u32) -> Self {
         ViewFollower {
             priority: CameraPriority(5),
             x_offset: 0.0,
@@ -209,7 +209,7 @@ impl Camera for ViewFollower {
     fn priority(&self) -> CameraPriority {
         self.priority
     }
-    fn transform(&self, viewport: &Viewport) -> ViewTransform {
+    fn transform(&self, _viewport: &Viewport) -> ViewTransform {
         ViewTransform {
             x: self.x_offset,
             y: self.y_offset,

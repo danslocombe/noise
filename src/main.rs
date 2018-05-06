@@ -42,6 +42,7 @@ mod entities;
 mod overlay;
 mod weapons;
 mod humanoid;
+mod dynobj;
 
 use game::game_loop;
 use shaders::NoisyShader;

@@ -197,7 +197,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
     let world_descr = load_descriptor(Path::new("descriptors/world.json"));
     let mut world = World::new(world_descr);
 
-    let mut tiles: Vec<Tile> = Vec::new();
+    let _tilesc<Tile> = Vec::new();
 
 
     //  Initialise set of input handlers
@@ -207,30 +207,30 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
 
     //  Create player
     let player_id = world.player_id();
-    let (mut player_obj, mut player_logic) =
+    let (player_obj, mut er_logic) =
         player_create(player_id, Pos(800.0, -250.0), player_descriptor.clone(), world.descr.clone());
-    let mut player_phys = player_obj.physics.clone();
+    let player_phys = player_obj.physics.clone();
 
     let grapple_descriptor: Rc<GrappleDescriptor> =
         load_descriptor(Path::new("descriptors/grapple.json"));
-    let mut grapple_id = world.generate_id();
-    let (mut grapple_obj, mut grapple_input_handler) =
+    let grapple_id = world.generate_id();
+    let (grapple_obj, grapple_input_handler) =
         grapple_create(grapple_id,
                        grapple_descriptor.clone(),
                        player_id,
                        player_obj.physics.clone());
 
-    let mut enemy_descriptors =
+    let enemy_descriptors =
         load_enemy_descriptors(Path::new("descriptors/enemy")).unwrap();
     //  Load from json
-    let mut poss_objs = from_json(world_path,
+    let poss_objs = from_json(world_path,
                                   player_obj,
                                   grapple_obj,
                                   &enemy_descriptors,
                                   &mut world);
 
-    let (mut objs, mut ghost_tiles) = poss_objs.unwrap();
-    let mut tiles = tile_manager.propogate_ghosts(ghost_tiles);
+    let (objs, ghost_tiles) = poss_objs.unwrap();
+    let tiles = tile_manager.propogate_ghosts(ghost_tiles);
 
     input_handlers.push(player_logic.clone() as Arc<Mutex<InputHandler>>);
     input_handlers.push(grapple_input_handler);
@@ -241,9 +241,9 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
         y: 0.0,
         scale: 1.0,
     };
-    let mut view_follower = ViewFollower::new_defaults(vt, player_id);
-    let mut editor = Editor::new(vec![Box::new(view_follower)]);
-    let mut overlay = Overlay::new(player_logic.clone());
+    let view_follower = ViewFollower::new_defaults(vt, player_id);
+    let editor = Editor::new(vec![Box::new(view_follower)]);
+    let overlay = Overlay::new(player_logic.clone());
 
     let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
@@ -253,7 +253,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
         player_phys: player_phys,
     };
 
-    let mut dialogue_buffer = DialogueBuffer::new();
+    let dialogue_buffer = DialogueBuffer::new();
 
     Noise {
         world: world,
@@ -455,7 +455,7 @@ pub fn game_loop(world_path : &Path,
             Event::Input(Input::Button(b_args)) => {
                 for input_handler in &game.input_handlers {
                     let mut ih = input_handler.lock().unwrap();
-                    match (b_args.state) {
+                    match b_args.state {
                         ButtonState::Press => {
                             ih.press(b_args.button);
                         }

@@ -61,9 +61,9 @@ impl Logical for PlayerLogic {
 
         // Boilerplate to get things into scope
         let phys_info = get_phys_info(self.physics.clone());
-        let Pos(x, y) = phys_info.pos;
+        let Pos(_x, y) = phys_info.pos;
         let Vel(xvel, yvel) = phys_info.vel;
-        let dt = args.piston.dt as fphys;
+        let _dt = args.piston.dt as fphys;
 
         // Conditions for player death
         if self.hp < 0.0 || y > MAX_HEIGHT {

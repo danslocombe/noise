@@ -106,7 +106,7 @@ impl TileManager {
                         }, PAGODA_TEXW, PAGODA_TEXH)
                     }
                     GhostTileType::Decor(ref s) => {
-                        match (self.decor.get(&s.to_owned())) {
+                        match self.decor.get(&s.to_owned()) {
                             Some(tex) => {
                                 let w = Width(fphys::from(tex.get_width() / 2));
                                 let h = Height(fphys::from(tex.get_height() / 2));
@@ -167,7 +167,7 @@ impl<'a> Drawable for Tile<'a> {
     fn set_position(&mut self, _: Pos) {
         unimplemented!();
     }
-    fn set_color(&mut self, color: Color) {}
+    fn set_color(&mut self, _color: Color) {}
     fn should_draw(&self, r: &Rectangle) -> bool {
         let Pos(x, y) = self.pos;
         let Width(w) = self.width;

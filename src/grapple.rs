@@ -255,7 +255,7 @@ impl Physical for Grapple {
             GrappleState::Out => {
                 let dt = args.dt as fphys;
 
-                let Pos(end_x0, end_y0) = self.end;
+                let Pos(_end_x0, _end_y0) = self.end;
 
                 self.end = self.end.update_by_vel(&self.vel, dt);
 

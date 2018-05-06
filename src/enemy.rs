@@ -48,7 +48,7 @@ impl Logical for EnemyLogic {
 
         let phys_info = get_phys_info(self.physics.clone());
         let Pos(x, y) = phys_info.pos;
-        let Vel(xvel, yvel) = phys_info.vel;
+        let Vel(xvel, _yvel) = phys_info.vel;
         let dt = args.piston.dt as fphys;
 
         if self.hp <= 0.0 || y > MAX_HEIGHT {

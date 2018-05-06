@@ -90,10 +90,10 @@ pub fn create_platform(id: Id,
     GameObj::new(id, g, p, l)
 }
 
-pub fn blocks_from_ghosts(ghost_blocks: &[GhostBlock],
-                          player_phys: Arc<Mutex<Physical>>,
-                          enemy_descr: Rc<EnemyDescriptor>,
-                          world: &mut World)
+pub fn blocks_from_ghosts(_ghost_blocks: &[GhostBlock],
+                          _player_phys: Arc<Mutex<Physical>>,
+                          _enemy_descr: Rc<EnemyDescriptor>,
+                          _world: &mut World)
                           -> Vec<GameObj> {
     unimplemented!();
 }

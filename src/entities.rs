@@ -20,7 +20,7 @@ struct PlayerColLogic {
 }
 
 impl PlayerColLogic {
-    fn new_static(id: Id, bb: BoundingBox, f: Box<TriggerFn>) -> Self {
+    fn new_static(_id: Id, bb: BoundingBox, f: Box<TriggerFn>) -> Self {
         PlayerColLogic {
             bb: bb,
             f: Arc::new(f),
@@ -85,11 +85,11 @@ impl Logical for TriggerLogic {
 }
 
 pub fn create_trigger(id: Id,
-                      trigger_id: Id,
+                      _trigger_id: Id,
                       pos: Pos,
                       width: Width,
                       height: Height,
-                      world: &World)
+                      _world: &World)
                       -> GameObj {
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
@@ -124,9 +124,9 @@ impl Logical for DialogueLogic {
 
 pub fn create_dialogue(id: Id,
                        text: String,
-                       x: fphys,
-                       y: fphys,
-                       world: &World)
+                       _x: fphys,
+                       _y: fphys,
+                       _world: &World)
                        -> GameObj {
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
@@ -137,7 +137,7 @@ pub fn create_dialogue(id: Id,
     GameObj::new(id, g, p, l)
 }
 
-pub fn create_crown(id: Id, pos: Pos, world: &World) -> GameObj {
+pub fn create_crown(id: Id, pos: Pos, _world: &World) -> GameObj {
     let w = Width(32.0);
     let h = Height(32.0);
     let c = [1.0, 1.0, 0.0, 1.0];
@@ -157,7 +157,7 @@ pub fn create_crown(id: Id, pos: Pos, world: &World) -> GameObj {
                                  phys: Arc<Mutex<Physical>>| {
 
         let pos = phys.lock().unwrap().get_position();
-        let Pos(x, y) = pos;
+        let Pos(_x, _y) = pos;
         let maybe_player_bb = args.world.get(args.world.player_id());
 
         maybe_player_bb.map(|(_, player_bb)| {
@@ -190,7 +190,7 @@ pub fn create_tinge(id: Id,
                     pos: Pos,
                     width: Width,
                     height: Height,
-                    world: &World)
+                    _world: &World)
                     -> GameObj {
     let g = arc_mut(GrphxNoDraw {});
     let p = arc_mut(PhysNone { id: id });
