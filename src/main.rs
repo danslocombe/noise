@@ -70,7 +70,7 @@ mod weapons;
 #[allow(unused_imports)]
 mod humanoid;
 #[allow(unused_imports)]
-mod dynobj;
+mod dyn;
 
 use game::game_loop;
 use shaders::NoisyShader;

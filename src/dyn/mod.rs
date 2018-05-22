@@ -1,23 +1,32 @@
 use std::collections::HashMap;
-
-
 use notify::{Watcher, RecursiveMode, watcher, DebouncedEvent, INotifyWatcher};
 use std::sync::mpsc::{channel, Sender, Receiver};
 use std::time::Duration;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::path::Path;
-use logic::*;
 use game::{Id, InputHandler};
 use tools::{arc_mut};
 use std::{thread, char};
 use piston::input::*;
+use opengl_graphics::GlGraphics;
+use draw::ViewTransform;
+use self::graphics::GraphicsContext;
+use self::graphics::ResourceContext;
+use self::graphics::GraphicPrim;
+use std::cell::RefCell;
+use std::cell::RefMut;
 
-use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value, Integer};
+use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value, Integer, ExecError, Arity, FromValueRef};
+
+pub mod logic;
+pub mod graphics;
 
 pub struct DynMap {
-    pub logic_map: HashMap<String, Interpreter>,
+    pub interpreters: HashMap<String, Interpreter>,
     pub state_map: HashMap<Id, Value>,
+    resource_context : ResourceContext,
+    //pub graphics_map : HashMap<Id, GraphicsContext>,
     watcher : INotifyWatcher,
     //default_scope : GlobalScope,
     rx : Receiver<DebouncedEvent>,
@@ -86,10 +95,11 @@ impl DynMap {
         watcher.watch(&scr_path, RecursiveMode::Recursive).unwrap();
 
         let mut m = DynMap {
-            logic_map: HashMap::new(),
+            interpreters: HashMap::new(),
             state_map: HashMap::new(),
             watcher: watcher,
             rx: rx,
+            resource_context : ResourceContext::new(),
             //default_scope : default_scope,
         };
 
@@ -109,7 +119,7 @@ impl DynMap {
                 DebouncedEvent::Write(_) => {
                     // For now just nuke everything
                     println!("AFOUND UPDATE");
-                    self.logic_map = HashMap::new();
+                    self.interpreters = HashMap::new();
                     self.state_map = HashMap::new();
                 },
                 e => {
@@ -120,15 +130,19 @@ impl DynMap {
 
     }
 
-    pub fn run_event(&mut self, event : &str, arg : Option<Value>, name : &str, id: Id) {
-        self.logic_map.entry(name.to_owned())
+    pub fn run_event(&mut self,
+                     event : &str,
+                     arg : Option<Value>,
+                     name : &str,
+                     id: Id) {
+
+        self.interpreters.entry(name.to_owned())
             .or_insert_with(|| new_interpreter(name));
-        let interp = self.logic_map.get(name).unwrap();
+        let interp = self.interpreters.get(name).unwrap();
 
         self.state_map.entry(id)
             .or_insert_with(|| interp.get_value("state-init").unwrap());
         let state = self.state_map.get(&id).unwrap().clone();
-
         
         let argvec = match arg {
             Some(x) => vec![state, x],
@@ -146,57 +160,101 @@ impl DynMap {
 
         self.state_map.insert(id, v);
     }
-}
 
-pub struct DynLogic {
-    id: Id,
-    dyn_map : Arc<Mutex<DynMap>>,
-    logic_name : String,
-}
 
-impl DynLogic {
-    pub fn new(id: Id, dyn_map : Arc<Mutex<DynMap>>, logic_name : String) -> Self {
-        DynLogic {
-            id: id,
-            dyn_map: dyn_map,
-            logic_name: logic_name,
+    pub fn run_draw(&mut self,
+                    id : Id,
+                    name : &str,
+                    rargs : &RenderArgs,
+                    ctx : &mut GlGraphics,
+                    vt : &ViewTransform) {
+
+        self.interpreters.entry(name.to_owned())
+            .or_insert_with(|| new_interpreter(name));
+        let interp = self.interpreters.get(name).unwrap();
+
+        self.state_map.entry(id)
+            .or_insert_with(|| interp.get_value("state-init").unwrap());
+        let state = self.state_map.get(&id).unwrap().clone();
+        
+        let argvec = vec![state];
+
+        let gc = GraphicsContext::new();
+
+        let c = Rc::new(RefCell::new(Vec::new()));
+        let c2 = c.clone();
+
+        interp.scope().add_value_with_name("draw-rectangle", move |lisp_name| {
+            Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                if args.len() == 5 {
+                    add_rectangle(
+                        /*
+                        &gc,
+                        &self.resource_context,
+                        rargs,
+                        Cell::new(ctx),
+                        vt,
+                        */
+                        c.borrow_mut(),
+                        FromValueRef::from_value_ref(&args[0])?,
+                        FromValueRef::from_value_ref(&args[1])?,
+                        FromValueRef::from_value_ref(&args[2])?,
+                        FromValueRef::from_value_ref(&args[3])?,
+                        FromValueRef::from_value_ref(&args[4])?
+                        )
+                }
+                else {
+                    Err(From::from(ExecError::ArityError{
+                        name: Some(lisp_name),
+                        expected: Arity::Exact(5 as u32),
+                        found: args.len() as u32,
+                    }))
+                }
+            })
+        });
+
+        let v = match interp.call("draw", argvec) {
+            Ok(x) => x,
+            Err(e) => {
+                display_error(&interp, &e);
+                Value::Unit
+            }
+        };
+
+        for prim in c2.borrow().iter() {
+            prim.draw(&gc, &self.resource_context, rargs, ctx, vt);
         }
+
+        //self.state_map.insert(id, v);
     }
 }
 
-impl Logical for DynLogic {
-    fn tick(&mut self, _: &LogicUpdateArgs) {
-        {
-            let mut dm = self.dyn_map.lock().unwrap();
-            dm.run_event("tick", None, &self.logic_name, self.id);
-        }
-    }
+fn add_rectangle(
+    mut queue : RefMut<Vec<GraphicPrim>>, 
+    x : f64, 
+    y : f64, 
+    w : f64, 
+    h : f64, 
+    outline : bool) -> Result<Value, Error> {
+
+    queue.push(GraphicPrim::Rect(x, y, w, h));
+    Ok(Value::Unit)
 }
 
-fn key_to_lisp(b : Button) -> Option<Value> {
-    match b {
-        Button::Keyboard(k) => {
-            Some(Value::Integer(Integer::from_i32(k.code())))
-        },
-        _ => None,
-    }
+/*
+fn draw_rectangle(
+    graphics_context : &GraphicsContext,
+    resource_context : &ResourceContext,
+    args : &RenderArgs,
+    //ctx : Cell<GlGraphics>,
+    ctx : &mut GlGraphics,
+    vt : &ViewTransform,
+    x : f64, 
+    y : f64, 
+    w : f64, 
+    h : f64, 
+    outline : bool) -> Result<Value, Error> {
+    Ok(Value::Unit)
 }
 
-impl InputHandler for DynLogic {
-    fn press(&mut self, button: Button) {
-        {
-            let mut dm = self.dyn_map.lock().unwrap();
-            key_to_lisp(button).map(|arg| {
-                dm.run_event("press", Some(arg), &self.logic_name, self.id);
-            });
-        }
-    }
-    fn release(&mut self, button: Button) {
-        {
-            let mut dm = self.dyn_map.lock().unwrap();
-            key_to_lisp(button).map(|arg| {
-                dm.run_event("release", Some(arg), &self.logic_name, self.id);
-            });
-        }
-    }
-}
+*/

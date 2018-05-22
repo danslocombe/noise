@@ -41,7 +41,6 @@
 )
 
 
-  
 
 (define (press state key)
   (let (
@@ -60,5 +59,12 @@
       (println "~a" key)
       statenew
     )
+  )
+)
+
+(define (draw state)
+  (do
+    (println "draw")
+    (draw-rectangle 30.0 0.0 40.5 1000000.5 false)
   )
 )

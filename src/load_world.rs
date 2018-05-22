@@ -7,7 +7,9 @@ use game::*;
 use gen::*;
 use draw::GrphxNoDraw;
 use physics::PhysNone;
-use dynobj::{DynMap, DynLogic};
+use dyn::{DynMap};
+use dyn::logic::DynLogic;
+use dyn::graphics::{DynGraphics, ResourceContext};
 use rustc_serialize::json::{Array, Object};
 use rustc_serialize::json::Json;
 use std::collections::HashMap;
@@ -53,6 +55,7 @@ pub fn from_json(path: &Path,
     let mut gtiles = Vec::new();
     let mut input_handlers = Vec::new();
     let player_phys = player.physics.clone();
+    let resource_context = Arc::new(ResourceContext::new());
     gobjs.push(grapple);
     gobjs.push(player);
 
@@ -97,11 +100,12 @@ pub fn from_json(path: &Path,
             "dyn" => {
                 let logic_name =
                     get_string("world", obj, "script")?.to_string();
-                let dl = DynLogic::new(id, dyn_map.clone(), logic_name);
+                let dl = DynLogic::new(id, dyn_map.clone(), logic_name.clone());
                 let am_dl = arc_mut(dl);
-                let ds = arc_mut(GrphxNoDraw {});
+                let dg = DynGraphics::new(id, dyn_map.clone(), logic_name, resource_context.clone());
+                let am_dg = arc_mut(dg);
                 let phs = arc_mut(PhysNone {id: id});
-                let gobj = GameObj::new(id, ds, phs, am_dl.clone());
+                let gobj = GameObj::new(id, am_dg, phs, am_dl.clone());
                 gobjs.push(gobj);
                 input_handlers.push(am_dl as Arc<Mutex<InputHandler>>);
             }

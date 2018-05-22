@@ -34,7 +34,7 @@ use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::SystemTime;
 use tile::{Tile, TileManager};
 use world::World;
-use dynobj::DynMap;
+use dyn::DynMap;
 use tools::{arc_mut};
 
 pub type Id = u32;
@@ -286,7 +286,7 @@ pub fn game_loop(world_path : &Path,
     let mut game = init_game(world_path, &tile_manager);
 
     game.dialogue_buffer
-        .add(Dialogue::new(0.0, 10, String::from("So I snuck into the field")));
+        .add(Dialogue::new(0.0, 10, String::from("")));
 
     let mut prev_time = SystemTime::now();
     let mut time = 0.0;
