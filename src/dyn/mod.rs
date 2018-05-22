@@ -14,6 +14,8 @@ use draw::ViewTransform;
 use self::graphics::GraphicsContext;
 use self::graphics::ResourceContext;
 use self::graphics::GraphicPrim;
+use self::graphics::GraphicQueued;
+use std::cell::Cell;
 use std::cell::RefCell;
 use std::cell::RefMut;
 
@@ -179,23 +181,58 @@ impl DynMap {
         
         let argvec = vec![state];
 
-        let gc = GraphicsContext::new();
+        let gc = Rc::new(RefCell::new(GraphicsContext::new()));
+        let gc2 = gc.clone();
+        let gc3 = gc.clone();
 
         let c = Rc::new(RefCell::new(Vec::new()));
         let c2 = c.clone();
+        let c3 = c.clone();
 
+        interp.scope().add_value_with_name("draw-set-color", move |lisp_name| {
+            Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                if args.len() == 3 {
+                    let color = [FromValueRef::from_value_ref(&args[0])?
+                              , FromValueRef::from_value_ref(&args[1])?
+                              , FromValueRef::from_value_ref(&args[2])?, 1.0];
+                    (*gc2).borrow_mut().color = color;
+                    Ok(Value::Unit)
+                }
+                else {
+                    Err(From::from(ExecError::ArityError{
+                        name: Some(lisp_name),
+                        expected: Arity::Exact(5 as u32),
+                        found: args.len() as u32,
+                    }))
+                }
+            })
+        });
+        interp.scope().add_value_with_name("draw-text", move |lisp_name| {
+            Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                if args.len() == 3 {
+                    add_text(
+                        c3.borrow_mut(),
+                        (*gc3).borrow().clone(),
+                        FromValueRef::from_value_ref(&args[0])?,
+                        FromValueRef::from_value_ref(&args[1])?,
+                        FromValueRef::from_value_ref(&args[2])?,
+                        )
+                }
+                else {
+                    Err(From::from(ExecError::ArityError{
+                        name: Some(lisp_name),
+                        expected: Arity::Exact(5 as u32),
+                        found: args.len() as u32,
+                    }))
+                }
+            })
+        });
         interp.scope().add_value_with_name("draw-rectangle", move |lisp_name| {
             Value::new_foreign_fn(lisp_name, move |_scope, args| {
                 if args.len() == 5 {
                     add_rectangle(
-                        /*
-                        &gc,
-                        &self.resource_context,
-                        rargs,
-                        Cell::new(ctx),
-                        vt,
-                        */
                         c.borrow_mut(),
+                        (*gc).borrow().clone(),
                         FromValueRef::from_value_ref(&args[0])?,
                         FromValueRef::from_value_ref(&args[1])?,
                         FromValueRef::from_value_ref(&args[2])?,
@@ -222,7 +259,7 @@ impl DynMap {
         };
 
         for prim in c2.borrow().iter() {
-            prim.draw(&gc, &self.resource_context, rargs, ctx, vt);
+            prim.draw(&self.resource_context, rargs, ctx, vt);
         }
 
         //self.state_map.insert(id, v);
@@ -230,14 +267,26 @@ impl DynMap {
 }
 
 fn add_rectangle(
-    mut queue : RefMut<Vec<GraphicPrim>>, 
+    mut queue : RefMut<Vec<GraphicQueued>>, 
+    context : GraphicsContext,
     x : f64, 
     y : f64, 
     w : f64, 
     h : f64, 
     outline : bool) -> Result<Value, Error> {
 
-    queue.push(GraphicPrim::Rect(x, y, w, h));
+    queue.push(GraphicQueued(GraphicPrim::Rect(x, y, w, h), context));
+    Ok(Value::Unit)
+}
+
+fn add_text(
+    mut queue : RefMut<Vec<GraphicQueued>>, 
+    context : GraphicsContext,
+    x : f64, 
+    y : f64, 
+    t : &str) -> Result<Value, Error> {
+
+    queue.push(GraphicQueued(GraphicPrim::Text(x, y, t.to_owned()), context));
     Ok(Value::Unit)
 }
 

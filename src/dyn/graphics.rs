@@ -10,19 +10,20 @@ use std::path::Path;
 use std::collections::HashMap;
 use piston_window::TextureSettings;
 use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
 
 use super::DynMap;
 
 
 pub type FontId = u32;
 
-struct Font {
+pub struct Font {
     char_size: u32,
     char_cache: GlyphCache<'static>,
 }
 
 pub struct ResourceContext {
-    fonts : HashMap<String, Font>,
+    pub fonts : HashMap<String, RefCell<Font>>,
     default_font : String,
 }
 
@@ -39,7 +40,7 @@ impl ResourceContext {
             char_size : 24,
             char_cache : gc,
         };
-        map.insert(default_fontname.to_owned(), font);
+        map.insert(default_fontname.to_owned(), RefCell::new(font));
 
         ResourceContext {
             fonts : map,
@@ -48,10 +49,10 @@ impl ResourceContext {
     }
 }
 
+#[derive(Clone)]
 pub struct GraphicsContext {
-    color : Color,
-    alpha : fphys,
-    font : String,
+    pub color : Color,
+    pub font : String,
 }
 
 impl GraphicsContext {
@@ -59,8 +60,7 @@ impl GraphicsContext {
         const BLACK: Color = [0.0, 0.0, 0.0, 1.0];
         GraphicsContext {
             color : BLACK,
-            alpha : 1.0,
-            font : "".to_owned(),
+            font : "fnt_basic".to_owned(),
         }
     }
 }
@@ -116,8 +116,9 @@ impl Ord for Queued {
 
 pub enum GraphicPrim {
     Rect(fphys, fphys, fphys, fphys),
-    Text(),
+    Text(fphys, fphys, String),
 }
+
 
 impl GraphicPrim {
     pub fn draw(&self,
@@ -133,10 +134,32 @@ impl GraphicPrim {
                     rectangle(graphics_context.color, [*x, *y, *w, *h], c.transform, gl);
                 });
             },
-            GraphicPrim::Text() => {},
+            GraphicPrim::Text(x, y, t) => {
+                let font_name = &graphics_context.font;
+                let font = resource_context.fonts.get(font_name).unwrap();
+                let mut text = Text::new(font.borrow().char_size);
+                text.color = graphics_context.color;
+                ctx.draw(args.viewport(), |c, gl| {
+                    let transform = c.transform.trans(*x, *y);
+                    text.draw(t, &mut font.borrow_mut().char_cache, &c.draw_state, transform, gl);
+                });
+            },
         }
     }
 }
+
+pub struct GraphicQueued(pub GraphicPrim, pub GraphicsContext);
+
+impl GraphicQueued {
+    pub fn draw(&self,
+            resource_context : &ResourceContext,
+            args : &RenderArgs,
+            ctx : &mut GlGraphics,
+            vt : &ViewTransform) {
+        self.0.draw(&self.1, resource_context, args, ctx, vt);
+    }
+}
+
 
 impl Drawable for DynGraphics {
     fn draw(&mut self,

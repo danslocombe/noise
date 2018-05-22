@@ -17,6 +17,7 @@ extern crate ketos;
 #[macro_use]
 extern crate ketos_derive;
 
+
 use opengl_graphics::{Colored, GLSL, GlGraphics, OpenGL, Shaders, Textured};
 use opengl_graphics::shader_uniforms::*;
 use piston::window::WindowSettings;
@@ -74,6 +75,7 @@ mod dyn;
 
 use game::game_loop;
 use shaders::NoisyShader;
+
 
 pub const SCREEN_WIDTH: u32 = 960;
 pub const SCREEN_HEIGHT: u32 = 540;
@@ -164,5 +166,6 @@ fn main() {
     println!("Loading fonts");
 
     println!("Starting");
+
     game_loop(world_path, window, context, shader);
 }

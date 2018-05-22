@@ -6,8 +6,6 @@
 
 (define (tick state) 
   (do
-    ;(println "OAFJ")
-    ;(println "~a" (. state :s))
     state
   )
 )
@@ -64,7 +62,15 @@
 
 (define (draw state)
   (do
-    (println "draw")
-    (draw-rectangle 30.0 0.0 40.5 1000000.5 false)
+    (if (. state :toggle) 
+      (draw-set-color 1.0 0.0 0.0)
+      (draw-set-color 0.0 1.0 0.0)
+    )
+    (draw-text 100.0 200.0 (. state :s))
+    (draw-rectangle 130.0 300.0 40.5 100.5 false)
+    (draw-rectangle 330.0 300.0 40.5 100.5 false)
+    (draw-set-color 0.0 1.0 1.0)
+    (draw-rectangle 230.0 300.0 40.5 100.5 false)
+    (draw-rectangle 730.0 300.0 40.5 100.5 false)
   )
 )
