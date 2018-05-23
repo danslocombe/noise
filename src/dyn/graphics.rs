@@ -14,6 +14,11 @@ use std::cell::RefCell;
 
 use super::DynMap;
 
+use std::rc::Rc;
+use std::cell::RefMut;
+
+use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value, Integer, ExecError, Arity, FromValueRef};
+
 
 pub type FontId = u32;
 
@@ -72,11 +77,6 @@ pub struct DynGraphics {
     id : Id,
     logic_name : String,
     dyn_map : Arc<Mutex<DynMap>>,
-
-    //context : GraphicsContext,
-    //
-    //primatives : Vec<Queued>,
-    //resources : Arc<ResourceContext>,
 }
 
 impl DynGraphics {
@@ -88,31 +88,9 @@ impl DynGraphics {
             id : id,
             logic_name : logic_name,
             dyn_map : dyn_map,
-            //primatives : Vec::new(),
-            //resources : resource_context,
-            //context : GraphicsContext::new(),
         }
     }
 }
-
-
-struct Queued {
-    depth : i32,
-    primative : GraphicPrim,
-}
-
-/*
-impl PartialOrd for Queued {
-    fn partial_cmp(&self, other : &Self) -> Option<Ordering> {
-        Some(self.depth.cmp(&other.depth))
-    }
-}
-impl Ord for Queued {
-    fn cmp(&self, other : &Self) -> Ordering {
-        self.depth.cmp(&other.depth)
-    }
-}
-*/
 
 pub enum GraphicPrim {
     Rect(fphys, fphys, fphys, fphys),
@@ -171,20 +149,6 @@ impl Drawable for DynGraphics {
             let mut map = self.dyn_map.lock().unwrap();
             map.run_draw(self.id, &self.logic_name, rargs, graphics, vt);
         }
-        // Call into lisp
-
-        //self.primatives.sort_by(|x, y| {x.depth.cmp(&y.depth)});
-
-        /*
-        while let Some(x) = self.primatives.pop() {
-            x.primative.draw(
-                &self.context,
-                &*self.resources,
-                rargs,
-                graphics,
-                vt);
-        }
-        */
     }
     fn set_position(&mut self, p : Pos) {
     }
@@ -193,4 +157,43 @@ impl Drawable for DynGraphics {
     fn should_draw(&self, rect : &Rectangle) -> bool {
         true
     }
+}
+
+
+pub fn add_graphic_funs(scope : &GlobalScope, c : &Rc<RefCell<Vec<GraphicQueued>>>) {
+    let gc = Rc::new(RefCell::new(GraphicsContext::new()));
+    add_graph_fun!(c, gc, scope, "draw-text", add_text, 3);
+    add_graph_fun!(c, gc, scope, "draw-rectangle", add_rectangle, 5);
+    add_context_mut!(gc, scope, "draw-set-color", set_color, 3);
+    add_context_mut!(gc, scope, "draw-set-alpha", set_alpha, 1);
+}
+
+fn add_rectangle(
+    mut queue : RefMut<Vec<GraphicQueued>>, 
+    context : GraphicsContext,
+    x : f64, 
+    y : f64, 
+    w : f64, 
+    h : f64, 
+    outline : bool) {
+
+    queue.push(GraphicQueued(GraphicPrim::Rect(x, y, w, h), context));
+}
+
+fn add_text(
+    mut queue : RefMut<Vec<GraphicQueued>>, 
+    context : GraphicsContext,
+    x : f64, 
+    y : f64, 
+    t : &str) {
+    queue.push(GraphicQueued(GraphicPrim::Text(x, y, t.to_owned()), context));
+}
+
+fn set_color(context : &mut GraphicsContext, r : f64, g : f64, b : f64) {
+    let a = context.color[3];
+    context.color = [r as f32, g as f32, b as f32, a];
+}
+
+fn set_alpha(context : &mut GraphicsContext, a : f64) {
+    context.color[3] = a as f32;
 }
