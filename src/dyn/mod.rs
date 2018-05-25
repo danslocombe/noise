@@ -34,6 +34,7 @@ pub struct DynMap {
     //pub graphics_map : HashMap<Id, GraphicsContext>,
     watcher : INotifyWatcher,
     //default_scope : GlobalScope,
+    graphics_variables : HashMap<String, Value>,
     rx : Receiver<DebouncedEvent>,
 }
 
@@ -105,6 +106,7 @@ impl DynMap {
             watcher: watcher,
             rx: rx,
             resource_context : ResourceContext::new(),
+            graphics_variables : HashMap::new(),
             //default_scope : default_scope,
         };
 
@@ -133,6 +135,10 @@ impl DynMap {
             }
         }
 
+    }
+
+    pub fn update_graphics_variables(&mut self, args : &RenderArgs, ctx : &mut GlGraphics, vt : &ViewTransform) {
+        graphics::get_graphics_variables(&mut self.graphics_variables, args, ctx, vt);
     }
 
     pub fn run_event(&mut self,
@@ -187,6 +193,10 @@ impl DynMap {
         let c = Rc::new(RefCell::new(Vec::new()));
 
         graphics::add_graphic_funs(interp.scope(), &c);
+        for var in self.graphics_variables.keys() {
+            let value = self.graphics_variables.get(var).unwrap();
+            interp.scope().add_named_value(var, value.clone());
+        }
 
 
         let v = match interp.call("draw", argvec) {

@@ -109,7 +109,11 @@ impl GraphicPrim {
         match self {
             GraphicPrim::Rect(x, y, w, h) => {
                 ctx.draw(args.viewport(), |c, gl| {
-                    rectangle(graphics_context.color, [*x, *y, *w, *h], c.transform, gl);
+                    let transform = vt.transform(*x, *y, *w, *h, &c);
+                                               //.scale(vt.scale, vt.scale)
+                                               //.trans(-vt.x, -vt.y);
+                                               ;
+                    rectangle(graphics_context.color, [0.0, 0.0, 1.0, 1.0], transform, gl);
                 });
             },
             GraphicPrim::Text(x, y, t) => {
@@ -118,7 +122,10 @@ impl GraphicPrim {
                 let mut text = Text::new(font.borrow().char_size);
                 text.color = graphics_context.color;
                 ctx.draw(args.viewport(), |c, gl| {
-                    let transform = c.transform.trans(*x, *y);
+                    let transform = c.transform
+                                               .scale(vt.scale, vt.scale)
+                                               .trans(-vt.x, -vt.y)
+                                               .trans(*x, *y);
                     text.draw(t, &mut font.borrow_mut().char_cache, &c.draw_state, transform, gl);
                 });
             },
@@ -166,6 +173,27 @@ pub fn add_graphic_funs(scope : &GlobalScope, c : &Rc<RefCell<Vec<GraphicQueued>
     add_graph_fun!(c, gc, scope, "draw-rectangle", add_rectangle, 5);
     add_context_mut!(gc, scope, "draw-set-color", set_color, 3);
     add_context_mut!(gc, scope, "draw-set-alpha", set_alpha, 1);
+}
+
+pub fn get_graphics_variables(map : &mut HashMap<String, Value>, 
+                              args : &RenderArgs,
+                              ctx: &mut GlGraphics, // Hacky
+                              vt : &ViewTransform){
+    ctx.draw(args.viewport(), |c, gl| { // Hacky
+        match c.viewport {
+            Some(v) => {
+                let wview = v.rect[2] as f64 / vt.scale;
+                let hview = v.rect[3] as f64 / vt.scale;
+                map.insert("view-xview".to_owned(), Value::Float(vt.x - wview / 2.0));
+                map.insert("view-yview".to_owned(), Value::Float(vt.y - hview / 2.0));
+                map.insert("view-scale".to_owned(), Value::Float(vt.scale));
+                map.insert("view-wview".to_owned(), Value::Float(wview));
+                map.insert("view-hview".to_owned(), Value::Float(hview));
+            }
+            None => {
+            }
+        }
+    });
 }
 
 fn add_rectangle(

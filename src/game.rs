@@ -436,6 +436,12 @@ pub fn game_loop(world_path : &Path,
                 let viewport = r_args.viewport().rect;
                 let view_transform = &game.editor
                     .transform();
+
+                {
+                    let mut dm = game.dyn_map.lock().unwrap();
+                    dm.update_graphics_variables(&r_args, &mut ctx, &view_transform);
+                }
+
                 let view_rect = &game.editor
                 .transform()
                 .to_rectangle(viewport[2] as fphys,
@@ -461,6 +467,7 @@ pub fn game_loop(world_path : &Path,
                     game.overlay.set_dialogue(game.dialogue_buffer.get(time));
                 }
                 game.overlay.draw(&r_args, &mut ctx, &view_transform);
+
             }
 
             Event::Input(Input::Button(b_args)) => {
