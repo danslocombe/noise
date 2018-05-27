@@ -100,12 +100,13 @@ pub fn from_json(path: &Path,
             "dyn" => {
                 let logic_name =
                     get_string("world", obj, "script")?.to_string();
-                let dl = DynLogic::new(id, dyn_map.clone(), logic_name.clone());
+                let logic_filename = format!("scripts/{}.lisp", logic_name);
+                let dl = DynLogic::new(id, dyn_map.clone(), logic_filename.clone());
                 let am_dl = arc_mut(dl);
-                let dg = DynGraphics::new(id, dyn_map.clone(), logic_name, resource_context.clone());
+                let dg = DynGraphics::new(id, dyn_map.clone(), logic_filename, resource_context.clone());
                 let am_dg = arc_mut(dg);
                 let phs = arc_mut(PhysNone {id: id});
-                let gobj = GameObj::new(id, am_dg, phs, am_dl.clone());
+                let gobj = GameObj::new(id, logic_name.to_owned(), am_dg, phs, am_dl.clone());
                 gobjs.push(gobj);
                 input_handlers.push(am_dl as Arc<Mutex<InputHandler>>);
             }
@@ -174,6 +175,12 @@ pub fn from_json(path: &Path,
             _ => {
                 println!("Could not interpret: {}", name.as_str());
             }
+        }
+    }
+    {
+        let mut dm = dyn_map.lock().unwrap();
+        for obj in &gobjs {
+            dm.add_object_id(obj.name.clone(), obj.id);
         }
     }
     Ok((gobjs, input_handlers, gtiles))

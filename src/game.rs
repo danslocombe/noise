@@ -76,6 +76,7 @@ pub type fphys = f64;
 // the object
 pub struct GameObj {
     pub id: Id,
+    pub name : String,
     pub draws: Arc<Mutex<Drawable>>,
     pub physics: Arc<Mutex<Physical>>,
     pub logic: Arc<Mutex<Logical>>,
@@ -84,15 +85,17 @@ pub struct GameObj {
 
 impl GameObj {
     pub fn new(id: Id,
+               name: String,
                draws: Arc<Mutex<Drawable>>,
                physics: Arc<Mutex<Physical>>,
                logic: Arc<Mutex<Logical>>)
                -> Self {
         GameObj {
-            id: id,
-            draws: draws,
-            physics: physics,
-            logic: logic,
+            id,
+            name,
+            draws,
+            physics,
+            logic,
             message_buffer: CommandBuffer::new(),
         }
     }
@@ -259,6 +262,7 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
 
     let dialogue_buffer = DialogueBuffer::new();
 
+
     Noise {
         world: world,
         player_info: player_info,
@@ -372,6 +376,13 @@ pub fn game_loop(world_path : &Path,
 
                 //  Remove objects
                 for id in ids_remove {
+                    // Remove from dynamic storage
+                    {
+                        let mut dm = game.dyn_map.lock().unwrap();
+                        dm.remove_object_id(id);
+                    }
+
+                    // Remove objects from main list
                     let _ = game.objs
                         .binary_search_by(|o| o.id.cmp(&id))
                         .map(|pos| {
@@ -385,11 +396,21 @@ pub fn game_loop(world_path : &Path,
                         });
                 }
 
-                //  Add new objects
+                // Add to dynamic storage
+                {
+                    let mut dm = game.dyn_map.lock().unwrap();
+
+                    for obj in &objects_add {
+                        dm.add_object_id(obj.name.clone(), obj.id);
+                    }
+                }
+
+                //  Add new objects to main list
                 if !objects_add.is_empty() {
                     game.objs.extend(objects_add);
                     game.objs.sort_by(|a, b| a.id.cmp(&b.id));
                 }
+
 
                 for o in &game.objs {
                     {

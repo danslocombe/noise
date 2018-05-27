@@ -100,7 +100,7 @@ pub fn create_trigger(id: Id,
             h: height,
         },
     });
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "trigger".to_owned(), g, p, l)
 }
 
 struct DialogueLogic {
@@ -134,7 +134,7 @@ pub fn create_dialogue(id: Id,
         text: text,
         triggered: false,
     });
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "dialogue".to_owned(), g, p, l)
 }
 
 pub fn create_crown(id: Id, pos: Pos, _world: &World) -> GameObj {
@@ -182,7 +182,7 @@ pub fn create_crown(id: Id, pos: Pos, _world: &World) -> GameObj {
         phys.collide_with = BBOwnerType::BLOCK;
     }
     let l = arc_mut(logic);
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "crown".to_owned(), g, p, l)
 }
 
 pub fn create_tinge(id: Id,
@@ -202,7 +202,7 @@ pub fn create_tinge(id: Id,
         },
         y_target: y_target,
     });
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "tinge".to_owned(), g, p, l)
 }
 
 

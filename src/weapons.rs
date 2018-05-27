@@ -82,7 +82,7 @@ pub fn create_arrow(id: Id,
     phys.collide_with = BBOwnerType::BLOCK;
     let p = arc_mut(phys);
     let l = arc_mut(ArrowLogic { creator: creator });
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "arrow".to_owned(), g, p, l)
 }
 
 struct ArrowLogic {

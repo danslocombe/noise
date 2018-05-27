@@ -545,12 +545,6 @@ pub fn create(id: Id,
     let (holster, grapple) =
         GrappleHolster::create(id, player, player_id, descr, g.clone());
     let holster_ref = arc_mut(holster);
-    (GameObj {
-         id: id,
-         logic: holster_ref.clone(),
-         draws: g,
-         physics: grapple,
-         message_buffer: CommandBuffer::new(),
-     },
-     holster_ref.clone())
+    (GameObj::new(id, "grapple".to_owned(), g, grapple, holster_ref.clone()),
+        holster_ref.clone())
 }

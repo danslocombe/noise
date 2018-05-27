@@ -42,7 +42,7 @@ impl ResourceContext {
             .unwrap();
         let default_fontname = "fnt_basic";
         let font = Font {
-            char_size : 24,
+            char_size : 48,
             char_cache : gc,
         };
         map.insert(default_fontname.to_owned(), RefCell::new(font));
@@ -122,11 +122,8 @@ impl GraphicPrim {
                 let mut text = Text::new(font.borrow().char_size);
                 text.color = graphics_context.color;
                 ctx.draw(args.viewport(), |c, gl| {
-                    let transform = c.transform
-                                               .scale(vt.scale, vt.scale)
-                                               .trans(-vt.x, -vt.y)
-                                               .trans(*x, *y);
-                    text.draw(t, &mut font.borrow_mut().char_cache, &c.draw_state, transform, gl);
+                    let transform = vt.transform(*x, *y, 1.0, 1.0, &c);
+                    text.draw(t, &mut font.borrow_mut().char_cache, &c.draw_state, transform, gl).unwrap();
                 });
             },
         }

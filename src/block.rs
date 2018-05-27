@@ -56,7 +56,7 @@ pub fn create_block(id: Id,
     };
     let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "block".to_owned(), g, p, l)
 }
 
 pub fn create_clip(id: Id,
@@ -72,7 +72,7 @@ pub fn create_clip(id: Id,
     };
     let p = arc_mut(PhysStatic::new(props, pos, length, height, world));
     let l = arc_mut(DumbLogic {});
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "clip".to_owned(), g, p, l)
 }
 
 pub fn create_platform(id: Id,
@@ -87,7 +87,7 @@ pub fn create_platform(id: Id,
     };
     let p = arc_mut(PhysStatic::new(props, pos, width, Height(10.0), world));
     let l = arc_mut(DumbLogic {});
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, "platform".to_owned(), g, p, l)
 }
 
 pub fn blocks_from_ghosts(_ghost_blocks: &[GhostBlock],

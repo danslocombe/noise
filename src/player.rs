@@ -250,5 +250,5 @@ pub fn create(id: Id,
 
     let l = arc_mut(PlayerLogic::new(g.clone(), descr, world_descr, p.clone()));
 
-    (GameObj::new(id, g, p, l.clone()), l)
+    (GameObj::new(id, "player".to_owned(), g, p, l.clone()), l)
 }

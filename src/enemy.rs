@@ -221,6 +221,7 @@ pub fn create(id: Id,
     let p = arc_mut(phys);
 
     let weapon = Box::new(Bow {});
+    let name = descr.name.clone();
     let l = arc_mut(EnemyLogic {
         id: id,
         spawn_pos: pos,
@@ -237,5 +238,5 @@ pub fn create(id: Id,
         world_descr: world.descr.clone(),
     });
 
-    GameObj::new(id, g, p, l)
+    GameObj::new(id, name, g, p, l)
 }

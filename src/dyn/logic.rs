@@ -48,7 +48,7 @@ impl InputHandler for DynLogic {
     fn press(&mut self, button: Button) {
         {
             let mut dm = self.dyn_map.lock().unwrap();
-            println!("BUTTON RUST {:?}", button);
+            //println!("BUTTON RUST {:?}", button);
             key_to_lisp(button).map(|arg| {
                 dm.run_event("press", Some(arg), &self.logic_name, self.id);
             });
