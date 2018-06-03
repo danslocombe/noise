@@ -136,10 +136,15 @@ impl DynMap {
         // Vary un-rusty but the borrows are kinda horrible
         // Hopefully refactorable
         if !self.interpreters.contains_key(name) {
-            let interp = self.new_interpreter(name);
+            let interp;
+            match self.new_interpreter(name) {
+                Some(x) => {interp = x}
+                None => {return ()}
+            }
             self.interpreters.insert(name.to_owned(), interp);
     
         }
+
         let interp = self.interpreters.get(name).unwrap(); // pretty ugly but otherwise
 
         let state;
@@ -181,7 +186,11 @@ impl DynMap {
                     vt : &ViewTransform) {
 
         if !self.interpreters.contains_key(name) {
-            let interp = self.new_interpreter(name);
+            let interp;
+            match self.new_interpreter(name) {
+                Some(x) => {interp = x}
+                None => {return ()}
+            }
             self.interpreters.insert(name.to_owned(), interp);
     
         }
@@ -279,7 +288,7 @@ impl DynMap {
         ds
     }
 
-    fn new_interpreter(&self, name : &str) -> Interpreter {
+    fn new_interpreter(&self, name : &str) -> Option<Interpreter> {
         let scope = Rc::new(self.default_scope());
         let interp = Builder::new()
             .scope(scope)
@@ -292,13 +301,13 @@ impl DynMap {
             (define (draw state) ())
             "#, None).unwrap();
         match interp.run_file(Path::new(name)) {
-            Ok(()) => (),
+            Ok(()) => Some(interp),
             Err(e) => { 
                 println!("Compile error for {}", name); 
                 display_error(&interp, &e);
+                None
             }
         }
-        interp
     }
 
 }
