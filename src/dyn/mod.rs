@@ -29,7 +29,7 @@ pub mod graphics;
 
 pub struct DynMap {
     pub interpreters: HashMap<String, Interpreter>,
-    pub state_map: HashMap<Id, Value>,
+    pub state_map: RefCell<HashMap<Id, Value>>,
     resource_context : ResourceContext,
     watcher : INotifyWatcher,
     graphics_variables : HashMap<String, Value>,
@@ -66,7 +66,7 @@ impl DynMap {
 
         let mut m = DynMap {
             interpreters: HashMap::new(),
-            state_map: HashMap::new(),
+            state_map: RefCell::new(HashMap::new()),
             watcher: watcher,
             rx: rx,
             resource_context : ResourceContext::new(),
@@ -76,6 +76,10 @@ impl DynMap {
         };
 
         m 
+    }
+
+    pub fn update_obj_state(&mut self, id : &Id, state : Value) {
+        self.state_map.borrow_mut().insert(*id, state);
     }
 
     pub fn add_object_id(&mut self, object_name : String, id : Id) {
@@ -104,7 +108,7 @@ impl DynMap {
                     // For now just nuke everything
                     println!("AFOUND UPDATE");
                     self.interpreters = HashMap::new();
-                    self.state_map = HashMap::new();
+                    self.state_map = RefCell::new(HashMap::new());
                 },
                 e => {
                     println!("{:?}", e);
@@ -138,11 +142,15 @@ impl DynMap {
         }
         let interp = self.interpreters.get(name).unwrap(); // pretty ugly but otherwise
 
-        // I think this is slightly less ugly
-        // we can't do this in the prev as it require mut / imm self references
-        self.state_map.entry(id)
-            .or_insert_with(|| interp.get_value("state-init").unwrap());
-        let state = self.state_map.get(&id).unwrap().clone();
+        let state;
+        {
+            let mut mut_sm = self.state_map.borrow_mut();
+            // I think this is slightly less ugly
+            // we can't do this in the prev as it require mut / imm self references
+            mut_sm.entry(id)
+                .or_insert_with(|| interp.get_value("state-init").unwrap());
+            state = mut_sm.get(&id).unwrap().clone();
+        }
         
         let argvec = match arg {
             Some(x) => vec![state, x],
@@ -158,7 +166,10 @@ impl DynMap {
             }
         };
 
-        self.state_map.insert(id, v);
+        {
+            let mut mut_sm = self.state_map.borrow_mut();
+            mut_sm.insert(id, v);
+        }
     }
 
 
@@ -176,9 +187,13 @@ impl DynMap {
         }
         let interp = self.interpreters.get(name).unwrap(); // pretty ugly but otherwise
 
-        self.state_map.entry(id)
-            .or_insert_with(|| interp.get_value("state-init").unwrap());
-        let state = self.state_map.get(&id).unwrap().clone();
+        let state;
+        {
+            let mut mut_sm = self.state_map.borrow_mut();
+            mut_sm.entry(id)
+                .or_insert_with(|| interp.get_value("state-init").unwrap());
+            state = mut_sm.get(&id).unwrap().clone();
+        }
         
         let argvec = vec![state];
 
@@ -230,10 +245,35 @@ impl DynMap {
                 }
             })
         });
+        let state_map = self.state_map.clone();
+        scope.add_value_with_name("get", move |lisp_name| {
+            Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                if (args.len() == 1) {
+                    let id : u32 = FromValueRef::from_value_ref(&args[0])?;
+                    Ok(match state_map.borrow().get(&id) {
+                        Some(xs) => {
+                            Value::from(xs.clone())
+                        }
+                        None => {
+                            Value::Unit
+                        }
+                    })
+                }
+                else {
+                    Err(From::from(ExecError::ArityError{
+                        name: Some(lisp_name),
+                        expected: Arity::Exact(1 as u32),
+                        found: args.len() as u32,
+                    }))
+                }
+            })
+        });
+
     }
 
     fn default_scope(&self) -> GlobalScope {
         let mut ds = GlobalScope::default("default");
+        ds.register_struct_value::<super::player::PlayerDynState>();
         ketos_fn!{ ds => "chr" => fn chr(x : u32) -> char }
         self.add_logic_funs(&ds);
         ds

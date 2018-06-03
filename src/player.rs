@@ -8,6 +8,7 @@ use logic::*;
 use opengl_graphics::Texture;
 use physics::{PhysDyn, Physical};
 use piston::input::*;
+use ketos::Value;
 
 use player_graphics::*;
 
@@ -15,6 +16,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tools::{arc_mut, normalise};
 use world::World;
+
 
 pub struct PlayerLogic {
     pub draw: Arc<Mutex<PlayerGphx>>,
@@ -28,6 +30,13 @@ pub struct PlayerLogic {
     grapple_target: Option<Pos>,
     pub hp: fphys,
     pub hp_max: fphys,
+}
+
+
+#[derive(Clone, Debug, ForeignValue, FromValueClone, StructValue)]
+pub struct PlayerDynState {
+    x : fphys,
+    y : fphys,
 }
 
 impl PlayerLogic {
@@ -61,7 +70,7 @@ impl Logical for PlayerLogic {
 
         // Boilerplate to get things into scope
         let phys_info = get_phys_info(self.physics.clone());
-        let Pos(_x, y) = phys_info.pos;
+        let Pos(x, y) = phys_info.pos;
         let Vel(xvel, yvel) = phys_info.vel;
         let _dt = args.piston.dt as fphys;
 
@@ -168,6 +177,9 @@ impl Logical for PlayerLogic {
                        &mut self.cds,
                        &self.descr.to_move_descr(self.world_descr.clone()),
                        self.physics.clone());
+
+        let dyn_state = PlayerDynState {x, y};
+        args.metabuffer.issue(MetaCommand::UpdateDynState(args.id, Value::Foreign(Rc::new(dyn_state))));
     }
 }
 

@@ -36,6 +36,7 @@ use tile::{Tile, TileManager};
 use world::World;
 use dyn::DynMap;
 use tools::{arc_mut};
+use ketos::Value;
 
 pub type Id = u32;
 pub type TriggerId = u32;
@@ -122,6 +123,7 @@ pub enum MetaCommand {
     CollectCrown,
     Trigger(TriggerId),
     TingeY(fphys),
+    UpdateDynState(Id, Value),
 }
 
 pub struct CommandBuffer<A> {
@@ -370,6 +372,10 @@ pub fn game_loop(world_path : &Path,
                         }
                         MetaCommand::TingeY(y_target) => {
                             shader.set_color_morph_y_target(y_target);
+                        }
+                        MetaCommand::UpdateDynState(id, state) => {
+                            let mut dm = game.dyn_map.lock().unwrap();
+                            dm.update_obj_state(&id, state);
                         }
                     }
                 }
