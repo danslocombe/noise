@@ -18,7 +18,7 @@ pub struct World {
     sender: Sender<SendType>,
 
     //  For static generation of ids
-    id_gen: Arc<Mutex<IdGen>>,
+    pub id_gen: Arc<Mutex<IdGen>>,
     player_id: Id,
     buffer: Vec<BBDescriptor>,
 
@@ -29,8 +29,16 @@ pub struct World {
     trigger_id_map: HashMap<TriggerId, Id>,
 }
 
-struct IdGen {
+pub struct IdGen {
     pub current: Id,
+}
+
+impl IdGen {
+    pub fn generate_id(id_gen : &Arc<Mutex<Self>>) -> Id {
+        let mut r = id_gen.lock().unwrap();
+        r.current = r.current + 1;
+        r.current
+    }
 }
 
 #[derive(Clone)]
@@ -112,9 +120,7 @@ impl World {
     }
 
     pub fn generate_id(&self) -> Id {
-        let mut r = self.id_gen.lock().unwrap();
-        r.current = r.current + 1;
-        r.current
+        IdGen::generate_id(&self.id_gen)
     }
 
     pub fn player_id(&self) -> Id {

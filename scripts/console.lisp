@@ -1,11 +1,17 @@
+(use random (random))
+
 (struct Console ((s string) (toggle bool)))
 
-(define state-init
+(define (state-init)
   (new Console :s "" :toggle false)
 )
 
 (define (tick state) 
   (do
+    (if (< (random) 0.2)
+      (create 0.0 0.0 "particle")
+      ()
+    )
     state
   )
 )
@@ -34,7 +40,9 @@
     (init-text (. state :s))
     (text (if toggle init-text ""))
     )
-    (.= state :toggle toggle :s text)
+    (do
+      (.= state :toggle toggle :s text)
+    )
   )
 )
 
@@ -52,7 +60,7 @@
         (else                                  state)
       )
   ))
-    (do
+    ( do
       ;(println "Current buffer ~a" (. statenew :s))
       ;(println "~a" key)
       statenew
@@ -62,27 +70,28 @@
 
 (define (draw state)
   (do
-    (if (. state :toggle) 
-      (draw-set-color 1.0 0.0 0.0)
-      (draw-set-color 0.0 1.0 0.0)
-    )
-    ;(println "~a" view-xview)
-    (draw-text 
-      (+ view-xview (/ view-wview 2.0))
-      (+ view-yview (* view-hview 0.25)) 
-      (. state :s)
-    )
-    (let 
-      ((pids (get-ids "player")))
-      (if (null pids)
-        (println "No player")
-        (let (
-             (x (. (get (first pids)) :x) )
-             (y (. (get (first pids)) :y) )
-           )
-           (draw-rectangle x y 100.0 100.0 false)
-        )
-      )
-    )
+    ()
+    ; (if (. state :toggle) 
+    ;   (draw-set-color 1.0 0.0 0.0)
+    ;   (draw-set-color 0.0 1.0 0.0)
+    ; )
+    ; ;(println "~a" view-xview)
+    ; (draw-text 
+    ;   (+ view-xview (/ view-wview 2.0))
+    ;   (+ view-yview (* view-hview 0.25)) 
+    ;   (. state :s)
+    ; )
+    ; (let 
+    ;   ((pids (get-ids "player")))
+    ;   (if (null pids)
+    ;     (println "No player")
+    ;     (let (
+    ;          (x (. (get (first pids)) :x) )
+    ;          (y (. (get (first pids)) :y) )
+    ;        )
+    ;        (draw-rectangle x y 100.0 100.0 false)
+    ;     )
+    ;   )
+    ; )
   )
 )

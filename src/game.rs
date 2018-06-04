@@ -228,7 +228,9 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
     let enemy_descriptors =
         load_enemy_descriptors(Path::new("descriptors/enemy")).unwrap();
 
-    let dyn_map = DynMap::construct();
+    let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
+
+    let dyn_map = DynMap::construct(world.id_gen.clone(), metabuffer.sender.clone());
 
     //  Load from json
     let poss_objs = from_json(world_path,
@@ -253,8 +255,6 @@ fn init_game<'a>(world_path: &Path, tile_manager: &'a TileManager) -> Noise<'a> 
     let view_follower = ViewFollower::new_defaults(vt, player_id);
     let editor = Editor::new(vec![Box::new(view_follower)]);
     let overlay = Overlay::new(player_logic.clone());
-
-    let metabuffer: CommandBuffer<MetaCommand> = CommandBuffer::new();
 
     let player_info = PlayerInfo {
         player_id: player_id,
@@ -324,6 +324,7 @@ pub fn game_loop(world_path : &Path,
                             game = init_game(world_path, &tile_manager);
                         }
                         MetaCommand::RemoveObject(id) => {
+                            //println!("Destroy {}", id);
                             ids_remove.push(id);
                         }
                         MetaCommand::CreateObject(obj) => {

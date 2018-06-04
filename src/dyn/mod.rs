@@ -18,6 +18,9 @@ use self::graphics::GraphicQueued;
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::cell::RefMut;
+use game::{MetaCommand, GameObj, fphys};
+use world::IdGen;
+use physics::PhysNone;
 
 use ketos::{Builder, GlobalScope, Scope, Error, Interpreter, Value, Integer, ExecError, Arity, FromValueRef};
 
@@ -26,15 +29,24 @@ mod macros;
 pub mod logic;
 pub mod graphics;
 
+use self::logic::DynLogic;
+use self::graphics::DynGraphics;
+
 
 pub struct DynMap {
     pub interpreters: HashMap<String, Interpreter>,
     pub state_map: RefCell<HashMap<Id, Value>>,
-    resource_context : ResourceContext,
+    pub resource_context : Arc<ResourceContext>,
     watcher : INotifyWatcher,
     graphics_variables : HashMap<String, Value>,
     rx : Receiver<DebouncedEvent>,
     object_ids_map : RefCell<HashMap<String, Vec<Id>>>,
+    metabuffer_tx : Sender<MetaCommand>,
+    id_gen : Arc<Mutex<IdGen>>,
+
+    // This is really ugly but we need a self reference
+    // if treated badly this could easily lead to deadlocks
+    pub self_reference : Option<Arc<Mutex<DynMap>>>,
 }
 
 fn init_lisp() -> Result<Value, Error> {
@@ -51,6 +63,17 @@ fn chr(x : u32) -> Result<char, Error> {
     }
 }
 
+pub fn make_dyn_obj(id : Id, dyn_map : &Arc<Mutex<DynMap>>, resource_context : &Arc<ResourceContext>, logic_name : &str) -> (GameObj, Arc<Mutex<InputHandler>>) {
+    let logic_filename = format!("scripts/{}.lisp", logic_name);
+    let dl = DynLogic::new(id, dyn_map.clone(), logic_filename.clone());
+    let am_dl = arc_mut(dl);
+    let dg = DynGraphics::new(id, dyn_map.clone(), logic_filename, resource_context.clone());
+    let am_dg = arc_mut(dg);
+    let phs = arc_mut(PhysNone {id: id});
+    let gobj = GameObj::new(id, logic_name.to_owned(), am_dg, phs, am_dl.clone());
+    (gobj, am_dl)
+}
+
 fn display_error(interp: &Interpreter, e: &Error) {
     if let Some(trace) = interp.take_traceback() {
         interp.display_trace(&trace);
@@ -58,7 +81,7 @@ fn display_error(interp: &Interpreter, e: &Error) {
     interp.display_error(e);
 }
 impl DynMap {
-    pub fn new() -> Self {
+    pub fn new(id_gen : Arc<Mutex<IdGen>>, metabuffer_tx : Sender<MetaCommand>) -> Self {
         let (tx, rx) = channel();       
         let mut watcher = watcher(tx, Duration::from_millis(1)).unwrap();
         let scr_path = "scripts";
@@ -69,10 +92,13 @@ impl DynMap {
             state_map: RefCell::new(HashMap::new()),
             watcher: watcher,
             rx: rx,
-            resource_context : ResourceContext::new(),
+            resource_context : Arc::new(ResourceContext::new()),
             graphics_variables : HashMap::new(),
             //default_scope : default_scope,
             object_ids_map : RefCell::new(HashMap::new()),
+            metabuffer_tx,
+            id_gen,
+            self_reference : None,
         };
 
         m 
@@ -94,9 +120,14 @@ impl DynMap {
         // DO THIS
     }
 
-    pub fn construct() -> Arc<Mutex<Self>> {
-        let d = Self::new();
+    pub fn construct(id_gen : Arc<Mutex<IdGen>>, mb : Sender<MetaCommand>) -> Arc<Mutex<Self>> {
+        let d = Self::new(id_gen, mb);
         let am = arc_mut(d);
+
+        {
+            let mut d2 = am.lock().unwrap();
+            d2.self_reference = Some(am.clone());
+        }
 
         am
     }
@@ -137,7 +168,7 @@ impl DynMap {
         // Hopefully refactorable
         if !self.interpreters.contains_key(name) {
             let interp;
-            match self.new_interpreter(name) {
+            match self.new_interpreter(id, name) {
                 Some(x) => {interp = x}
                 None => {return ()}
             }
@@ -153,7 +184,8 @@ impl DynMap {
             // I think this is slightly less ugly
             // we can't do this in the prev as it require mut / imm self references
             mut_sm.entry(id)
-                .or_insert_with(|| interp.get_value("state-init").unwrap());
+                .or_insert_with(|| interp.call("state-init", vec![]).unwrap());
+                //.or_insert_with(|| interp.get_value("state-init").unwrap());
             state = mut_sm.get(&id).unwrap().clone();
         }
         
@@ -187,7 +219,7 @@ impl DynMap {
 
         if !self.interpreters.contains_key(name) {
             let interp;
-            match self.new_interpreter(name) {
+            match self.new_interpreter(id, name) {
                 Some(x) => {interp = x}
                 None => {return ()}
             }
@@ -200,7 +232,8 @@ impl DynMap {
         {
             let mut mut_sm = self.state_map.borrow_mut();
             mut_sm.entry(id)
-                .or_insert_with(|| interp.get_value("state-init").unwrap());
+                .or_insert_with(|| interp.call("state-init", vec![]).unwrap());
+                //.or_insert_with(|| interp.get_value("state-init").unwrap());
             state = mut_sm.get(&id).unwrap().clone();
         }
         
@@ -208,7 +241,7 @@ impl DynMap {
 
         let c = Rc::new(RefCell::new(Vec::new()));
 
-        self.add_logic_funs(interp.scope());
+        self.add_logic_funs(id, interp.scope());
         graphics::add_graphic_funs(interp.scope(), &c);
 
         for var in self.graphics_variables.keys() {
@@ -230,7 +263,7 @@ impl DynMap {
         }
     }
 
-    fn add_logic_funs(&self, scope : &GlobalScope) {
+    fn add_logic_funs(&self, id : Id, scope : &GlobalScope) {
         let oim = self.object_ids_map.clone();
         scope.add_value_with_name("get-ids", move |lisp_name| {
             Value::new_foreign_fn(lisp_name, move |_scope, args| {
@@ -277,24 +310,78 @@ impl DynMap {
                 }
             })
         });
+        //scope.add_value_with_name("id", move |lisp_name| {
+            //Value::from(id)
+        //});
+        scope.add_named_value("me", Value::Integer(Integer::from_u32(id)));
+        
+
+
+        {
+            let id_gen = self.id_gen.clone();
+            let self_reference : Arc<Mutex<DynMap>> = self.self_reference.clone().unwrap();
+            let resource_context = self.resource_context.clone();
+            let metabuffer_tx = self.metabuffer_tx.clone();
+            scope.add_value_with_name("create", move |lisp_name| {
+                Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                    if (args.len() == 3) {
+                        let x : fphys = FromValueRef::from_value_ref(&args[0])?;
+                        let y : fphys = FromValueRef::from_value_ref(&args[1])?;
+                        let script : &str = FromValueRef::from_value_ref(&args[2])?;
+                        let id = IdGen::generate_id(&id_gen);
+                        //let g = GameObj {}
+                        let (gobj, _) = make_dyn_obj(id, &self_reference, &resource_context, script);
+                        //println!("SENDING {}", script);
+                        metabuffer_tx.send(MetaCommand::CreateObject(gobj)).unwrap();
+                        Ok(Value::Unit)
+                    }
+                    else {
+                        Err(From::from(ExecError::ArityError{
+                            name: Some(lisp_name),
+                            expected: Arity::Exact(1 as u32),
+                            found: args.len() as u32,
+                        }))
+                    }
+                })
+            });
+        }
+        {
+            let metabuffer_tx = self.metabuffer_tx.clone();
+            scope.add_value_with_name("destroy", move |lisp_name| {
+                Value::new_foreign_fn(lisp_name, move |_scope, args| {
+                    if (args.len() == 1) {
+                        let id = FromValueRef::from_value_ref(&args[0])?;
+                        metabuffer_tx.send(MetaCommand::RemoveObject(id)).unwrap();
+                        Ok(Value::Unit)
+                    }
+                    else {
+                        Err(From::from(ExecError::ArityError{
+                            name: Some(lisp_name),
+                            expected: Arity::Exact(1 as u32),
+                            found: args.len() as u32,
+                        }))
+                    }
+                })
+            });
+        }
 
     }
 
-    fn default_scope(&self) -> GlobalScope {
-        let mut ds = GlobalScope::default("default");
+    fn default_scope(&self, id : Id, name : &str) -> GlobalScope {
+        let mut ds = GlobalScope::default(name);
         ds.register_struct_value::<super::player::PlayerDynState>();
         ketos_fn!{ ds => "chr" => fn chr(x : u32) -> char }
-        self.add_logic_funs(&ds);
+        self.add_logic_funs(id, &ds);
         ds
     }
 
-    fn new_interpreter(&self, name : &str) -> Option<Interpreter> {
-        let scope = Rc::new(self.default_scope());
+    fn new_interpreter(&self, id : Id, name : &str) -> Option<Interpreter> {
+        let scope = Rc::new(self.default_scope(id, name));
         let interp = Builder::new()
             .scope(scope)
             .finish();
         interp.run_code(r#"
-            (define init-state ())
+            (define (init-state)  ())
             (define (tick state) state)
             (define (press state key) (do (println "KeyPress ~a" key) state))
             (define (release state key) state)
